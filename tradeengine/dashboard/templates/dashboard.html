@@ -481,6 +481,23 @@
             color: #ff8a80; font-size: 0.85rem;
         }
 
+        .tab-tip {
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            border: 1px solid #1e2d4a; border-radius: 10px;
+            padding: 12px 16px; margin-bottom: 16px;
+            display: flex; align-items: flex-start; gap: 10px;
+            font-size: 0.85rem; color: #8899a6; line-height: 1.5;
+        }
+        .tab-tip-icon { font-size: 1.1rem; flex-shrink: 0; margin-top: 1px; }
+        .tab-tip strong { color: #e7e9ea; }
+        .tab-tip a { color: #29b6f6; text-decoration: none; }
+        .tab-tip a:hover { text-decoration: underline; }
+        .tab-tip .tip-close {
+            margin-left: auto; background: none; border: none; color: #4a5568;
+            cursor: pointer; font-size: 1rem; padding: 0 4px; flex-shrink: 0;
+        }
+        .tab-tip .tip-close:hover { color: #8899a6; }
+
         @media (max-width: 900px) {
             .stats-row { grid-template-columns: repeat(2, 1fr); }
             .dash-grid { grid-template-columns: 1fr; }
@@ -536,6 +553,11 @@
 
         <!-- ═══ Tab 0: Dashboard Overview ═══ -->
         <div class="tab-content active" id="tab-dashboard">
+            <div class="tab-tip" id="tip-dashboard">
+                <span class="tab-tip-icon">&#128161;</span>
+                <div><strong>儀表板</strong> — 查看所有機器人的即時狀態與綜合損益。點「建立」可快速新增機器人。新手請先前往 <a href="#" onclick="switchTab('account');return false;">帳戶</a> 設定 API 金鑰，再到 <a href="#" onclick="switchTab('backtest');return false;">回測</a> 驗證策略。</div>
+                <button class="tip-close" onclick="this.parentElement.style.display='none'" title="關閉">&times;</button>
+            </div>
             <!-- Stats Row -->
             <div class="stats-row">
                 <div class="stat-card">
@@ -621,6 +643,11 @@
 
         <!-- ═══ Tab 1: Backtest ═══ -->
         <div class="tab-content" id="tab-backtest">
+            <div class="tab-tip" id="tip-backtest">
+                <span class="tab-tip-icon">&#128200;</span>
+                <div><strong>回測</strong> — 用歷史數據驗證策略表現。選擇策略和交易對，點「執行回測」即可。關鍵指標：<strong>夏普比率 > 1</strong>（風險調整報酬好）、<strong>最大回撤 < 20%</strong>（風險可控）、<strong>獲利因子 > 1.5</strong>（盈虧比佳）。回測結果會自動儲存到下方歷史。</div>
+                <button class="tip-close" onclick="this.parentElement.style.display='none'" title="關閉">&times;</button>
+            </div>
             <div class="grid">
                 <div class="sidebar">
                     <h2>回測設定</h2>
@@ -635,11 +662,11 @@
                     <div class="form-group">
                         <label>資料來源</label>
                         <select id="bt-source" onchange="toggleSource('bt')">
+                            {% if csv_files %}<option value="csv">CSV 檔案（快速）</option>{% endif %}
                             <option value="api">Pionex API</option>
-                            {% if csv_files %}<option value="csv">CSV 檔案</option>{% endif %}
                         </select>
                     </div>
-                    <div id="bt-api-fields">
+                    <div id="bt-api-fields" {% if csv_files %}style="display:none;"{% endif %}
                         <div class="form-group">
                             <label>交易對</label>
                             <select id="bt-symbol">
@@ -665,7 +692,7 @@
                             <input type="number" id="bt-limit" value="2000" min="100" max="10000">
                         </div>
                     </div>
-                    <div id="bt-csv-fields" style="display:none;">
+                    <div id="bt-csv-fields" {% if csv_files %}{% else %}style="display:none;"{% endif %}>
                         <div class="form-group">
                             <label>CSV 檔案</label>
                             <select id="bt-csv">
@@ -730,6 +757,11 @@
 
         <!-- ═══ Tab 2: Optimize ═══ -->
         <div class="tab-content" id="tab-optimize">
+            <div class="tab-tip" id="tip-optimize">
+                <span class="tab-tip-icon">&#9881;</span>
+                <div><strong>參數優化</strong> — 自動測試策略的不同參數組合，找出最佳設定。選擇策略後點「開始優化」，系統會窮舉所有參數組合並排名。結果按夏普比率排序，直接點「套用」可帶入回測。建議用 <strong>1000+ 根K線</strong>的數據量以確保結果穩定。</div>
+                <button class="tip-close" onclick="this.parentElement.style.display='none'" title="關閉">&times;</button>
+            </div>
             <div class="grid">
                 <div class="sidebar">
                     <h2>參數優化設定</h2>
@@ -744,11 +776,11 @@
                     <div class="form-group">
                         <label>資料來源</label>
                         <select id="opt-source" onchange="toggleSource('opt')">
+                            {% if csv_files %}<option value="csv">CSV 檔案（快速）</option>{% endif %}
                             <option value="api">Pionex API</option>
-                            {% if csv_files %}<option value="csv">CSV 檔案</option>{% endif %}
                         </select>
                     </div>
-                    <div id="opt-api-fields">
+                    <div id="opt-api-fields" {% if csv_files %}style="display:none;"{% endif %}
                         <div class="form-group">
                             <label>交易對</label>
                             <select id="opt-symbol">
@@ -773,7 +805,7 @@
                             <input type="number" id="opt-limit" value="3000" min="500" max="10000">
                         </div>
                     </div>
-                    <div id="opt-csv-fields" style="display:none;">
+                    <div id="opt-csv-fields" {% if csv_files %}{% else %}style="display:none;"{% endif %}>
                         <div class="form-group">
                             <label>CSV 檔案</label>
                             <select id="opt-csv">
@@ -818,6 +850,11 @@
 
         <!-- ═══ Tab 3: Bots ═══ -->
         <div class="tab-content" id="tab-bots">
+            <div class="tab-tip" id="tip-bots">
+                <span class="tab-tip-icon">&#129302;</span>
+                <div><strong>交易機器人</strong> — 管理自動交易機器人。建立時選擇「模擬交易」先測試，確認穩定後再切換「即時交易」。支援兩種信號來源：<strong>內建策略</strong>（自動產生信號）或 <strong>TradingView Webhook</strong>（外部信號觸發）。即時交易前請務必設定<strong>停損</strong>。啟動前需先在 <a href="#" onclick="switchTab('account');return false;">帳戶</a> 設定 API 金鑰。</div>
+                <button class="tip-close" onclick="this.parentElement.style.display='none'" title="關閉">&times;</button>
+            </div>
             <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
                 <h2 style="color:#f7931a;">交易機器人</h2>
                 <div style="display:flex;align-items:center;gap:12px;">
@@ -910,6 +947,11 @@
 
         <!-- ═══ Tab 4: Account ═══ -->
         <div class="tab-content" id="tab-account">
+            <div class="tab-tip" id="tip-account">
+                <span class="tab-tip-icon">&#128273;</span>
+                <div><strong>帳戶設定</strong> — 在此管理你的 Pionex API 金鑰。步驟：1. 登入 <a href="https://www.pionex.com/en/apiManagement" target="_blank">Pionex API 管理頁面</a> → 2. 建立 API，勾選 <strong>Reading + Trading</strong> → 3. 將 API Key 和 Secret 貼到下方儲存。金鑰以加密方式儲存，其他用戶無法存取。</div>
+                <button class="tip-close" onclick="this.parentElement.style.display='none'" title="關閉">&times;</button>
+            </div>
             <div class="card">
                 <h3>Pionex API 金鑰管理</h3>
                 <div id="apikey-section">
@@ -945,6 +987,11 @@
 
         <!-- ═══ Tab 5: Strategies ═══ -->
         <div class="tab-content" id="tab-strategies">
+            <div class="tab-tip" id="tip-strategies">
+                <span class="tab-tip-icon">&#128218;</span>
+                <div><strong>策略總覽</strong> — 查看所有可用的交易策略及其參數說明。每個策略都有不同的適用行情：<strong>趨勢型</strong>（MA交叉、超級趨勢、唐奇安通道）適合單邊行情，<strong>震盪型</strong>（RSI、布林帶）適合盤整行情，<strong>複合型</strong>（多重確認、三重EMA）降低假信號。點擊策略可查看詳細參數。</div>
+                <button class="tip-close" onclick="this.parentElement.style.display='none'" title="關閉">&times;</button>
+            </div>
             <div id="strat-list"><div class="loading">載入中...</div></div>
         </div>
 
@@ -1010,6 +1057,11 @@
 
         <!-- ═══ Tab 7: Admin ═══ -->
         <div class="tab-content" id="tab-admin">
+            <div class="tab-tip" id="tip-admin">
+                <span class="tab-tip-icon">&#128736;</span>
+                <div><strong>管理員</strong> — 管理所有註冊使用者。可直接編輯 Email 和名稱（點擊欄位修改，離開自動儲存）。調整機器人上限控制每位使用者可建立的 Bot 數量。「停用」可暫時禁止用戶登入操作。</div>
+                <button class="tip-close" onclick="this.parentElement.style.display='none'" title="關閉">&times;</button>
+            </div>
             <div class="card">
                 <h3 style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;">
                     使用者管理
