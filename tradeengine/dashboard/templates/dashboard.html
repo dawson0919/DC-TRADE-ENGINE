@@ -1566,7 +1566,8 @@
                     '<td class="' + (m.total_return_pct >= 0 ? 'positive' : 'negative') + '">' + (m.total_return_pct >= 0 ? '+' : '') + m.total_return_pct.toFixed(1) + '%</td>' +
                     '<td>' + m.sharpe_ratio.toFixed(2) + '</td><td class="negative">' + m.max_drawdown_pct.toFixed(1) + '%</td>' +
                     '<td>' + m.win_rate.toFixed(0) + '%</td><td>' + m.total_trades + '</td><td>' + m.profit_factor.toFixed(2) + '</td>' +
-                    '<td><button class="btn btn-sm btn-secondary" onclick=\'applyOptParams(' + JSON.stringify(JSON.stringify(r.params)) + ')\'>套用</button></td></tr>';
+                    '<td><button class="btn btn-sm btn-secondary" onclick=\'applyOptParams(' + JSON.stringify(JSON.stringify(r.params)) + ')\'>套用回測</button> ' +
+                    '<button class="btn btn-sm" onclick=\'createBotFromOpt(' + JSON.stringify(JSON.stringify(r.params)) + ')\' style="margin-left:4px;">建立機器人</button></td></tr>';
             });
             html += '</tbody></table></div>';
             content.innerHTML = html;
@@ -1579,6 +1580,28 @@
             loadStrategyParams('bt').then(() => {
                 Object.entries(params).forEach(([k, v]) => {
                     const input = document.getElementById('bt-param-' + k);
+                    if (input) input.value = v;
+                });
+            });
+        }
+
+        function createBotFromOpt(paramsJson) {
+            const params = JSON.parse(paramsJson);
+            const strategy = document.getElementById('opt-strategy').value;
+            const symbol = document.getElementById('opt-symbol') ? document.getElementById('opt-symbol').value : 'BTC_USDT';
+            const timeframe = document.getElementById('opt-timeframe') ? document.getElementById('opt-timeframe').value : '1h';
+            switchTab('bots');
+            document.getElementById('createBotModal').classList.add('active');
+            document.getElementById('bot-signal-source').value = 'strategy';
+            onSignalSourceChange();
+            document.getElementById('bot-strategy').value = strategy;
+            document.getElementById('bot-symbol').value = symbol;
+            onBotSymbolChange();
+            document.getElementById('bot-timeframe').value = timeframe;
+            document.getElementById('bot-name').value = strategy + ' 優化';
+            loadStrategyParams('bot').then(() => {
+                Object.entries(params).forEach(([k, v]) => {
+                    const input = document.getElementById('bot-param-' + k);
                     if (input) input.value = v;
                 });
             });
