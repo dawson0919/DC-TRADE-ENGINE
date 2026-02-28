@@ -162,6 +162,7 @@ def create_app() -> FastAPI:
                 "symbol": symbol, "timeframe": tf,
                 "label": f"{symbol} {tf} ({f.name})",
             })
+        csvs.sort(key=lambda c: (c["symbol"], c["timeframe"]))
         return csvs
 
     # ─── Pages ───────────────────────────────────────────────────────
