@@ -6,7 +6,7 @@ import asyncio
 import logging
 from collections import deque
 from datetime import datetime, timezone
-from typing import Any
+from typing import Any, Callable
 
 import pandas as pd
 
@@ -63,6 +63,11 @@ class LiveTradingEngine:
         self._current_candle: dict | None = None
         self._ws: PionexWebSocket | None = None
         self._last_signal_time: float = 0
+        self._on_trade_callback: Callable | None = None
+
+    def on_trade(self, callback: Callable):
+        """Register callback for trade events: callback(side, price, size, pnl)."""
+        self._on_trade_callback = callback
 
     async def start(self):
         """Start the trading loop."""
@@ -107,9 +112,11 @@ class LiveTradingEngine:
 
     async def _on_trade(self, data: dict):
         """Handle incoming trade from WebSocket."""
-        # Update current price for risk management
         if isinstance(data, dict) and "price" in data:
             price = float(data["price"])
+            # Keep paper executor price in sync
+            if hasattr(self.executor, "set_price"):
+                self.executor.set_price(self.symbol, price)
             # Update position PnL
             self.position_manager.update_unrealized_pnl(self.symbol, price)
             # Check risk
@@ -169,7 +176,16 @@ class LiveTradingEngine:
         latest_exit_short = bool(signals.exits_short.iloc[-1])
 
         current_price = float(df["close"].iloc[-1])
+        # Ensure paper executor has current price before any order
+        if hasattr(self.executor, "set_price"):
+            self.executor.set_price(self.symbol, current_price)
         pos = self.position_manager.get_position(self.symbol)
+
+        logger.info(
+            f"Signal check: entry_long={latest_entry_long} exit_long={latest_exit_long} "
+            f"entry_short={latest_entry_short} exit_short={latest_exit_short} "
+            f"has_pos={has_position} price={current_price:.2f}"
+        )
 
         try:
             if has_position and pos:
@@ -204,10 +220,17 @@ class LiveTradingEngine:
             return
 
         order_side = "BUY" if side == Side.LONG else "SELL"
+        logger.info(f"Opening {side.value} position: {order_side} {size:.8f} {self.symbol} @ {price:.2f}")
         order = await self.executor.place_market_order(self.symbol, order_side, size)
 
         fill_price = float(order.get("price", price))
         self.position_manager.open_position(self.symbol, side, fill_price, size)
+
+        if self._on_trade_callback:
+            try:
+                self._on_trade_callback("open", side.value, fill_price, size, 0.0)
+            except Exception:
+                pass
 
     async def _close_position(self, price: float):
         """Close current position."""
@@ -215,6 +238,14 @@ class LiveTradingEngine:
         if not pos:
             return
 
+        pnl = (price - pos.entry_price) * pos.size if pos.side == Side.LONG else (pos.entry_price - price) * pos.size
         order_side = "SELL" if pos.side == Side.LONG else "BUY"
+        logger.info(f"Closing {pos.side.value} position: {order_side} {pos.size:.8f} {self.symbol} @ {price:.2f} PnL={pnl:+.2f}")
         await self.executor.place_market_order(self.symbol, order_side, pos.size)
         self.position_manager.close_position(self.symbol, price)
+
+        if self._on_trade_callback:
+            try:
+                self._on_trade_callback("close", pos.side.value, price, pos.size, pnl)
+            except Exception:
+                pass

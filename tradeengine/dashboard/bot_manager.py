@@ -365,6 +365,34 @@ class BotManager:
             bot.status = "running"
             bot.error_msg = ""
             self._running_engines[bot_id] = engine
+
+            # Register trade callback to update bot stats
+            def _on_engine_trade(action, side, price, size, pnl, _bid=bot_id):
+                b = self._bots.get(_bid)
+                if not b:
+                    return
+                now_str = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+                if action == "close":
+                    b.total_trades += 1
+                    b.total_pnl += pnl
+                    if pnl > 0:
+                        wins = round(b.win_rate / 100 * max(b.total_trades - 1, 0))
+                        b.win_rate = round((wins + 1) / b.total_trades * 100, 1)
+                    elif b.total_trades > 1:
+                        wins = round(b.win_rate / 100 * (b.total_trades - 1))
+                        b.win_rate = round(wins / b.total_trades * 100, 1)
+                    else:
+                        b.win_rate = 0.0
+                    b.trade_history.append({
+                        "action": action, "side": side,
+                        "price": price, "size": size,
+                        "pnl": round(pnl, 4), "time": now_str,
+                    })
+                b.last_signal = f"{action} {side}"
+                b.last_signal_time = now_str
+                self._save_one_bot(b)
+
+            engine.on_trade(_on_engine_trade)
             self._save_one_bot(bot)
 
             task = asyncio.create_task(self._run_bot(bot_id, engine, client))

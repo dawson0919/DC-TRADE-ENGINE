@@ -25,6 +25,7 @@ class PionexWebSocket:
         self._ws = None
         self._running = False
         self._callbacks: dict[str, list[Callable]] = {}
+        self._subscriptions: list[dict] = []
         self._last_pong = 0
 
     async def connect(self):
@@ -35,19 +36,15 @@ class PionexWebSocket:
 
     async def subscribe_trade(self, symbol: str):
         """Subscribe to trade stream for a symbol."""
-        msg = {
-            "op": "SUBSCRIBE",
-            "topic": f"TRADE@{symbol}",
-        }
+        msg = {"op": "SUBSCRIBE", "topic": f"TRADE@{symbol}"}
+        self._subscriptions.append(msg)
         await self._ws.send(json.dumps(msg))
         logger.info(f"Subscribed to TRADE@{symbol}")
 
     async def subscribe_depth(self, symbol: str):
         """Subscribe to order book depth stream."""
-        msg = {
-            "op": "SUBSCRIBE",
-            "topic": f"DEPTH@{symbol}@STEP0",
-        }
+        msg = {"op": "SUBSCRIBE", "topic": f"DEPTH@{symbol}@STEP0"}
+        self._subscriptions.append(msg)
         await self._ws.send(json.dumps(msg))
         logger.info(f"Subscribed to DEPTH@{symbol}")
 
@@ -90,10 +87,18 @@ class PionexWebSocket:
                 cb(data)
 
     async def _reconnect(self):
-        """Attempt to reconnect after disconnection."""
+        """Attempt to reconnect and restore subscriptions."""
         await asyncio.sleep(5)
         try:
             await self.connect()
+            # Re-subscribe to all previous topics
+            if self._ws:
+                for msg in self._subscriptions:
+                    try:
+                        await self._ws.send(json.dumps(msg))
+                        logger.info(f"Re-subscribed to {msg.get('topic', '?')}")
+                    except Exception:
+                        pass
         except Exception as e:
             logger.error(f"Reconnect failed: {e}")
 
