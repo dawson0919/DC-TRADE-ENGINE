@@ -249,30 +249,31 @@ def create_app() -> FastAPI:
     @app.get("/api/api-keys")
     async def api_get_keys(request: Request):
         user = await _optional_user(request)
-        if not user or not _db_available:
-            # Local mode: check server config
+        # Auth mode: check user's DB credential
+        if user and _db_available:
+            try:
+                from tradeengine.database.connection import get_session
+                from tradeengine.database.crud import get_api_credential
+                session = await get_session()
+                try:
+                    cred = await get_api_credential(session, user["user_id"])
+                    if cred:
+                        from tradeengine.database.encryption import decrypt_value
+                        raw_key = decrypt_value(cred.api_key_encrypted)
+                        preview = raw_key[:6] + "..." + raw_key[-4:] if len(raw_key) > 10 else "***"
+                        return {"has_key": True, "key_preview": preview, "label": cred.label}
+                    return {"has_key": False}
+                finally:
+                    await session.close()
+            except Exception:
+                return {"has_key": False}
+        # Local mode (no auth): check server config
+        if not (_db_available and clerk_pk):
             key = config.pionex.api_key
             if key and key != "your_api_key_here":
                 preview = key[:6] + "..." + key[-4:] if len(key) > 10 else "***"
                 return {"has_key": True, "key_preview": preview, "label": "伺服器設定檔", "source": "config"}
-            return {"has_key": False}
-        try:
-            from tradeengine.database.connection import get_session
-            from tradeengine.database.crud import get_api_credential
-            session = await get_session()
-            try:
-                cred = await get_api_credential(session, user["user_id"])
-                if cred:
-                    # Show masked key preview
-                    from tradeengine.database.encryption import decrypt_value
-                    raw_key = decrypt_value(cred.api_key_encrypted)
-                    preview = raw_key[:6] + "..." + raw_key[-4:] if len(raw_key) > 10 else "***"
-                    return {"has_key": True, "key_preview": preview, "label": cred.label}
-                return {"has_key": False}
-            finally:
-                await session.close()
-        except Exception:
-            return {"has_key": False}
+        return {"has_key": False}
 
     @app.post("/api/api-keys")
     async def api_save_keys(request: Request):
