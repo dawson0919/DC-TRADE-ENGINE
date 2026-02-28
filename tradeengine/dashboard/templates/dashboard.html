@@ -637,8 +637,8 @@
                         </div>
                     </div>
                     <div class="dash-bot-tabs">
-                        <button class="dash-bot-tab active">運行中</button>
-                        <button class="dash-bot-tab">全部</button>
+                        <button class="dash-bot-tab active" onclick="filterDashBots('running')">運行中</button>
+                        <button class="dash-bot-tab" onclick="filterDashBots('all')">全部</button>
                     </div>
                     <div id="dash-bot-list">
                         <div class="dash-empty">
@@ -1124,6 +1124,8 @@
             if (!AUTH_ENABLED || !window.Clerk) {
                 console.info('Auth not enabled, running in local mode');
                 loadDashboard();
+                loadBacktestHistory();
+                loadOptimizeHistory();
                 return;
             }
             try {
@@ -1147,12 +1149,16 @@
                     currentUser = await resp.json();
                     renderUserBar();
                     loadDashboard();
+                    loadBacktestHistory();
+                    loadOptimizeHistory();
                 } else {
                     window.location.href = '/login';
                 }
             } catch (err) {
                 console.warn('Auth unavailable, running in dev mode');
                 loadDashboard();
+                loadBacktestHistory();
+                loadOptimizeHistory();
             }
         }
 
@@ -1252,8 +1258,9 @@
                 // Render PnL chart (flat line if no data)
                 renderDashPnlChart(totalPnl, totalAllocation);
 
-                // Render bot list
-                renderDashBotList(bots);
+                // Render bot list (default: show all)
+                _dashAllBots = bots;
+                filterDashBots('all');
 
             } catch (err) {
                 console.error('Dashboard load error:', err);
@@ -1298,6 +1305,16 @@
                     interaction: { intersect: false, mode: 'index' },
                 },
             });
+        }
+
+        let _dashAllBots = [];
+        function filterDashBots(filter) {
+            document.querySelectorAll('.dash-bot-tab').forEach(btn => btn.classList.remove('active'));
+            const tabs = document.querySelectorAll('.dash-bot-tab');
+            if (filter === 'running' && tabs[0]) tabs[0].classList.add('active');
+            if (filter === 'all' && tabs[1]) tabs[1].classList.add('active');
+            const filtered = filter === 'running' ? _dashAllBots.filter(b => b.status === 'running') : _dashAllBots;
+            renderDashBotList(filtered);
         }
 
         function renderDashBotList(bots) {
@@ -2190,8 +2207,6 @@
             detectInAppBrowser();
             initAuth();
             loadStrategyParams('bt');
-            loadBacktestHistory();
-            loadOptimizeHistory();
         });
     </script>
 </body>
