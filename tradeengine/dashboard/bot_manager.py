@@ -16,6 +16,15 @@ logger = logging.getLogger(__name__)
 
 BOT_STORE_PATH = Path(__file__).parent.parent.parent / "data" / "bots.json"
 
+# Fields to persist to DB / JSON
+_BOT_FIELDS = [
+    "bot_id", "user_id", "name", "strategy", "symbol", "timeframe",
+    "capital", "params", "paper_mode", "sl_pct", "tp_pct",
+    "max_drawdown_pct", "created_at", "status", "signal_source",
+    "webhook_token", "total_pnl", "total_trades", "win_rate",
+    "last_signal", "last_signal_time", "trade_history", "error_msg",
+]
+
 
 class BotStatus(str, Enum):
     STOPPED = "stopped"
@@ -54,11 +63,60 @@ class BotConfig:
     error_msg: str = ""
 
 
+def _bot_to_row(bot: BotConfig) -> dict:
+    """Convert BotConfig to a DB row dict."""
+    return {
+        "bot_id": bot.bot_id,
+        "user_id": bot.user_id,
+        "name": bot.name,
+        "strategy": bot.strategy,
+        "symbol": bot.symbol,
+        "timeframe": bot.timeframe,
+        "capital": bot.capital,
+        "params": bot.params,
+        "paper_mode": bot.paper_mode,
+        "sl_pct": bot.sl_pct,
+        "tp_pct": bot.tp_pct,
+        "max_drawdown_pct": bot.max_drawdown_pct,
+        "status": bot.status,
+        "signal_source": bot.signal_source,
+        "webhook_token": bot.webhook_token,
+        "total_pnl": bot.total_pnl,
+        "total_trades": bot.total_trades,
+        "win_rate": bot.win_rate,
+        "last_signal": bot.last_signal,
+        "last_signal_time": bot.last_signal_time,
+        "trade_history": bot.trade_history[-50:],
+        "error_msg": "",
+    }
+
+
+def _row_to_bot(row: dict) -> BotConfig:
+    """Convert a DB row / JSON dict to BotConfig."""
+    # Ensure defaults for missing fields
+    row.setdefault("user_id", "")
+    row.setdefault("signal_source", "strategy")
+    row.setdefault("webhook_token", "")
+    row.setdefault("trade_history", [])
+    row.setdefault("error_msg", "")
+    row.setdefault("max_drawdown_pct", 20.0)
+    row.setdefault("total_pnl", 0.0)
+    row.setdefault("total_trades", 0)
+    row.setdefault("win_rate", 0.0)
+    row.setdefault("last_signal", "")
+    row.setdefault("last_signal_time", "")
+    row.setdefault("created_at", "")
+    # Filter only known fields
+    known = {f.name for f in BotConfig.__dataclass_fields__.values()}
+    filtered = {k: v for k, v in row.items() if k in known}
+    return BotConfig(**filtered)
+
+
 class BotManager:
     """Manages trading bot lifecycle.
 
     Runtime state (running tasks/engines) is in-memory only.
-    Persistence is via JSON file (local) or database (SaaS mode).
+    Persistence is via Supabase (SaaS mode) or JSON file (local mode).
     """
 
     def __init__(self):
@@ -68,63 +126,102 @@ class BotManager:
         self._webhook_executors: dict[str, Any] = {}
         self._webhook_positions: dict[str, dict] = {}
         self._pending_restart: set[str] = set()
-        self._load_bots()
+        self._db_client: Any = None  # Supabase client
+        self._load_bots_json()  # Load from JSON first as fallback
 
-    def _load_bots(self):
+    async def init_db(self):
+        """Initialize Supabase storage. Call after DB is ready."""
+        try:
+            from tradeengine.database.connection import get_session
+            self._db_client = await get_session()
+            await self._load_bots_db()
+            logger.info("BotManager: using Supabase storage")
+        except Exception as e:
+            logger.warning(f"BotManager: DB init failed, using JSON fallback: {e}")
+            self._db_client = None
+
+    # ─── Persistence ──────────────────────────────────────────────
+
+    def _load_bots_json(self):
         """Load bots from disk (JSON fallback for local mode)."""
         if BOT_STORE_PATH.exists():
             try:
                 data = json.loads(BOT_STORE_PATH.read_text(encoding="utf-8"))
                 for bot_data in data:
-                    # Handle old format
-                    if "user_id" not in bot_data:
-                        bot_data["user_id"] = ""
-                    if "signal_source" not in bot_data:
-                        bot_data["signal_source"] = "strategy"
-                    if "webhook_token" not in bot_data:
-                        bot_data["webhook_token"] = ""
                     prev_status = bot_data.get("status", "stopped")
-                    bot = BotConfig(**bot_data)
+                    bot = _row_to_bot(bot_data)
                     bot.status = "stopped"
                     self._bots[bot.bot_id] = bot
                     if prev_status == "running":
                         self._pending_restart.add(bot.bot_id)
-                logger.info(f"Loaded {len(self._bots)} bots from disk")
+                logger.info(f"Loaded {len(self._bots)} bots from JSON")
             except Exception as e:
-                logger.warning(f"Failed to load bots: {e}")
+                logger.warning(f"Failed to load bots from JSON: {e}")
+
+    async def _load_bots_db(self):
+        """Load bots from Supabase."""
+        try:
+            result = self._db_client.table("bots").select("*").execute()
+            rows = result.data or []
+            self._bots.clear()
+            self._pending_restart.clear()
+            for row in rows:
+                prev_status = row.get("status", "stopped")
+                bot = _row_to_bot(row)
+                bot.status = "stopped"
+                self._bots[bot.bot_id] = bot
+                if prev_status == "running":
+                    self._pending_restart.add(bot.bot_id)
+            logger.info(f"Loaded {len(self._bots)} bots from Supabase")
+        except Exception as e:
+            logger.warning(f"Failed to load bots from DB: {e}")
 
     def _save_bots(self):
-        """Persist bots to disk."""
-        BOT_STORE_PATH.parent.mkdir(parents=True, exist_ok=True)
-        data = []
-        for bot in self._bots.values():
-            d = {
-                "bot_id": bot.bot_id,
-                "user_id": bot.user_id,
-                "name": bot.name,
-                "strategy": bot.strategy,
-                "symbol": bot.symbol,
-                "timeframe": bot.timeframe,
-                "capital": bot.capital,
-                "params": bot.params,
-                "paper_mode": bot.paper_mode,
-                "sl_pct": bot.sl_pct,
-                "tp_pct": bot.tp_pct,
-                "max_drawdown_pct": bot.max_drawdown_pct,
-                "created_at": bot.created_at,
-                "status": bot.status,
-                "signal_source": bot.signal_source,
-                "webhook_token": bot.webhook_token,
-                "total_pnl": bot.total_pnl,
-                "total_trades": bot.total_trades,
-                "win_rate": bot.win_rate,
-                "last_signal": bot.last_signal,
-                "last_signal_time": bot.last_signal_time,
-                "trade_history": bot.trade_history[-50:],
-                "error_msg": "",
-            }
-            data.append(d)
-        BOT_STORE_PATH.write_text(json.dumps(data, ensure_ascii=False, indent=2), encoding="utf-8")
+        """Persist bots — to Supabase if available, else JSON."""
+        if self._db_client:
+            self._save_bots_db()
+        self._save_bots_json()
+
+    def _save_bots_json(self):
+        """Save all bots to JSON file."""
+        try:
+            BOT_STORE_PATH.parent.mkdir(parents=True, exist_ok=True)
+            data = [_bot_to_row(bot) for bot in self._bots.values()]
+            BOT_STORE_PATH.write_text(json.dumps(data, ensure_ascii=False, indent=2), encoding="utf-8")
+        except Exception as e:
+            logger.warning(f"Failed to save bots to JSON: {e}")
+
+    def _save_bots_db(self):
+        """Upsert all bots to Supabase."""
+        if not self._db_client:
+            return
+        try:
+            rows = [_bot_to_row(bot) for bot in self._bots.values()]
+            if rows:
+                self._db_client.table("bots").upsert(rows, on_conflict="bot_id").execute()
+        except Exception as e:
+            logger.warning(f"Failed to save bots to DB: {e}")
+
+    def _save_one_bot(self, bot: BotConfig):
+        """Save a single bot to DB (more efficient for frequent updates)."""
+        if self._db_client:
+            try:
+                self._db_client.table("bots").upsert(
+                    _bot_to_row(bot), on_conflict="bot_id"
+                ).execute()
+            except Exception as e:
+                logger.warning(f"Failed to save bot {bot.bot_id} to DB: {e}")
+        self._save_bots_json()
+
+    def _delete_bot_db(self, bot_id: str):
+        """Delete a bot from Supabase."""
+        if self._db_client:
+            try:
+                self._db_client.table("bots").delete().eq("bot_id", bot_id).execute()
+            except Exception as e:
+                logger.warning(f"Failed to delete bot {bot_id} from DB: {e}")
+
+    # ─── CRUD ─────────────────────────────────────────────────────
 
     def create_bot(
         self,
@@ -160,7 +257,7 @@ class BotManager:
             created_at=datetime.now(timezone.utc).isoformat(),
         )
         self._bots[bot_id] = bot
-        self._save_bots()
+        self._save_one_bot(bot)
         logger.info(f"Created bot {bot_id}: {name} ({strategy}/{signal_source} on {symbol}) user={user_id}")
         return bot
 
@@ -174,7 +271,8 @@ class BotManager:
         if bot.status == "running":
             return False
         del self._bots[bot_id]
-        self._save_bots()
+        self._delete_bot_db(bot_id)
+        self._save_bots_json()
         return True
 
     def update_bot(self, bot_id: str, user_id: str = "", **updates) -> BotConfig | None:
@@ -191,7 +289,7 @@ class BotManager:
         for key, val in updates.items():
             if key in allowed:
                 setattr(bot, key, val)
-        self._save_bots()
+        self._save_one_bot(bot)
         logger.info(f"Updated bot {bot_id}: {list(updates.keys())}")
         return bot
 
@@ -205,6 +303,8 @@ class BotManager:
         if user_id:
             return [b for b in self._bots.values() if b.user_id == user_id]
         return list(self._bots.values())
+
+    # ─── Start / Stop ─────────────────────────────────────────────
 
     async def start_bot(self, bot_id: str, app_config=None, api_key: str = "", api_secret: str = "") -> bool:
         """Start a bot's trading loop.
@@ -236,12 +336,12 @@ class BotManager:
                 if "_PERP" in bot.symbol:
                     bot.status = "error"
                     bot.error_msg = "合約交易對僅支援模擬交易（Pionex API 未開放合約下單）"
-                    self._save_bots()
+                    self._save_one_bot(bot)
                     return False
                 if not key or key == "your_api_key_here":
                     bot.status = "error"
                     bot.error_msg = "Pionex API Key not configured"
-                    self._save_bots()
+                    self._save_one_bot(bot)
                     return False
                 executor = PionexExecutor(client)
 
@@ -265,7 +365,7 @@ class BotManager:
             bot.status = "running"
             bot.error_msg = ""
             self._running_engines[bot_id] = engine
-            self._save_bots()
+            self._save_one_bot(bot)
 
             task = asyncio.create_task(self._run_bot(bot_id, engine, client))
             self._running_tasks[bot_id] = task
@@ -273,7 +373,7 @@ class BotManager:
         except Exception as e:
             bot.status = "error"
             bot.error_msg = str(e)
-            self._save_bots()
+            self._save_one_bot(bot)
             logger.error(f"Failed to start bot {bot_id}: {e}")
             return False
 
@@ -288,12 +388,12 @@ class BotManager:
             if bot:
                 bot.status = "error"
                 bot.error_msg = str(e)
-                self._save_bots()
+                self._save_one_bot(bot)
             logger.error(f"Bot {bot_id} error: {e}")
         finally:
             if bot and bot.status == "running":
                 bot.status = "stopped"
-                self._save_bots()
+                self._save_one_bot(bot)
             try:
                 await client.close()
             except Exception:
@@ -324,7 +424,7 @@ class BotManager:
 
         bot.status = "stopped"
         bot.error_msg = ""
-        self._save_bots()
+        self._save_one_bot(bot)
         return True
 
     # ─── Webhook Support ─────────────────────────────────────────────
@@ -360,12 +460,12 @@ class BotManager:
                 if "_PERP" in bot.symbol:
                     bot.status = "error"
                     bot.error_msg = "合約交易對僅支援模擬交易"
-                    self._save_bots()
+                    self._save_one_bot(bot)
                     return False
                 if not key or key == "your_api_key_here":
                     bot.status = "error"
                     bot.error_msg = "Pionex API Key not configured"
-                    self._save_bots()
+                    self._save_one_bot(bot)
                     return False
                 client = PionexClient(key, secret)
                 executor = PionexExecutor(client)
@@ -374,26 +474,18 @@ class BotManager:
             self._webhook_positions[bot_id] = {"side": None, "entry_price": 0.0, "size": 0.0}
             bot.status = "running"
             bot.error_msg = ""
-            self._save_bots()
+            self._save_one_bot(bot)
             logger.info(f"Webhook bot {bot_id} started, waiting for signals")
             return True
         except Exception as e:
             bot.status = "error"
             bot.error_msg = str(e)
-            self._save_bots()
+            self._save_one_bot(bot)
             logger.error(f"Failed to start webhook bot {bot_id}: {e}")
             return False
 
     async def execute_webhook_signal(self, token: str, action: str, price: float | None = None) -> dict:
-        """Execute a trade from a webhook signal.
-
-        Args:
-            token: Webhook token to identify the bot
-            action: "buy", "sell", "close", "close_long", "close_short"
-            price: Optional price (for logging, market orders use current price)
-
-        Returns: dict with execution result
-        """
+        """Execute a trade from a webhook signal."""
         bot = self.get_bot_by_webhook_token(token)
         if not bot:
             return {"error": "Invalid webhook token", "status": "rejected"}
@@ -411,24 +503,20 @@ class BotManager:
 
         try:
             if action_lower == "buy":
-                # Close short if any, then open long
                 if pos["side"] == "short":
                     pnl = self._calc_webhook_pnl(pos, price or 0, "short")
                     self._record_webhook_trade(bot, "close_short", price, pnl)
                     result_actions.append("closed_short")
-                # Open long
                 size = bot.capital / (price or 1.0)
                 pos.update({"side": "long", "entry_price": price or 0, "size": size})
                 bot.last_signal = f"BUY @ ${price:,.2f}" if price else "BUY"
                 result_actions.append("opened_long")
 
             elif action_lower == "sell":
-                # Close long if any, then open short
                 if pos["side"] == "long":
                     pnl = self._calc_webhook_pnl(pos, price or 0, "long")
                     self._record_webhook_trade(bot, "close_long", price, pnl)
                     result_actions.append("closed_long")
-                # Open short
                 size = bot.capital / (price or 1.0)
                 pos.update({"side": "short", "entry_price": price or 0, "size": size})
                 bot.last_signal = f"SELL @ ${price:,.2f}" if price else "SELL"
@@ -449,7 +537,7 @@ class BotManager:
 
             bot.last_signal_time = now_str
             self._webhook_positions[bot.bot_id] = pos
-            self._save_bots()
+            self._save_one_bot(bot)
 
             logger.info(f"Webhook signal for bot {bot.bot_id}: {action} -> {result_actions}")
             return {
@@ -463,7 +551,7 @@ class BotManager:
 
         except Exception as e:
             bot.error_msg = f"Webhook execution error: {e}"
-            self._save_bots()
+            self._save_one_bot(bot)
             logger.error(f"Webhook signal execution failed for bot {bot.bot_id}: {e}")
             return {"error": str(e), "status": "error"}
 
@@ -473,7 +561,7 @@ class BotManager:
             return 0.0
         if side == "long":
             return (exit_price - pos["entry_price"]) / pos["entry_price"] * pos.get("size", 0) * pos["entry_price"]
-        else:  # short
+        else:
             return (pos["entry_price"] - exit_price) / pos["entry_price"] * pos.get("size", 0) * pos["entry_price"]
 
     def _record_webhook_trade(self, bot: BotConfig, action: str, price: float | None, pnl: float):
@@ -516,10 +604,7 @@ class BotManager:
     # ─── Auto-Restart ─────────────────────────────────────────────
 
     async def auto_restart_bots(self, app_config=None) -> list[str]:
-        """Restart bots that were running before server shutdown.
-
-        Returns list of bot_ids that were successfully restarted.
-        """
+        """Restart bots that were running before server shutdown."""
         if not self._pending_restart:
             logger.info("No bots to auto-restart")
             return []

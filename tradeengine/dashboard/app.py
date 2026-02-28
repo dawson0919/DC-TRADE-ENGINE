@@ -66,6 +66,10 @@ def create_app() -> FastAPI:
         else:
             logger.info("SUPABASE_URL not set, running without database")
 
+        # Initialize bot storage with Supabase if available
+        if _db_available:
+            await bot_manager.init_db()
+
         # Auto-restart bots that were running before shutdown
         restarted = await bot_manager.auto_restart_bots(app_config=config)
         if restarted:
