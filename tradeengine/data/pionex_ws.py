@@ -36,17 +36,17 @@ class PionexWebSocket:
 
     async def subscribe_trade(self, symbol: str):
         """Subscribe to trade stream for a symbol."""
-        msg = {"op": "SUBSCRIBE", "topic": f"TRADE@{symbol}"}
+        msg = {"op": "SUBSCRIBE", "topic": "TRADE", "symbol": symbol}
         self._subscriptions.append(msg)
         await self._ws.send(json.dumps(msg))
-        logger.info(f"Subscribed to TRADE@{symbol}")
+        logger.info(f"Subscribed to TRADE {symbol}")
 
     async def subscribe_depth(self, symbol: str):
         """Subscribe to order book depth stream."""
-        msg = {"op": "SUBSCRIBE", "topic": f"DEPTH@{symbol}@STEP0"}
+        msg = {"op": "SUBSCRIBE", "topic": "DEPTH", "symbol": symbol}
         self._subscriptions.append(msg)
         await self._ws.send(json.dumps(msg))
-        logger.info(f"Subscribed to DEPTH@{symbol}")
+        logger.info(f"Subscribed to DEPTH {symbol}")
 
     def on(self, event: str, callback: Callable):
         """Register a callback for an event type (trade, depth, error)."""
@@ -65,9 +65,17 @@ class PionexWebSocket:
                     continue
 
                 topic = data.get("topic", "")
-                if "TRADE@" in topic:
-                    await self._dispatch("trade", data.get("data", {}))
-                elif "DEPTH@" in topic:
+                if data.get("type") == "SUBSCRIBED":
+                    logger.info(f"Subscription confirmed: {topic} {data.get('symbol', '')}")
+                    continue
+                if topic == "TRADE":
+                    trades = data.get("data", [])
+                    if isinstance(trades, list):
+                        for t in trades:
+                            await self._dispatch("trade", t)
+                    else:
+                        await self._dispatch("trade", trades)
+                elif topic == "DEPTH":
                     await self._dispatch("depth", data.get("data", {}))
 
             except asyncio.TimeoutError:
