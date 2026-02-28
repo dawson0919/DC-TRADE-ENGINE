@@ -13,4 +13,3 @@ venv/
 *.parquet
 *.db
 .pytest_cache/
-*.csv
