@@ -1,0 +1,39 @@
+# TradeEngine 預設配置
+
+trading:
+  initial_capital: 10000.0
+  fees_pct: 0.05          # Pionex maker fee: 0.05%
+  slippage_pct: 0.05      # Estimated slippage: 0.05%
+  max_position_pct: 95.0  # Max % of capital per position
+  max_drawdown_pct: 20.0  # Kill switch: stop trading if drawdown exceeds
+
+data:
+  cache_dir: data
+  default_timeframe: 1h
+  default_symbol: BTC_USDT
+
+dashboard:
+  port: 8000
+  language: zh-TW
+
+strategies:
+  ma_crossover:
+    fast_period: 9
+    slow_period: 21
+    ma_type: EMA
+  rsi:
+    period: 14
+    oversold: 30
+    overbought: 70
+  macd:
+    fast: 12
+    slow: 26
+    signal: 9
+  bollinger:
+    period: 20
+    std_dev: 2.0
+  donchian:
+    period: 20
+  supertrend:
+    period: 10
+    multiplier: 3.0

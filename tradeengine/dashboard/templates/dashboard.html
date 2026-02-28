@@ -1,0 +1,1895 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>THE DC'S TRADE ENGINE</title>
+    <meta name="description" content="優化 · 回測 · 創建你的自動交易機器人">
+    <meta property="og:title" content="THE DC'S TRADE ENGINE">
+    <meta property="og:description" content="優化 · 回測 · 創建你的自動交易機器人">
+    <meta property="og:image" content="/static/og-image.png">
+    <meta property="og:type" content="website">
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="THE DC'S TRADE ENGINE">
+    <meta name="twitter:description" content="優化 · 回測 · 創建你的自動交易機器人">
+    <meta name="twitter:image" content="/static/og-image.png">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: #0a0a0f;
+            color: #e7e9ea;
+            line-height: 1.6;
+        }
+        .container { max-width: 1400px; margin: 0 auto; padding: 20px; }
+
+        /* ─── Header ─── */
+        header {
+            background: linear-gradient(180deg, #12121a 0%, #0a0a0f 100%);
+            border-bottom: 1px solid #1e1e2e;
+            padding: 14px 0;
+            margin-bottom: 0;
+        }
+        .header-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 12px;
+        }
+        header h1 { font-size: 1.4rem; font-weight: 800; letter-spacing: -0.5px; }
+        header h1 span { color: #f7931a; }
+
+        /* User bar */
+        .user-bar {
+            display: flex; align-items: center; gap: 12px;
+            font-size: 0.85rem; color: #8899a6;
+        }
+        .user-bar .user-name { color: #e7e9ea; font-weight: 600; }
+        .user-bar .user-role {
+            padding: 2px 8px; border-radius: 10px;
+            font-size: 0.7rem; font-weight: 600;
+        }
+        .user-bar .role-admin { background: #f7931a33; color: #f7931a; }
+        .user-bar .role-user { background: #29b6f633; color: #29b6f6; }
+        /* Ad banner */
+        .ad-banner {
+            background: linear-gradient(90deg, #1a1a2e 0%, #16213e 50%, #1a1a2e 100%);
+            border-bottom: 1px solid #1e1e2e;
+            padding: 8px 0;
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+        }
+        .ad-banner::before {
+            content: '';
+            position: absolute; top: 0; left: 0; right: 0; bottom: 0;
+            background: linear-gradient(90deg, transparent, rgba(247,147,26,0.05), transparent);
+            pointer-events: none;
+        }
+        .ad-banner a {
+            color: #e7e9ea;
+            text-decoration: none;
+            font-size: 0.85rem;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 4px 16px;
+            border-radius: 6px;
+            transition: all 0.2s;
+        }
+        .ad-banner a:hover {
+            background: rgba(247,147,26,0.1);
+            color: #f7931a;
+        }
+        .ad-banner .ad-tag {
+            font-size: 0.65rem;
+            padding: 1px 6px;
+            border-radius: 3px;
+            background: #f7931a33;
+            color: #f7931a;
+            font-weight: 700;
+            letter-spacing: 0.5px;
+        }
+        .ad-banner .ad-text {
+            color: #b0b8c1;
+        }
+        .ad-banner .ad-text strong {
+            color: #f7931a;
+            font-weight: 600;
+        }
+        .ad-banner .ad-arrow {
+            color: #f7931a;
+            font-size: 1rem;
+        }
+        .ad-banner .ad-close {
+            position: absolute;
+            right: 12px;
+            top: 50%;
+            transform: translateY(-50%);
+            background: none;
+            border: none;
+            color: #4a5568;
+            cursor: pointer;
+            font-size: 1rem;
+            padding: 4px;
+            line-height: 1;
+        }
+        .ad-banner .ad-close:hover { color: #8899a6; }
+
+        .user-bar .btn-logout {
+            padding: 4px 12px; border-radius: 6px; border: 1px solid #2a2a3a;
+            background: transparent; color: #8899a6; cursor: pointer; font-size: 0.8rem;
+        }
+        .user-bar .btn-logout:hover { background: #2a2a3a; color: #e7e9ea; }
+
+        /* ─── Tab navigation ─── */
+        .tab-bar { background: #0e0e16; border-bottom: 1px solid #1e1e2e; padding: 0; }
+        .tab-nav { display: flex; gap: 0; flex-wrap: wrap; }
+        .tab-nav .tab {
+            padding: 12px 20px;
+            background: transparent;
+            color: #6b7280;
+            border: none;
+            border-bottom: 2px solid transparent;
+            cursor: pointer;
+            font-size: 0.88rem;
+            font-weight: 500;
+            transition: all 0.2s;
+            font-family: inherit;
+        }
+        .tab-nav .tab:hover { color: #e7e9ea; }
+        .tab-nav .tab.active {
+            color: #f7931a;
+            border-bottom-color: #f7931a;
+        }
+        .tab-content { display: none; }
+        .tab-content.active { display: block; }
+
+        /* ─── Dashboard Overview Stats ─── */
+        .stats-row {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 16px;
+            margin-bottom: 24px;
+        }
+        .stat-card {
+            background: linear-gradient(135deg, #14141e 0%, #1a1a2a 100%);
+            border: 1px solid #1e1e2e;
+            border-radius: 16px;
+            padding: 20px 24px;
+            position: relative;
+            overflow: hidden;
+        }
+        .stat-card::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; right: 0;
+            height: 2px;
+            background: linear-gradient(90deg, transparent, #f7931a40, transparent);
+        }
+        .stat-card .stat-label {
+            font-size: 0.7rem;
+            font-weight: 700;
+            letter-spacing: 1.5px;
+            text-transform: uppercase;
+            color: #6b7280;
+            margin-bottom: 8px;
+        }
+        .stat-card .stat-value {
+            font-size: 2rem;
+            font-weight: 800;
+            letter-spacing: -1px;
+            color: #e7e9ea;
+        }
+        .stat-card .stat-tags {
+            display: flex; gap: 8px; margin-top: 12px;
+        }
+        .stat-tag {
+            padding: 3px 10px;
+            border-radius: 20px;
+            font-size: 0.7rem;
+            font-weight: 600;
+            background: #1e1e2e;
+            color: #6b7280;
+        }
+        .stat-tag.active { background: #00c85320; color: #00c853; }
+        .stat-tag.live { background: #f7931a20; color: #f7931a; }
+
+        /* ─── Dashboard Grid ─── */
+        .dash-grid {
+            display: grid;
+            grid-template-columns: 1fr 400px;
+            gap: 20px;
+        }
+
+        .dash-card {
+            background: linear-gradient(135deg, #14141e 0%, #1a1a2a 100%);
+            border: 1px solid #1e1e2e;
+            border-radius: 16px;
+            padding: 24px;
+        }
+        .dash-card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 16px;
+        }
+        .dash-card-header h2 {
+            font-size: 1.1rem;
+            font-weight: 800;
+            letter-spacing: -0.3px;
+        }
+        .dash-card-header p {
+            color: #6b7280;
+            font-size: 0.8rem;
+            margin-top: 4px;
+        }
+        .dash-pnl-summary {
+            display: flex;
+            gap: 24px;
+            font-size: 0.85rem;
+            margin-bottom: 16px;
+            padding-bottom: 16px;
+            border-bottom: 1px solid #1e1e2e;
+        }
+        .dash-pnl-summary span { color: #6b7280; }
+        .dash-pnl-summary strong { color: #e7e9ea; margin-left: 4px; }
+
+        /* ─── Bot List in Dashboard ─── */
+        .dash-bot-tabs {
+            display: flex; gap: 8px; margin-bottom: 16px;
+        }
+        .dash-bot-tab {
+            padding: 6px 14px;
+            border-radius: 8px;
+            border: 1px solid #2a2a3a;
+            background: transparent;
+            color: #6b7280;
+            font-size: 0.8rem;
+            font-weight: 600;
+            cursor: pointer;
+            font-family: inherit;
+        }
+        .dash-bot-tab.active { border-color: #f7931a; color: #f7931a; }
+        .dash-bot-item {
+            background: #0f0f18;
+            border: 1px solid #1e1e2e;
+            border-radius: 12px;
+            padding: 14px;
+            margin-bottom: 10px;
+        }
+        .dash-bot-item-header {
+            display: flex; justify-content: space-between; align-items: center;
+        }
+        .dash-bot-item-name {
+            font-weight: 600; font-size: 0.9rem;
+        }
+        .dash-bot-item-stats {
+            display: grid; grid-template-columns: 1fr 1fr; gap: 8px;
+            margin-top: 10px; font-size: 0.8rem;
+        }
+        .dash-bot-item-stats span { color: #6b7280; }
+        .dash-empty {
+            text-align: center;
+            padding: 40px 20px;
+            color: #6b7280;
+        }
+        .dash-empty p { margin-bottom: 12px; font-size: 0.9rem; }
+
+        /* ─── Sidebar & Grid for other tabs ─── */
+        .grid { display: grid; grid-template-columns: 350px 1fr; gap: 20px; }
+
+        .sidebar {
+            background: #14141e;
+            border-radius: 12px;
+            padding: 20px;
+            border: 1px solid #1e1e2e;
+        }
+        .sidebar h2 { font-size: 1.1rem; margin-bottom: 16px; color: #f7931a; }
+
+        .form-group { margin-bottom: 16px; }
+        .form-group label {
+            display: block; font-size: 0.85rem; color: #6b7280; margin-bottom: 4px;
+        }
+        .form-group select, .form-group input {
+            width: 100%; padding: 8px 12px;
+            background: #0a0a0f; border: 1px solid #1e1e2e;
+            border-radius: 8px; color: #e7e9ea; font-size: 0.9rem;
+        }
+        .form-group select:focus, .form-group input:focus {
+            outline: none; border-color: #f7931a;
+        }
+        .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+
+        .btn {
+            width: 100%; padding: 10px;
+            background: #f7931a; color: #000;
+            border: none; border-radius: 8px;
+            font-size: 1rem; font-weight: 600;
+            cursor: pointer; margin-top: 8px; font-family: inherit;
+        }
+        .btn:hover { background: #e8851a; }
+        .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+        .btn-sm { padding: 6px 14px; font-size: 0.85rem; border-radius: 6px; width: auto; margin-top: 0; }
+        .btn-danger { background: #ff1744; color: #fff; }
+        .btn-danger:hover { background: #d50000; }
+        .btn-success { background: #00c853; color: #000; }
+        .btn-success:hover { background: #00a844; }
+        .btn-secondary { background: #2a2a3a; color: #e7e9ea; }
+        .btn-secondary:hover { background: #3a3a4a; }
+        .btn-accent {
+            background: linear-gradient(135deg, #ff1744 0%, #f44336 100%);
+            color: #fff; font-weight: 700;
+        }
+        .btn-accent:hover { background: linear-gradient(135deg, #e01540 0%, #d32f2f 100%); }
+        .btn-outline {
+            background: transparent; border: 1px solid #2a2a3a; color: #e7e9ea;
+        }
+        .btn-outline:hover { background: #1e1e2e; }
+
+        .main { display: flex; flex-direction: column; gap: 20px; }
+
+        .card {
+            background: #14141e;
+            border-radius: 12px;
+            padding: 20px;
+            border: 1px solid #1e1e2e;
+        }
+        .card h3 { font-size: 1rem; margin-bottom: 12px; color: #6b7280; }
+
+        /* Metrics grid */
+        .metrics-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 12px;
+        }
+        .metric {
+            text-align: center; padding: 12px;
+            background: #0a0a0f; border-radius: 8px;
+        }
+        .metric .value { font-size: 1.4rem; font-weight: 700; }
+        .metric .label { font-size: 0.75rem; color: #6b7280; margin-top: 4px; }
+        .positive { color: #00c853; }
+        .negative { color: #ff1744; }
+
+        .chart-container { position: relative; height: 350px; }
+        .chart-container-sm { position: relative; height: 250px; }
+
+        .loading { text-align: center; padding: 40px; color: #6b7280; }
+        .spinner {
+            display: inline-block; width: 30px; height: 30px;
+            border: 3px solid #1e1e2e; border-top-color: #f7931a;
+            border-radius: 50%; animation: spin 0.8s linear infinite;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        .data-table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
+        .data-table th {
+            text-align: left; padding: 8px 12px;
+            border-bottom: 2px solid #1e1e2e;
+            color: #6b7280; font-weight: 600;
+        }
+        .data-table td { padding: 8px 12px; border-bottom: 1px solid #141420; }
+        .data-table tr:hover { background: #141420; }
+
+        .badge {
+            display: inline-block; padding: 2px 8px;
+            border-radius: 12px; font-size: 0.75rem; font-weight: 600; margin-left: 6px;
+        }
+        .badge-running { background: #00c85333; color: #00c853; }
+        .badge-stopped { background: #6b728033; color: #6b7280; }
+        .badge-error { background: #ff174433; color: #ff1744; }
+        .badge-paper { background: #29b6f633; color: #29b6f6; }
+        .badge-live { background: #ff174433; color: #ff1744; }
+        .badge-webhook { background: #f7931a33; color: #f7931a; }
+
+        .webhook-info-box {
+            margin-top: 12px; padding: 14px;
+            background: #0a0a0f; border: 1px solid #1e1e2e; border-radius: 8px;
+        }
+        .webhook-info-box label {
+            display: block; font-size: 0.75rem; color: #6b7280;
+            margin-bottom: 4px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;
+        }
+        .webhook-info-box .copy-row {
+            display: flex; align-items: center; gap: 8px; margin-bottom: 10px;
+        }
+        .webhook-info-box .copy-row input,
+        .webhook-info-box .copy-row textarea {
+            flex: 1; padding: 6px 10px;
+            background: #14141e; border: 1px solid #1e1e2e; border-radius: 6px;
+            color: #e7e9ea; font-size: 0.8rem; font-family: 'Consolas', monospace;
+        }
+        .webhook-info-box .copy-row textarea { resize: none; height: 60px; }
+        .btn-copy {
+            padding: 6px 10px; border-radius: 6px; border: 1px solid #2a2a3a;
+            background: #1e1e2e; color: #e7e9ea; cursor: pointer; font-size: 0.75rem;
+            white-space: nowrap;
+        }
+        .btn-copy:hover { background: #2a2a3a; }
+
+        .param-inputs { margin-top: 12px; }
+        .param-inputs .form-group { margin-bottom: 10px; }
+
+        .modal-overlay {
+            display: none; position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0,0,0,0.7); z-index: 100;
+            align-items: center; justify-content: center;
+        }
+        .modal-overlay.active { display: flex; }
+        .modal {
+            background: #14141e; border: 1px solid #1e1e2e;
+            border-radius: 16px; padding: 24px;
+            width: 90%; max-width: 500px; max-height: 80vh; overflow-y: auto;
+        }
+        .modal h3 { color: #f7931a; margin-bottom: 16px; }
+
+        .balance-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 12px;
+        }
+        .balance-card {
+            background: #0a0a0f; border-radius: 8px; padding: 16px; text-align: center;
+        }
+        .balance-card .asset { font-size: 1rem; color: #f7931a; font-weight: 600; }
+        .balance-card .amount { font-size: 1.3rem; font-weight: 700; margin: 4px 0; }
+        .balance-card .locked { font-size: 0.8rem; color: #6b7280; }
+
+        .strat-card {
+            background: #14141e; border: 1px solid #1e1e2e;
+            border-radius: 12px; padding: 16px; margin-bottom: 12px;
+        }
+        .strat-params { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px; }
+        .strat-param {
+            background: #0a0a0f; padding: 4px 10px; border-radius: 6px; font-size: 0.8rem;
+        }
+
+        /* API Key */
+        .api-key-status {
+            display: flex; align-items: center; gap: 8px;
+            padding: 12px; background: #0a0a0f; border-radius: 8px; margin-bottom: 12px;
+        }
+        .api-key-dot { width: 10px; height: 10px; border-radius: 50%; }
+        .api-key-dot.connected { background: #00c853; }
+        .api-key-dot.disconnected { background: #ff1744; }
+
+        /* Guide */
+        .guide-step {
+            background: #14141e; border: 1px solid #1e1e2e;
+            border-radius: 12px; padding: 20px; margin-bottom: 16px;
+        }
+        .guide-step .step-num {
+            display: inline-block; width: 32px; height: 32px; line-height: 32px;
+            background: #f7931a; color: #000; border-radius: 50%;
+            text-align: center; font-weight: 700; font-size: 0.95rem; margin-right: 10px;
+        }
+        .guide-step h3 { display: inline; font-size: 1.05rem; color: #e7e9ea; vertical-align: middle; }
+        .guide-step p, .guide-step ul { color: #6b7280; margin-top: 10px; font-size: 0.9rem; }
+        .guide-step ul { padding-left: 20px; }
+        .guide-step li { margin-bottom: 6px; }
+        .guide-step code {
+            background: #0a0a0f; padding: 2px 8px; border-radius: 4px;
+            font-family: 'Consolas', monospace; font-size: 0.85rem; color: #f7931a;
+        }
+        .guide-step .warn {
+            background: #ff174420; border-left: 3px solid #ff1744;
+            padding: 10px 14px; border-radius: 0 8px 8px 0; margin-top: 10px;
+            color: #ff8a80; font-size: 0.85rem;
+        }
+
+        @media (max-width: 900px) {
+            .stats-row { grid-template-columns: repeat(2, 1fr); }
+            .dash-grid { grid-template-columns: 1fr; }
+            .grid { grid-template-columns: 1fr; }
+            .header-row { flex-direction: column; align-items: flex-start; }
+            .form-row { grid-template-columns: 1fr; }
+        }
+        @media (max-width: 500px) {
+            .stats-row { grid-template-columns: 1fr; }
+        }
+    </style>
+</head>
+<body>
+    <!-- Header -->
+    <header>
+        <div class="container header-row">
+            <h1><span>THE DC'S</span> TRADE ENGINE</h1>
+            <div class="user-bar" id="userBar" style="display:none;">
+                <span class="user-name" id="userName"></span>
+                <span class="user-role" id="userRole"></span>
+                <button class="btn-logout" onclick="doLogout()">登出</button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Ad Banner -->
+    <div class="ad-banner" id="adBanner">
+        <a href="https://copy-trading-strateg-had8.bolt.host/" target="_blank" rel="noopener">
+            <span class="ad-tag">AD</span>
+            <span class="ad-text"><strong>加密跟單策略</strong> — 跟隨頂尖交易員，自動複製盈利策略</span>
+            <span class="ad-arrow">&#8594;</span>
+        </a>
+        <button class="ad-close" onclick="document.getElementById('adBanner').style.display='none'" title="關閉">&times;</button>
+    </div>
+
+    <!-- Tab Bar -->
+    <div class="tab-bar">
+        <div class="container" style="padding-top:0;padding-bottom:0;">
+            <nav class="tab-nav" id="tabNav">
+                <button class="tab active" data-tab="dashboard">儀表板</button>
+                <button class="tab" data-tab="backtest">回測</button>
+                <button class="tab" data-tab="optimize">優化</button>
+                <button class="tab" data-tab="bots">機器人</button>
+                <button class="tab" data-tab="account">帳戶</button>
+                <button class="tab" data-tab="strategies">策略</button>
+                <button class="tab" data-tab="guide">教學</button>
+                <button class="tab" data-tab="admin" id="adminTab" style="display:none;">管理員</button>
+            </nav>
+        </div>
+    </div>
+
+    <div class="container" style="padding-top:24px;">
+
+        <!-- ═══ Tab 0: Dashboard Overview ═══ -->
+        <div class="tab-content active" id="tab-dashboard">
+            <!-- Stats Row -->
+            <div class="stats-row">
+                <div class="stat-card">
+                    <div class="stat-label">機器人資金配置</div>
+                    <div class="stat-value" id="dash-allocation">$0</div>
+                    <div class="stat-tags">
+                        <span class="stat-tag active">即時</span>
+                        <span class="stat-tag live">Live data</span>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">損益 P&L</div>
+                    <div class="stat-value" id="dash-pnl" style="color:#00c853;">+0.00%</div>
+                    <div class="stat-tags">
+                        <span class="stat-tag active">今日</span>
+                        <span class="stat-tag live">Live data</span>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">運行中機器人</div>
+                    <div class="stat-value" id="dash-active-bots">0</div>
+                    <div class="stat-tags">
+                        <span class="stat-tag active">Running</span>
+                        <span class="stat-tag live">Live data</span>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">總勝率</div>
+                    <div class="stat-value" id="dash-winrate">0.0%</div>
+                    <div class="stat-tags">
+                        <span class="stat-tag active">今日</span>
+                        <span class="stat-tag live">Live data</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Bottom Grid: Profit Chart + Bot List -->
+            <div class="dash-grid">
+                <!-- Left: Combined Profit Chart -->
+                <div class="dash-card">
+                    <div class="dash-card-header">
+                        <div>
+                            <h2>所有機器人損益</h2>
+                            <p>所有機器人的綜合資金表現</p>
+                        </div>
+                    </div>
+                    <div class="dash-pnl-summary">
+                        <div><span>交易數:</span><strong id="dash-total-trades">0</strong></div>
+                        <div><span>勝率:</span><strong id="dash-total-winrate">0.0%</strong></div>
+                        <div><span>損益:</span><strong id="dash-total-pnl" style="color:#00c853;">+$0.00</strong></div>
+                    </div>
+                    <div class="chart-container-sm">
+                        <canvas id="dashPnlChart"></canvas>
+                    </div>
+                </div>
+
+                <!-- Right: Trading Bots Quick View -->
+                <div class="dash-card">
+                    <div class="dash-card-header">
+                        <div>
+                            <h2>交易機器人</h2>
+                            <p>管理你的自動交易機器人</p>
+                        </div>
+                        <div style="display:flex;gap:8px;">
+                            <button class="btn btn-sm btn-outline" onclick="loadDashboard()">刷新</button>
+                            <button class="btn btn-sm btn-accent" onclick="switchTab('bots');showCreateBotModal();">建立</button>
+                        </div>
+                    </div>
+                    <div class="dash-bot-tabs">
+                        <button class="dash-bot-tab active">運行中</button>
+                        <button class="dash-bot-tab">全部</button>
+                    </div>
+                    <div id="dash-bot-list">
+                        <div class="dash-empty">
+                            <p style="font-size:1.1rem;font-weight:600;">尚無機器人</p>
+                            <p>建立你的第一個自動交易機器人</p>
+                            <button class="btn btn-sm btn-accent" style="margin-top:12px;" onclick="switchTab('bots');showCreateBotModal();">建立機器人</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ═══ Tab 1: Backtest ═══ -->
+        <div class="tab-content" id="tab-backtest">
+            <div class="grid">
+                <div class="sidebar">
+                    <h2>回測設定</h2>
+                    <div class="form-group">
+                        <label>策略</label>
+                        <select id="bt-strategy" onchange="loadStrategyParams('bt')">
+                            {% for s in strategies %}
+                            <option value="{{ s.name }}">{{ s.display_name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>資料來源</label>
+                        <select id="bt-source" onchange="toggleSource('bt')">
+                            <option value="api">Pionex API</option>
+                            {% if csv_files %}<option value="csv">CSV 檔案</option>{% endif %}
+                        </select>
+                    </div>
+                    <div id="bt-api-fields">
+                        <div class="form-group">
+                            <label>交易對</label>
+                            <select id="bt-symbol">
+                                <option value="BTC_USDT">BTC/USDT</option>
+                                <option value="ETH_USDT">ETH/USDT</option>
+                                <option value="XAG_USDT_PERP">XAG/USDT (合約)</option>
+                                <option value="SOL_USDT">SOL/USDT</option>
+                                <option value="BNB_USDT">BNB/USDT</option>
+                                <option value="PAXG_USDT">PAXG/USDT (黃金)</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>時間框架</label>
+                            <select id="bt-timeframe">
+                                <option value="15m">15 分鐘</option>
+                                <option value="1h" selected>1 小時</option>
+                                <option value="4h">4 小時</option>
+                                <option value="1d">1 天</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>K線數量</label>
+                            <input type="number" id="bt-limit" value="2000" min="100" max="10000">
+                        </div>
+                    </div>
+                    <div id="bt-csv-fields" style="display:none;">
+                        <div class="form-group">
+                            <label>CSV 檔案</label>
+                            <select id="bt-csv">
+                                {% for c in csv_files %}
+                                <option value="{{ c.path }}">{{ c.label }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>初始資金 (USDT)</label>
+                        <input type="number" id="bt-capital" value="10000" min="100">
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>停損 %</label>
+                            <input type="number" id="bt-sl" placeholder="例: 2.0" step="0.1" min="0">
+                        </div>
+                        <div class="form-group">
+                            <label>停利 %</label>
+                            <input type="number" id="bt-tp" placeholder="例: 5.0" step="0.1" min="0">
+                        </div>
+                    </div>
+                    <div id="bt-params" class="param-inputs"></div>
+                    <button type="button" class="btn" id="bt-runBtn" onclick="runBacktest()">執行回測</button>
+                </div>
+                <div class="main">
+                    <div class="card">
+                        <h3>回測指標</h3>
+                        <div id="bt-metricsContent">
+                            <div class="loading">選擇策略並執行回測</div>
+                        </div>
+                    </div>
+                    <div class="card">
+                        <h3>資金曲線</h3>
+                        <div class="chart-container"><canvas id="equityChart"></canvas></div>
+                    </div>
+                    <div class="card" id="bt-tradesCard" style="display:none;">
+                        <h3>交易記錄 <span id="bt-tradeCount" style="color:#6b7280;font-size:0.85rem;"></span></h3>
+                        <div style="overflow-x:auto;">
+                            <table class="data-table">
+                                <thead><tr>
+                                    <th>進場時間</th><th>出場時間</th><th>方向</th>
+                                    <th>進場價</th><th>出場價</th><th>損益</th><th>報酬率</th>
+                                </tr></thead>
+                                <tbody id="bt-tradesBody"></tbody>
+                            </table>
+                        </div>
+                    </div>
+                    <div class="card" id="bt-historyCard">
+                        <h3 style="display:flex;align-items:center;justify-content:space-between;">
+                            回測歷史
+                            <button type="button" class="btn" onclick="loadBacktestHistory()" style="font-size:0.75rem;padding:4px 12px;">重新整理</button>
+                        </h3>
+                        <div id="bt-historyContent">
+                            <div class="loading">載入中...</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ═══ Tab 2: Optimize ═══ -->
+        <div class="tab-content" id="tab-optimize">
+            <div class="grid">
+                <div class="sidebar">
+                    <h2>參數優化設定</h2>
+                    <div class="form-group">
+                        <label>策略</label>
+                        <select id="opt-strategy">
+                            {% for s in strategies %}
+                            <option value="{{ s.name }}">{{ s.display_name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>資料來源</label>
+                        <select id="opt-source" onchange="toggleSource('opt')">
+                            <option value="api">Pionex API</option>
+                            {% if csv_files %}<option value="csv">CSV 檔案</option>{% endif %}
+                        </select>
+                    </div>
+                    <div id="opt-api-fields">
+                        <div class="form-group">
+                            <label>交易對</label>
+                            <select id="opt-symbol">
+                                <option value="BTC_USDT">BTC/USDT</option>
+                                <option value="ETH_USDT">ETH/USDT</option>
+                                <option value="XAG_USDT_PERP">XAG/USDT (合約)</option>
+                                <option value="SOL_USDT">SOL/USDT</option>
+                                <option value="BNB_USDT">BNB/USDT</option>
+                                <option value="PAXG_USDT">PAXG/USDT (黃金)</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>時間框架</label>
+                            <select id="opt-timeframe">
+                                <option value="1h" selected>1 小時</option>
+                                <option value="4h">4 小時</option>
+                                <option value="1d">1 天</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>K線數量</label>
+                            <input type="number" id="opt-limit" value="3000" min="500" max="10000">
+                        </div>
+                    </div>
+                    <div id="opt-csv-fields" style="display:none;">
+                        <div class="form-group">
+                            <label>CSV 檔案</label>
+                            <select id="opt-csv">
+                                {% for c in csv_files %}
+                                <option value="{{ c.path }}">{{ c.label }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>排序指標</label>
+                        <select id="opt-sort">
+                            <option value="sharpe_ratio">夏普比率</option>
+                            <option value="total_return_pct">總報酬率</option>
+                            <option value="profit_factor">獲利因子</option>
+                            <option value="sortino_ratio">索提諾比率</option>
+                            <option value="calmar_ratio">卡爾馬比率</option>
+                        </select>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Top N 結果</label>
+                            <input type="number" id="opt-topn" value="10" min="1" max="50">
+                        </div>
+                        <div class="form-group">
+                            <label>最大組合數</label>
+                            <input type="number" id="opt-maxcombos" value="2000" min="100" max="10000">
+                        </div>
+                    </div>
+                    <button type="button" class="btn" id="opt-runBtn" onclick="runOptimize()">開始優化</button>
+                </div>
+                <div class="main">
+                    <div class="card">
+                        <h3>優化結果</h3>
+                        <div id="opt-content">
+                            <div class="loading">設定參數後按「開始優化」</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ═══ Tab 3: Bots ═══ -->
+        <div class="tab-content" id="tab-bots">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
+                <h2 style="color:#f7931a;">交易機器人</h2>
+                <div style="display:flex;align-items:center;gap:12px;">
+                    <span id="botLimitInfo" style="color:#6b7280;font-size:0.8rem;"></span>
+                    <button class="btn btn-sm" onclick="showCreateBotModal()">+ 新增機器人</button>
+                </div>
+            </div>
+            <div id="bots-list">
+                <div class="loading">載入中...</div>
+            </div>
+
+            <div class="modal-overlay" id="createBotModal">
+                <div class="modal">
+                    <h3>新增交易機器人</h3>
+                    <div class="form-group">
+                        <label>信號來源</label>
+                        <select id="bot-signal-source" onchange="onSignalSourceChange()">
+                            <option value="strategy">內建策略</option>
+                            <option value="webhook">TradingView Webhook</option>
+                        </select>
+                    </div>
+                    <div id="bot-webhook-hint" style="display:none;padding:12px;background:#f7931a15;border:1px solid #f7931a40;border-radius:8px;margin-bottom:12px;font-size:0.85rem;color:#f7931a;">
+                        Webhook 模式：建立後可取得 Webhook URL，貼到 TradingView Alert 即可接收外部信號。不需要選擇策略或時間框架。
+                    </div>
+                    <div class="form-group">
+                        <label>名稱</label>
+                        <input type="text" id="bot-name" placeholder="我的 BTC 策略">
+                    </div>
+                    <div id="bot-strategy-fields">
+                        <div class="form-group">
+                            <label>策略</label>
+                            <select id="bot-strategy" onchange="loadStrategyParams('bot')">
+                                {% for s in strategies %}
+                                <option value="{{ s.name }}">{{ s.display_name }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>交易對</label>
+                        <select id="bot-symbol" onchange="onBotSymbolChange()">
+                            <option value="BTC_USDT">BTC/USDT (現貨)</option>
+                            <option value="ETH_USDT">ETH/USDT (現貨)</option>
+                            <option value="XAG_USDT_PERP">XAG/USDT (合約)</option>
+                            <option value="SOL_USDT">SOL/USDT (現貨)</option>
+                            <option value="BNB_USDT">BNB/USDT (現貨)</option>
+                            <option value="PAXG_USDT">PAXG/USDT (黃金)</option>
+                        </select>
+                        <small id="bot-symbol-hint" style="color:#f7931a;display:none;margin-top:4px;">
+                            合約交易對僅支援模擬交易（Pionex API 未開放合約下單）
+                        </small>
+                    </div>
+                    <div id="bot-timeframe-field" class="form-group">
+                        <label>時間框架</label>
+                        <select id="bot-timeframe">
+                            <option value="15m">15 分鐘</option>
+                            <option value="1h" selected>1 小時</option>
+                            <option value="4h">4 小時</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>資金 (USDT)</label>
+                        <input type="number" id="bot-capital" value="1000" min="10">
+                    </div>
+                    <div class="form-group">
+                        <label>模式</label>
+                        <select id="bot-mode">
+                            <option value="true">模擬交易 (Paper)</option>
+                            <option value="false">即時交易 (Live)</option>
+                        </select>
+                    </div>
+                    <div id="bot-sl-tp-fields" class="form-row">
+                        <div class="form-group">
+                            <label>停損 %</label>
+                            <input type="number" id="bot-sl" placeholder="例: 2.0" step="0.1">
+                        </div>
+                        <div class="form-group">
+                            <label>停利 %</label>
+                            <input type="number" id="bot-tp" placeholder="例: 5.0" step="0.1">
+                        </div>
+                    </div>
+                    <div id="bot-params" class="param-inputs"></div>
+                    <div style="display:flex;gap:8px;margin-top:16px;">
+                        <button class="btn" onclick="createBot()" style="flex:1;">建立</button>
+                        <button class="btn btn-secondary" onclick="closeCreateBotModal()" style="flex:1;">取消</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ═══ Tab 4: Account ═══ -->
+        <div class="tab-content" id="tab-account">
+            <div class="card">
+                <h3>Pionex API 金鑰管理</h3>
+                <div id="apikey-section">
+                    <div id="apikey-status" class="api-key-status">
+                        <div class="api-key-dot disconnected" id="apiKeyDot"></div>
+                        <span id="apiKeyStatusText">檢查中...</span>
+                    </div>
+                    <div id="apikey-form">
+                        <div class="form-group">
+                            <label>API Key</label>
+                            <input type="text" id="apikey-key" placeholder="輸入你的 Pionex API Key">
+                        </div>
+                        <div class="form-group">
+                            <label>API Secret</label>
+                            <input type="password" id="apikey-secret" placeholder="輸入你的 Pionex API Secret">
+                        </div>
+                        <div style="display:flex;gap:8px;">
+                            <button class="btn btn-sm" onclick="saveApiKey()">儲存 API 金鑰</button>
+                            <button class="btn btn-sm btn-danger" id="apikey-deleteBtn" onclick="deleteApiKey()" style="display:none;">刪除</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="card" style="margin-top:16px;">
+                <h3>帳戶餘額</h3>
+                <div id="acct-balances"><div class="loading">載入中...</div></div>
+            </div>
+            <div class="card" style="margin-top:16px;">
+                <h3>帳戶資訊</h3>
+                <div id="acct-info"><div class="loading">載入中...</div></div>
+            </div>
+        </div>
+
+        <!-- ═══ Tab 5: Strategies ═══ -->
+        <div class="tab-content" id="tab-strategies">
+            <div id="strat-list"><div class="loading">載入中...</div></div>
+        </div>
+
+        <!-- ═══ Tab 6: Guide ═══ -->
+        <div class="tab-content" id="tab-guide">
+            <div style="max-width:800px;">
+                <h2 style="color:#f7931a;margin-bottom:20px;">快速上手教學</h2>
+
+                <div class="guide-step">
+                    <span class="step-num">1</span>
+                    <h3>設定 Pionex API Key</h3>
+                    <p>前往「帳戶」分頁，輸入你的 Pionex API 金鑰。</p>
+                    <ul>
+                        <li>登入 <a href="https://www.pionex.com/en/apiManagement" target="_blank" style="color:#29b6f6;">Pionex API 管理頁面</a></li>
+                        <li>建立 API，勾選 <code>Reading</code> + <code>Trading</code></li>
+                        <li>到「帳戶」分頁貼入金鑰</li>
+                    </ul>
+                    <div class="warn">API Secret 只會在建立時顯示一次，請務必妥善保存。</div>
+                </div>
+
+                <div class="guide-step">
+                    <span class="step-num">2</span>
+                    <h3>回測驗證策略</h3>
+                    <p>先用回測確認策略表現。重點指標：<strong>夏普比率 > 1</strong>、<strong>最大回撤 < 20%</strong>、<strong>獲利因子 > 1.5</strong></p>
+                </div>
+
+                <div class="guide-step">
+                    <span class="step-num">3</span>
+                    <h3>建立交易機器人</h3>
+                    <p>建議先用「模擬交易」模式測試，確認穩定後再切換「即時交易」。</p>
+                    <div class="warn">即時交易使用真實資金，請務必設定停損（建議 2-5%）。</div>
+                </div>
+
+                <div class="guide-step">
+                    <span class="step-num">4</span>
+                    <h3>TradingView Webhook 整合</h3>
+                    <p>你可以用 TradingView 的策略信號來觸發交易，不需要使用內建策略。</p>
+                    <ul>
+                        <li>建立機器人時選擇「TradingView Webhook」作為信號來源</li>
+                        <li>建立後會取得 Webhook URL 和 Alert Message 模板</li>
+                        <li>在 TradingView 建立 Alert，將 Webhook URL 貼入，Message 貼入模板</li>
+                        <li>啟動機器人後，TradingView 觸發 Alert 時會自動執行交易</li>
+                    </ul>
+                    <p style="margin-top:8px;">支援的 action：<code>buy</code>（做多）、<code>sell</code>（做空）、<code>close</code>（平倉）</p>
+                </div>
+
+                <div class="guide-step">
+                    <span class="step-num">?</span>
+                    <h3>策略簡介</h3>
+                    <ul>
+                        <li><strong>ma_crossover</strong>：快線上穿慢線做多。適合趨勢行情。</li>
+                        <li><strong>rsi</strong>：RSI 超賣買入。適合震盪行情。</li>
+                        <li><strong>macd</strong>：MACD 線上穿訊號線做多。</li>
+                        <li><strong>bollinger</strong>：價格觸及下軌買入。均值回歸。</li>
+                        <li><strong>donchian</strong>：突破通道做多。捕捉大行情。</li>
+                        <li><strong>supertrend</strong>：基於 ATR 的趨勢追蹤。</li>
+                        <li><strong>combined</strong>：EMA + RSI + MACD 三重確認。</li>
+                        <li><strong>triple_ema</strong>：三條 EMA 同向排列進場。</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <!-- ═══ Tab 7: Admin ═══ -->
+        <div class="tab-content" id="tab-admin">
+            <div class="card">
+                <h3>使用者管理</h3>
+                <div id="admin-users"><div class="loading">載入中...</div></div>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- Clerk JS SDK (only load when auth is enabled) -->
+    {% if auth_enabled %}
+    <script
+        async
+        crossorigin="anonymous"
+        data-clerk-publishable-key="{{ clerk_publishable_key }}"
+        src="https://cdn.jsdelivr.net/npm/@clerk/clerk-js@latest/dist/clerk.browser.js"
+        type="text/javascript"
+    ></script>
+    {% endif %}
+
+    <script>
+        /* ════════════════════════════════════════════════
+           Global State
+        ════════════════════════════════════════════════ */
+        let chart = null;
+        let dashChart = null;
+        let strategiesLoaded = false;
+        let currentUser = null;
+        let clerkToken = null;
+
+        /* ════════════════════════════════════════════════
+           Auth: Clerk Integration
+        ════════════════════════════════════════════════ */
+        const AUTH_ENABLED = {{ 'true' if auth_enabled else 'false' }};
+
+        async function initAuth() {
+            if (!AUTH_ENABLED || !window.Clerk) {
+                console.info('Auth not enabled, running in local mode');
+                loadDashboard();
+                return;
+            }
+            try {
+                await window.Clerk.load({
+                    appearance: { variables: { colorPrimary: '#f7931a' } },
+                });
+                if (!window.Clerk.user) {
+                    window.location.href = '/login';
+                    return;
+                }
+                const session = window.Clerk.session;
+                clerkToken = await session.getToken();
+                setInterval(async () => {
+                    try {
+                        const s = window.Clerk.session;
+                        if (s) clerkToken = await s.getToken();
+                    } catch (e) {}
+                }, 50000);
+                const resp = await authFetch('/api/account/me');
+                if (resp.ok) {
+                    currentUser = await resp.json();
+                    renderUserBar();
+                    loadDashboard();
+                } else {
+                    window.location.href = '/login';
+                }
+            } catch (err) {
+                console.warn('Auth unavailable, running in dev mode');
+                loadDashboard();
+            }
+        }
+
+        function renderUserBar() {
+            if (!currentUser) return;
+            const bar = document.getElementById('userBar');
+            document.getElementById('userName').textContent = currentUser.display_name || currentUser.email;
+            const roleEl = document.getElementById('userRole');
+            roleEl.textContent = currentUser.role === 'admin' ? '管理員' : '使用者';
+            roleEl.className = 'user-role ' + (currentUser.role === 'admin' ? 'role-admin' : 'role-user');
+            bar.style.display = 'flex';
+            if (currentUser.role === 'admin') document.getElementById('adminTab').style.display = '';
+            if (currentUser.max_bots < 999) {
+                document.getElementById('botLimitInfo').textContent = '上限: ' + currentUser.max_bots + ' 個';
+            }
+        }
+
+        async function doLogout() {
+            try { await window.Clerk.signOut(); } catch (e) {}
+            window.location.href = '/login';
+        }
+
+        async function authFetch(url, options = {}) {
+            if (clerkToken) {
+                options.headers = options.headers || {};
+                options.headers['Authorization'] = 'Bearer ' + clerkToken;
+            }
+            return fetch(url, options);
+        }
+
+        /* ════════════════════════════════════════════════
+           Tab Navigation
+        ════════════════════════════════════════════════ */
+        function switchTab(tabName) {
+            document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+            document.querySelectorAll('.tab-nav .tab').forEach(el => el.classList.remove('active'));
+            document.getElementById('tab-' + tabName).classList.add('active');
+            const tabBtn = document.querySelector(`.tab-nav .tab[data-tab="${tabName}"]`);
+            if (tabBtn) tabBtn.classList.add('active');
+
+            if (tabName === 'dashboard') loadDashboard();
+            if (tabName === 'strategies' && !strategiesLoaded) loadStrategies();
+            if (tabName === 'bots') loadBots();
+            if (tabName === 'account') loadAccount();
+            if (tabName === 'admin') loadAdminUsers();
+        }
+        document.querySelectorAll('.tab-nav .tab').forEach(btn => {
+            btn.addEventListener('click', () => switchTab(btn.dataset.tab));
+        });
+
+        /* ════════════════════════════════════════════════
+           Dashboard Overview
+        ════════════════════════════════════════════════ */
+        async function loadDashboard() {
+            try {
+                const resp = await authFetch('/api/bots');
+                const bots = await resp.json();
+                if (!Array.isArray(bots)) return;
+
+                // Calculate stats
+                let totalAllocation = 0;
+                let totalPnl = 0;
+                let activeBots = 0;
+                let totalTrades = 0;
+                let totalWins = 0;
+                let totalTradesForWR = 0;
+
+                bots.forEach(b => {
+                    totalAllocation += b.capital;
+                    totalPnl += b.total_pnl;
+                    if (b.status === 'running') activeBots++;
+                    totalTrades += b.total_trades;
+                    if (b.total_trades > 0) {
+                        totalWins += Math.round(b.win_rate / 100 * b.total_trades);
+                        totalTradesForWR += b.total_trades;
+                    }
+                });
+
+                const avgWinRate = totalTradesForWR > 0 ? (totalWins / totalTradesForWR * 100) : 0;
+                const pnlPct = totalAllocation > 0 ? (totalPnl / totalAllocation * 100) : 0;
+
+                // Update stat cards
+                document.getElementById('dash-allocation').textContent = '$' + totalAllocation.toLocaleString();
+                const pnlEl = document.getElementById('dash-pnl');
+                pnlEl.textContent = (pnlPct >= 0 ? '+' : '') + pnlPct.toFixed(2) + '%';
+                pnlEl.style.color = pnlPct >= 0 ? '#00c853' : '#ff1744';
+                document.getElementById('dash-active-bots').textContent = activeBots;
+                document.getElementById('dash-winrate').textContent = avgWinRate.toFixed(1) + '%';
+
+                // Summary bar
+                document.getElementById('dash-total-trades').textContent = totalTrades;
+                document.getElementById('dash-total-winrate').textContent = avgWinRate.toFixed(1) + '%';
+                const totalPnlEl = document.getElementById('dash-total-pnl');
+                totalPnlEl.textContent = (totalPnl >= 0 ? '+' : '') + '$' + totalPnl.toFixed(2);
+                totalPnlEl.style.color = totalPnl >= 0 ? '#00c853' : '#ff1744';
+
+                // Render PnL chart (flat line if no data)
+                renderDashPnlChart(totalPnl, totalAllocation);
+
+                // Render bot list
+                renderDashBotList(bots);
+
+            } catch (err) {
+                console.error('Dashboard load error:', err);
+            }
+        }
+
+        function renderDashPnlChart(totalPnl, totalAllocation) {
+            const ctx = document.getElementById('dashPnlChart').getContext('2d');
+            if (dashChart) dashChart.destroy();
+            // Simple flat equity line for now (will be real-time with trade history)
+            const startVal = totalAllocation > 0 ? totalAllocation : 10000;
+            const endVal = startVal + totalPnl;
+            const points = [];
+            const labels = [];
+            for (let i = 0; i < 30; i++) {
+                const val = startVal + (totalPnl / 29) * i;
+                points.push(val);
+                const d = new Date();
+                d.setDate(d.getDate() - (29 - i));
+                labels.push(d.toISOString().slice(5, 10));
+            }
+            const lineColor = totalPnl >= 0 ? '#00c853' : '#ff1744';
+            const bgColor = totalPnl >= 0 ? 'rgba(0,200,83,0.1)' : 'rgba(255,23,68,0.1)';
+            dashChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        data: points,
+                        borderColor: lineColor,
+                        backgroundColor: bgColor,
+                        fill: true, tension: 0.3, pointRadius: 0, borderWidth: 2,
+                    }],
+                },
+                options: {
+                    responsive: true, maintainAspectRatio: false,
+                    plugins: { legend: { display: false } },
+                    scales: {
+                        x: { display: true, grid: { color: '#1e1e2e' }, ticks: { color: '#6b7280', maxTicksLimit: 6, font: { size: 10 } } },
+                        y: { display: true, grid: { color: '#1e1e2e' }, ticks: { color: '#6b7280', font: { size: 10 } } },
+                    },
+                    interaction: { intersect: false, mode: 'index' },
+                },
+            });
+        }
+
+        function renderDashBotList(bots) {
+            const container = document.getElementById('dash-bot-list');
+            if (bots.length === 0) {
+                container.innerHTML = '<div class="dash-empty">' +
+                    '<p style="font-size:1.1rem;font-weight:600;">尚無機器人</p>' +
+                    '<p>建立你的第一個自動交易機器人</p>' +
+                    '<button class="btn btn-sm btn-accent" style="margin-top:12px;" onclick="switchTab(\'bots\');showCreateBotModal();">建立機器人</button>' +
+                '</div>';
+                return;
+            }
+            let html = '';
+            bots.forEach(bot => {
+                const statusColor = bot.status === 'running' ? '#00c853' : bot.status === 'error' ? '#ff1744' : '#6b7280';
+                const statusLabel = bot.status === 'running' ? '運行中' : bot.status === 'error' ? '錯誤' : '已停止';
+                const pnlColor = bot.total_pnl > 0 ? '#00c853' : bot.total_pnl < 0 ? '#ff1744' : '#6b7280';
+                const isWebhook = bot.signal_source === 'webhook';
+                const sourceLabel = isWebhook ? 'Webhook' : bot.strategy;
+                html += '<div class="dash-bot-item">' +
+                    '<div class="dash-bot-item-header">' +
+                        '<div class="dash-bot-item-name">' +
+                            '<span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:' + statusColor + ';margin-right:8px;"></span>' +
+                            bot.name +
+                            '<span class="badge ' + (bot.paper_mode ? 'badge-paper' : 'badge-live') + '">' + (bot.paper_mode ? '模擬' : '即時') + '</span>' +
+                            (isWebhook ? '<span class="badge badge-webhook">WH</span>' : '') +
+                        '</div>' +
+                        '<span style="font-size:0.8rem;color:#6b7280;">' + sourceLabel + ' | ' + bot.symbol + '</span>' +
+                    '</div>' +
+                    '<div class="dash-bot-item-stats">' +
+                        '<div><span>損益: </span><strong style="color:' + pnlColor + ';">' + (bot.total_pnl >= 0 ? '+' : '') + '$' + bot.total_pnl.toFixed(2) + '</strong></div>' +
+                        '<div><span>交易: </span><strong>' + bot.total_trades + '</strong></div>' +
+                        '<div><span>勝率: </span><strong>' + bot.win_rate.toFixed(1) + '%</strong></div>' +
+                        '<div><span>狀態: </span><strong style="color:' + statusColor + ';">' + statusLabel + '</strong></div>' +
+                    '</div>' +
+                '</div>';
+            });
+            container.innerHTML = html;
+        }
+
+        /* ════════════════════════════════════════════════
+           Shared: Strategy Params & Data Source Toggle
+        ════════════════════════════════════════════════ */
+        async function loadStrategyParams(prefix) {
+            const stratName = document.getElementById(prefix + '-strategy').value;
+            const resp = await authFetch('/api/strategy/' + stratName);
+            const data = await resp.json();
+            const container = document.getElementById(prefix + '-params');
+            container.innerHTML = '';
+            if (!data.parameters || data.parameters.length === 0) return;
+            container.innerHTML = '<label style="color:#f7931a;font-size:0.9rem;margin-bottom:8px;display:block;">策略參數</label>';
+            data.parameters.forEach(p => {
+                const div = document.createElement('div');
+                div.className = 'form-group';
+                if (p.type === 'select') {
+                    div.innerHTML = `<label>${p.display_name}</label>
+                        <select id="${prefix}-param-${p.name}" data-param="${p.name}">
+                            ${p.options.map(o => `<option value="${o}" ${o == p.default ? 'selected' : ''}>${o}</option>`).join('')}
+                        </select>`;
+                } else {
+                    div.innerHTML = `<label>${p.display_name} (預設: ${p.default})</label>
+                        <input type="number" id="${prefix}-param-${p.name}" data-param="${p.name}"
+                               value="${p.default}" min="${p.min != null ? p.min : ''}" max="${p.max != null ? p.max : ''}" step="${p.step || 1}">`;
+                }
+                container.appendChild(div);
+            });
+        }
+
+        function collectParams(prefix) {
+            const params = {};
+            document.querySelectorAll('#' + prefix + '-params [data-param]').forEach(el => {
+                params[el.dataset.param] = el.tagName === 'SELECT' ? el.value :
+                    (el.type === 'number' ? parseFloat(el.value) : el.value);
+            });
+            return params;
+        }
+
+        function toggleSource(prefix) {
+            const src = document.getElementById(prefix + '-source').value;
+            document.getElementById(prefix + '-api-fields').style.display = src === 'api' ? '' : 'none';
+            document.getElementById(prefix + '-csv-fields').style.display = src === 'csv' ? '' : 'none';
+        }
+
+        function buildDataUrl(prefix) {
+            const source = document.getElementById(prefix + '-source').value;
+            if (source === 'csv') return '&csv_path=' + encodeURIComponent(document.getElementById(prefix + '-csv').value);
+            return '&symbol=' + document.getElementById(prefix + '-symbol').value +
+                   '&timeframe=' + document.getElementById(prefix + '-timeframe').value +
+                   '&limit=' + document.getElementById(prefix + '-limit').value;
+        }
+
+        /* ════════════════════════════════════════════════
+           Tab 1: Backtest
+        ════════════════════════════════════════════════ */
+        async function runBacktest() {
+            const btn = document.getElementById('bt-runBtn');
+            const content = document.getElementById('bt-metricsContent');
+            btn.disabled = true; btn.textContent = '回測中...';
+            content.innerHTML = '<div class="loading"><div class="spinner"></div><br>正在執行回測...</div>';
+
+            const strategy = document.getElementById('bt-strategy').value;
+            const capital = document.getElementById('bt-capital').value;
+            const sl = document.getElementById('bt-sl').value;
+            const tp = document.getElementById('bt-tp').value;
+            const customParams = collectParams('bt');
+
+            let url = '/api/backtest?strategy=' + strategy + '&capital=' + capital + buildDataUrl('bt');
+            if (sl) url += '&sl=' + sl;
+            if (tp) url += '&tp=' + tp;
+            if (Object.keys(customParams).length > 0) url += '&params_json=' + encodeURIComponent(JSON.stringify(customParams));
+
+            try {
+                const resp = await authFetch(url);
+                const data = await resp.json();
+                if (data.error) throw new Error(data.error);
+                if (data.metrics) renderMetrics(data.metrics);
+                if (data.equity_curve && data.equity_curve.length > 0) renderChart(data.equity_curve);
+                if (data.trades && data.trades.length > 0) { renderTrades(data.trades); }
+                else { document.getElementById('bt-tradesCard').style.display = 'none'; }
+                loadBacktestHistory();
+            } catch (err) {
+                content.innerHTML = '<div class="loading" style="color:#ff1744;">錯誤: ' + err.message + '</div>';
+            } finally {
+                btn.disabled = false; btn.textContent = '執行回測';
+            }
+        }
+
+        function renderMetrics(m) {
+            const retClass = m.total_return_pct >= 0 ? 'positive' : 'negative';
+            const sharpeClass = m.sharpe_ratio >= 1 ? 'positive' : m.sharpe_ratio < 0 ? 'negative' : '';
+            document.getElementById('bt-metricsContent').innerHTML = `
+                <div class="metrics-grid">
+                    <div class="metric"><div class="value ${retClass}">${m.total_return_pct >= 0 ? '+' : ''}${m.total_return_pct.toFixed(1)}%</div><div class="label">總報酬率</div></div>
+                    <div class="metric"><div class="value ${sharpeClass}">${m.sharpe_ratio.toFixed(2)}</div><div class="label">夏普比率</div></div>
+                    <div class="metric"><div class="value negative">${m.max_drawdown_pct.toFixed(1)}%</div><div class="label">最大回撤</div></div>
+                    <div class="metric"><div class="value">${m.win_rate.toFixed(0)}%</div><div class="label">勝率</div></div>
+                    <div class="metric"><div class="value">${m.total_trades}</div><div class="label">交易次數</div></div>
+                    <div class="metric"><div class="value">${m.profit_factor.toFixed(2)}</div><div class="label">獲利因子</div></div>
+                    <div class="metric"><div class="value">${m.sortino_ratio.toFixed(2)}</div><div class="label">索提諾比率</div></div>
+                    <div class="metric"><div class="value positive">${m.best_trade_pct >= 0 ? '+' : ''}${m.best_trade_pct.toFixed(1)}%</div><div class="label">最佳交易</div></div>
+                </div>`;
+        }
+
+        function renderChart(equityData) {
+            const ctx = document.getElementById('equityChart').getContext('2d');
+            if (chart) chart.destroy();
+            let data = equityData;
+            if (data.length > 300) { const step = Math.ceil(data.length / 300); data = data.filter((_, i) => i % step === 0); }
+            chart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: data.map(d => d.time.slice(0, 10)),
+                    datasets: [{ label: '資金曲線', data: data.map(d => d.value),
+                        borderColor: '#f7931a', backgroundColor: 'rgba(247,147,26,0.1)',
+                        fill: true, tension: 0.1, pointRadius: 0, borderWidth: 2 }],
+                },
+                options: {
+                    responsive: true, maintainAspectRatio: false,
+                    plugins: { legend: { display: false } },
+                    scales: {
+                        x: { grid: { color: '#1e1e2e' }, ticks: { color: '#6b7280', maxTicksLimit: 8 } },
+                        y: { grid: { color: '#1e1e2e' }, ticks: { color: '#6b7280' } },
+                    },
+                    interaction: { intersect: false, mode: 'index' },
+                },
+            });
+        }
+
+        function renderTrades(trades) {
+            document.getElementById('bt-tradesCard').style.display = '';
+            document.getElementById('bt-tradeCount').textContent = '(最近 ' + trades.length + ' 筆)';
+            document.getElementById('bt-tradesBody').innerHTML = trades.map(t => `<tr>
+                <td>${t.entry_time.slice(0,16)}</td><td>${t.exit_time.slice(0,16)}</td>
+                <td>${t.direction === 'Long' ? '做多' : '做空'}</td>
+                <td>${t.entry_price.toLocaleString()}</td><td>${t.exit_price.toLocaleString()}</td>
+                <td class="${t.pnl >= 0 ? 'positive' : 'negative'}">$${t.pnl.toFixed(2)}</td>
+                <td class="${t.return_pct >= 0 ? 'positive' : 'negative'}">${t.return_pct >= 0 ? '+' : ''}${t.return_pct.toFixed(2)}%</td>
+            </tr>`).join('');
+        }
+
+        /* ════════════════════════════════════════════════
+           Tab 1b: Backtest History
+        ════════════════════════════════════════════════ */
+        async function loadBacktestHistory() {
+            const el = document.getElementById('bt-historyContent');
+            try {
+                const resp = await authFetch('/api/backtest/history');
+                if (resp.status === 401) { el.innerHTML = '<div class="loading" style="color:#6b7280;">登入後可查看回測歷史</div>'; return; }
+                const data = await resp.json();
+                if (data.error) { el.innerHTML = '<div class="loading" style="color:#6b7280;">'+data.error+'</div>'; return; }
+                const results = data.results || [];
+                if (results.length === 0) { el.innerHTML = '<div class="loading" style="color:#6b7280;">尚無回測紀錄</div>'; return; }
+                el.innerHTML = '<div style="overflow-x:auto;"><table class="data-table"><thead><tr>' +
+                    '<th>策略</th><th>交易對</th><th>時間框架</th><th>總報酬</th><th>夏普</th><th>勝率</th><th>交易數</th><th>時間</th><th></th>' +
+                    '</tr></thead><tbody>' +
+                    results.map(r => {
+                        const m = r.metrics || {};
+                        const ret = m.total_return_pct || 0;
+                        const retClass = ret >= 0 ? 'positive' : 'negative';
+                        const ts = r.created_at ? r.created_at.slice(0,16).replace('T',' ') : '';
+                        return '<tr>' +
+                            '<td>'+r.strategy+'</td>' +
+                            '<td>'+r.symbol+'</td>' +
+                            '<td>'+r.timeframe+'</td>' +
+                            '<td class="'+retClass+'">'+(ret>=0?'+':'')+ret.toFixed(1)+'%</td>' +
+                            '<td>'+(m.sharpe_ratio||0).toFixed(2)+'</td>' +
+                            '<td>'+(m.win_rate||0).toFixed(0)+'%</td>' +
+                            '<td>'+(m.total_trades||0)+'</td>' +
+                            '<td style="font-size:0.8rem;color:#6b7280;">'+ts+'</td>' +
+                            '<td style="white-space:nowrap;">' +
+                                '<button class="btn" style="font-size:0.7rem;padding:2px 8px;margin-right:4px;" onclick="viewBacktestResult('+r.id+')">查看</button>' +
+                                '<button class="btn" style="font-size:0.7rem;padding:2px 8px;background:#2a1a1a;color:#ff4444;" onclick="deleteBacktestResult('+r.id+')">刪除</button>' +
+                            '</td></tr>';
+                    }).join('') +
+                    '</tbody></table></div>';
+            } catch(e) {
+                el.innerHTML = '<div class="loading" style="color:#6b7280;">載入失敗</div>';
+            }
+        }
+
+        async function viewBacktestResult(id) {
+            const content = document.getElementById('bt-metricsContent');
+            content.innerHTML = '<div class="loading"><div class="spinner"></div><br>載入回測結果...</div>';
+            try {
+                const resp = await authFetch('/api/backtest/history/' + id);
+                const data = await resp.json();
+                if (data.error) throw new Error(data.error);
+                if (data.metrics) renderMetrics(data.metrics);
+                if (data.equity_curve && data.equity_curve.length > 0) renderChart(data.equity_curve);
+                if (data.trades && data.trades.length > 0) { renderTrades(data.trades); }
+                else { document.getElementById('bt-tradesCard').style.display = 'none'; }
+                // Scroll to top of results
+                document.getElementById('bt-metricsContent').scrollIntoView({behavior:'smooth'});
+            } catch(e) {
+                content.innerHTML = '<div class="loading" style="color:#ff1744;">錯誤: '+e.message+'</div>';
+            }
+        }
+
+        async function deleteBacktestResult(id) {
+            if (!confirm('確定刪除此回測結果？')) return;
+            try {
+                await authFetch('/api/backtest/history/' + id, {method:'DELETE'});
+                loadBacktestHistory();
+            } catch(e) { alert('刪除失敗: ' + e.message); }
+        }
+
+        /* ════════════════════════════════════════════════
+           Tab 2: Optimize
+        ════════════════════════════════════════════════ */
+        async function runOptimize() {
+            const btn = document.getElementById('opt-runBtn');
+            const content = document.getElementById('opt-content');
+            btn.disabled = true; btn.textContent = '優化中...';
+            content.innerHTML = '<div class="loading"><div class="spinner"></div><br>正在進行參數優化...</div>';
+
+            const strategy = document.getElementById('opt-strategy').value;
+            let url = '/api/optimize?strategy=' + strategy + '&sort_by=' + document.getElementById('opt-sort').value +
+                      '&top_n=' + document.getElementById('opt-topn').value +
+                      '&max_combos=' + document.getElementById('opt-maxcombos').value + buildDataUrl('opt');
+
+            try {
+                const resp = await authFetch(url);
+                const data = await resp.json();
+                if (data.error) throw new Error(data.error);
+                renderOptResults(data);
+            } catch (err) {
+                content.innerHTML = '<div class="loading" style="color:#ff1744;">錯誤: ' + err.message + '</div>';
+            } finally {
+                btn.disabled = false; btn.textContent = '開始優化';
+            }
+        }
+
+        function renderOptResults(data) {
+            const content = document.getElementById('opt-content');
+            let html = '<p style="color:#6b7280;margin-bottom:12px;">策略: ' + data.strategy +
+                       ' | 測試: ' + data.tested + '/' + data.total_combinations + '</p>';
+            if (!data.results || data.results.length === 0) { content.innerHTML = html + '<p style="color:#ff1744;">無結果</p>'; return; }
+            html += '<div style="overflow-x:auto;"><table class="data-table"><thead><tr>' +
+                '<th>#</th><th>參數</th><th>報酬率</th><th>夏普</th><th>回撤</th><th>勝率</th><th>交易數</th><th>獲利因子</th><th></th>' +
+                '</tr></thead><tbody>';
+            data.results.forEach(r => {
+                const m = r.metrics;
+                const paramsStr = Object.entries(r.params).map(e => e[0] + '=' + e[1]).join(', ');
+                html += '<tr><td>' + r.rank + '</td><td style="font-size:0.8rem;">' + paramsStr + '</td>' +
+                    '<td class="' + (m.total_return_pct >= 0 ? 'positive' : 'negative') + '">' + (m.total_return_pct >= 0 ? '+' : '') + m.total_return_pct.toFixed(1) + '%</td>' +
+                    '<td>' + m.sharpe_ratio.toFixed(2) + '</td><td class="negative">' + m.max_drawdown_pct.toFixed(1) + '%</td>' +
+                    '<td>' + m.win_rate.toFixed(0) + '%</td><td>' + m.total_trades + '</td><td>' + m.profit_factor.toFixed(2) + '</td>' +
+                    '<td><button class="btn btn-sm btn-secondary" onclick=\'applyOptParams(' + JSON.stringify(JSON.stringify(r.params)) + ')\'>套用</button></td></tr>';
+            });
+            html += '</tbody></table></div>';
+            content.innerHTML = html;
+        }
+
+        function applyOptParams(paramsJson) {
+            const params = JSON.parse(paramsJson);
+            document.getElementById('bt-strategy').value = document.getElementById('opt-strategy').value;
+            switchTab('backtest');
+            loadStrategyParams('bt').then(() => {
+                Object.entries(params).forEach(([k, v]) => {
+                    const input = document.getElementById('bt-param-' + k);
+                    if (input) input.value = v;
+                });
+            });
+        }
+
+        /* ════════════════════════════════════════════════
+           Tab 3: Bots
+        ════════════════════════════════════════════════ */
+        async function loadBots() {
+            const container = document.getElementById('bots-list');
+            try {
+                const resp = await authFetch('/api/bots');
+                const bots = await resp.json();
+                if (bots.length === 0) {
+                    container.innerHTML = '<div class="loading">尚無機器人，點擊「+ 新增機器人」建立</div>';
+                    return;
+                }
+                let html = '<div style="display:grid;gap:16px;">';
+                bots.forEach(bot => {
+                    const statusLabel = bot.status === 'running' ? '運行中' : bot.status === 'error' ? '錯誤' : '已停止';
+                    const statusClass = bot.status === 'running' ? 'badge-running' : bot.status === 'error' ? 'badge-error' : 'badge-stopped';
+                    const modeClass = bot.paper_mode ? 'badge-paper' : 'badge-live';
+                    const isWebhook = bot.signal_source === 'webhook';
+                    const pnlColor = bot.total_pnl > 0 ? '#00e676' : bot.total_pnl < 0 ? '#ff1744' : '#e7e9ea';
+                    const pnlSign = bot.total_pnl > 0 ? '+' : '';
+                    const infoLine = isWebhook
+                        ? 'Webhook | ' + bot.symbol + ' | $' + bot.capital.toLocaleString()
+                        : bot.strategy + ' | ' + bot.symbol + ' | ' + bot.timeframe + ' | $' + bot.capital.toLocaleString();
+                    html += '<div class="card" style="border-left:3px solid ' +
+                        (bot.status === 'running' ? '#00e676' : bot.status === 'error' ? '#ff1744' : '#6b7280') + ';">' +
+                        '<div style="display:flex;justify-content:space-between;align-items:start;flex-wrap:wrap;gap:12px;">' +
+                            '<div>' +
+                                '<strong style="font-size:1.15rem;">' + bot.name + '</strong> ' +
+                                '<span class="badge ' + statusClass + '">' + statusLabel + '</span> ' +
+                                '<span class="badge ' + modeClass + '">' + (bot.paper_mode ? '模擬' : '即時') + '</span>' +
+                                (isWebhook ? '<span class="badge badge-webhook">Webhook</span>' : '') +
+                                '<p style="color:#6b7280;font-size:0.85rem;margin-top:4px;">' + infoLine + '</p>' +
+                                (bot.error_msg ? '<p style="color:#ff1744;font-size:0.8rem;margin-top:2px;">' + bot.error_msg + '</p>' : '') +
+                            '</div>' +
+                        '</div>' +
+                        '<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-top:12px;padding:12px;background:#0a0a0f;border-radius:8px;">' +
+                            '<div style="text-align:center;"><div style="color:#6b7280;font-size:0.75rem;">損益</div>' +
+                                '<div style="font-size:1.2rem;font-weight:700;color:' + pnlColor + ';">' + pnlSign + '$' + bot.total_pnl.toFixed(2) + '</div></div>' +
+                            '<div style="text-align:center;"><div style="color:#6b7280;font-size:0.75rem;">交易數</div>' +
+                                '<div style="font-size:1.2rem;font-weight:700;">' + bot.total_trades + '</div></div>' +
+                            '<div style="text-align:center;"><div style="color:#6b7280;font-size:0.75rem;">勝率</div>' +
+                                '<div style="font-size:1.2rem;font-weight:700;">' + bot.win_rate.toFixed(1) + '%</div></div>' +
+                            '<div style="text-align:center;"><div style="color:#6b7280;font-size:0.75rem;">最後信號</div>' +
+                                '<div style="font-size:0.9rem;font-weight:600;">' + (bot.last_signal || '—') + '</div>' +
+                                (bot.last_signal_time ? '<div style="font-size:0.65rem;color:#6b7280;">' + bot.last_signal_time + '</div>' : '') +
+                            '</div>' +
+                        '</div>' +
+                        (isWebhook ? '<div class="webhook-info-box" id="webhook-info-' + bot.bot_id + '"><div class="loading" style="padding:8px;font-size:0.8rem;">載入 Webhook 資訊...</div></div>' : '') +
+                        '<div style="display:flex;gap:8px;margin-top:12px;">' +
+                            (bot.status !== 'running'
+                                ? '<button class="btn btn-sm btn-success" onclick="startBot(\'' + bot.bot_id + '\')">啟動</button>'
+                                : '<button class="btn btn-sm btn-danger" onclick="stopBot(\'' + bot.bot_id + '\')">停止</button>') +
+                            (bot.status !== 'running'
+                                ? '<button class="btn btn-sm btn-danger" onclick="deleteBot(\'' + bot.bot_id + '\',\'' + bot.name.replace(/'/g, "\\'") + '\')">刪除</button>'
+                                : '') +
+                        '</div></div>';
+                });
+                // Load webhook info for webhook bots
+                bots.filter(b => b.signal_source === 'webhook').forEach(b => loadWebhookInfo(b.bot_id));
+                html += '</div>';
+                container.innerHTML = html;
+            } catch (err) {
+                container.innerHTML = '<div class="loading" style="color:#ff1744;">載入失敗: ' + err.message + '</div>';
+            }
+        }
+
+        function showCreateBotModal() {
+            document.getElementById('createBotModal').classList.add('active');
+            document.getElementById('bot-signal-source').value = 'strategy';
+            onSignalSourceChange();
+            loadStrategyParams('bot');
+        }
+        function closeCreateBotModal() { document.getElementById('createBotModal').classList.remove('active'); }
+
+        function onBotSymbolChange() {
+            const sym = document.getElementById('bot-symbol').value;
+            const isPerp = sym.includes('_PERP');
+            document.getElementById('bot-symbol-hint').style.display = isPerp ? 'block' : 'none';
+            const modeSelect = document.getElementById('bot-mode');
+            if (isPerp) { modeSelect.value = 'true'; modeSelect.disabled = true; }
+            else { modeSelect.disabled = false; }
+        }
+
+        async function createBot() {
+            const signalSource = document.getElementById('bot-signal-source').value;
+            const isWebhook = signalSource === 'webhook';
+            const params = isWebhook ? {} : collectParams('bot');
+            const slVal = document.getElementById('bot-sl').value;
+            const tpVal = document.getElementById('bot-tp').value;
+            const body = {
+                name: document.getElementById('bot-name').value || (isWebhook ? 'Webhook Bot' : '新機器人'),
+                strategy: isWebhook ? 'webhook' : document.getElementById('bot-strategy').value,
+                symbol: document.getElementById('bot-symbol').value,
+                timeframe: isWebhook ? '' : document.getElementById('bot-timeframe').value,
+                capital: parseFloat(document.getElementById('bot-capital').value),
+                paper_mode: document.getElementById('bot-mode').value === 'true',
+                sl_pct: isWebhook ? null : (slVal ? parseFloat(slVal) : null),
+                tp_pct: isWebhook ? null : (tpVal ? parseFloat(tpVal) : null),
+                params: params,
+                signal_source: signalSource,
+            };
+            try {
+                const resp = await authFetch('/api/bots', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(body) });
+                const data = await resp.json();
+                if (data.error) throw new Error(data.error);
+                closeCreateBotModal();
+                loadBots();
+            } catch (err) { alert('建立失敗: ' + err.message); }
+        }
+
+        async function startBot(botId) {
+            try {
+                const resp = await authFetch('/api/bots/' + botId + '/start', { method: 'POST' });
+                const data = await resp.json();
+                if (data.error) throw new Error(data.error);
+                loadBots();
+            } catch (err) { alert('啟動失敗: ' + err.message); }
+        }
+
+        async function stopBot(botId) {
+            try {
+                const resp = await authFetch('/api/bots/' + botId + '/stop', { method: 'POST' });
+                const data = await resp.json();
+                if (data.error) throw new Error(data.error);
+                loadBots();
+            } catch (err) { alert('停止失敗: ' + err.message); }
+        }
+
+        async function deleteBot(botId, name) {
+            if (!confirm('確定要刪除機器人「' + name + '」嗎?')) return;
+            try {
+                const resp = await authFetch('/api/bots/' + botId, { method: 'DELETE' });
+                const data = await resp.json();
+                if (data.error) throw new Error(data.error);
+                loadBots();
+            } catch (err) { alert('刪除失敗: ' + err.message); }
+        }
+
+        /* ═══ Webhook UI functions ═══ */
+        function onSignalSourceChange() {
+            const source = document.getElementById('bot-signal-source').value;
+            const isWebhook = source === 'webhook';
+            document.getElementById('bot-strategy-fields').style.display = isWebhook ? 'none' : '';
+            document.getElementById('bot-timeframe-field').style.display = isWebhook ? 'none' : '';
+            document.getElementById('bot-sl-tp-fields').style.display = isWebhook ? 'none' : '';
+            document.getElementById('bot-params').style.display = isWebhook ? 'none' : '';
+            document.getElementById('bot-webhook-hint').style.display = isWebhook ? '' : 'none';
+        }
+
+        async function loadWebhookInfo(botId) {
+            const container = document.getElementById('webhook-info-' + botId);
+            if (!container) return;
+            try {
+                const resp = await authFetch('/api/bots/' + botId + '/webhook-info');
+                if (!resp.ok) { container.innerHTML = '<span style="color:#6b7280;font-size:0.8rem;">無法載入 Webhook 資訊</span>'; return; }
+                const info = await resp.json();
+                container.innerHTML =
+                    '<label>Webhook URL</label>' +
+                    '<div class="copy-row">' +
+                        '<input type="text" readonly value="' + info.webhook_url + '" id="wh-url-' + botId + '">' +
+                        '<button class="btn-copy" onclick="copyToClipboard(\'wh-url-' + botId + '\',this)">複製</button>' +
+                    '</div>' +
+                    '<label>TradingView Alert Message 模板</label>' +
+                    '<div class="copy-row">' +
+                        '<textarea readonly id="wh-tpl-' + botId + '">' + info.alert_message_template + '</textarea>' +
+                        '<button class="btn-copy" onclick="copyToClipboard(\'wh-tpl-' + botId + '\',this)">複製</button>' +
+                    '</div>' +
+                    '<p style="font-size:0.75rem;color:#6b7280;margin-top:4px;">在 TradingView 建立 Alert，Webhook URL 貼上方網址，Alert Message 貼上方模板。</p>';
+            } catch (err) { container.innerHTML = '<span style="color:#ff1744;font-size:0.8rem;">載入失敗</span>'; }
+        }
+
+        function copyToClipboard(inputId, btn) {
+            const el = document.getElementById(inputId);
+            const text = el.value || el.textContent;
+            navigator.clipboard.writeText(text).then(() => {
+                const orig = btn.textContent;
+                btn.textContent = '已複製!';
+                btn.style.color = '#00c853';
+                setTimeout(() => { btn.textContent = orig; btn.style.color = ''; }, 1500);
+            }).catch(() => { el.select(); document.execCommand('copy'); });
+        }
+
+        setInterval(() => {
+            if (document.getElementById('tab-bots').classList.contains('active')) loadBots();
+            if (document.getElementById('tab-dashboard').classList.contains('active')) loadDashboard();
+        }, 10000);
+
+        /* ════════════════════════════════════════════════
+           Tab 4: Account
+        ════════════════════════════════════════════════ */
+        async function loadAccount() { loadApiKeyStatus(); loadBalances(); loadAccountInfo(); }
+
+        async function loadApiKeyStatus() {
+            const dot = document.getElementById('apiKeyDot');
+            const text = document.getElementById('apiKeyStatusText');
+            const delBtn = document.getElementById('apikey-deleteBtn');
+            const form = document.getElementById('apikey-form');
+            try {
+                const resp = await authFetch('/api/api-keys');
+                if (resp.ok) {
+                    const data = await resp.json();
+                    if (data.has_key) {
+                        dot.className = 'api-key-dot connected';
+                        text.innerHTML = '<span style="color:#00c853;">Pionex API 已設定</span>' +
+                            (data.label ? ' (' + data.label + ')' : '') +
+                            ' <span style="color:#6b7280;font-size:0.8rem;">Key: ' + data.key_preview + '</span>';
+                        if (data.source === 'config') {
+                            // Local mode: keys from server config file
+                            form.innerHTML = '<p style="color:#6b7280;font-size:0.85rem;margin-top:8px;">金鑰來源：伺服器設定檔 (config/default.yaml 或 .env)</p>';
+                            delBtn.style.display = 'none';
+                        } else {
+                            delBtn.style.display = '';
+                        }
+                    } else {
+                        dot.className = 'api-key-dot disconnected';
+                        text.innerHTML = '<span style="color:#ff1744;">尚未設定 API 金鑰</span>';
+                        delBtn.style.display = 'none';
+                    }
+                }
+            } catch (err) { text.innerHTML = '<span style="color:#6b7280;">無法檢查</span>'; }
+        }
+
+        async function saveApiKey() {
+            const key = document.getElementById('apikey-key').value.trim();
+            const secret = document.getElementById('apikey-secret').value.trim();
+            if (!key || !secret) { alert('請輸入 API Key 和 API Secret'); return; }
+            try {
+                const resp = await authFetch('/api/api-keys', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ api_key: key, api_secret: secret }) });
+                const data = await resp.json();
+                if (data.error) throw new Error(data.error);
+                document.getElementById('apikey-key').value = '';
+                document.getElementById('apikey-secret').value = '';
+                alert('API 金鑰已儲存');
+                loadApiKeyStatus(); loadBalances();
+            } catch (err) { alert('儲存失敗: ' + err.message); }
+        }
+
+        async function deleteApiKey() {
+            if (!confirm('確定要刪除 API 金鑰嗎？')) return;
+            try {
+                const resp = await authFetch('/api/api-keys', { method: 'DELETE' });
+                loadApiKeyStatus(); loadBalances();
+            } catch (err) { alert('刪除失敗: ' + err.message); }
+        }
+
+        async function loadBalances() {
+            const balEl = document.getElementById('acct-balances');
+            try {
+                const resp = await authFetch('/api/account/balance');
+                if (!resp.ok) { const err = await resp.json(); balEl.innerHTML = '<p style="color:#6b7280;">' + (err.error || '無法取得餘額') + '</p>'; return; }
+                const data = await resp.json();
+                let html = '<div class="balance-grid">';
+                data.balances.forEach(b => {
+                    const dec = b.asset === 'USDT' ? 2 : 6;
+                    html += '<div class="balance-card"><div class="asset">' + b.asset + '</div>' +
+                        '<div class="amount">' + parseFloat(b.free).toFixed(dec) + '</div>' +
+                        '<div class="locked">凍結: ' + parseFloat(b.frozen).toFixed(dec) + '</div></div>';
+                });
+                html += '</div>';
+                balEl.innerHTML = html;
+            } catch (err) { balEl.innerHTML = '<p style="color:#ff1744;">載入失敗: ' + err.message + '</p>'; }
+        }
+
+        function loadAccountInfo() {
+            const el = document.getElementById('acct-info');
+            if (!currentUser) {
+                if (!AUTH_ENABLED) {
+                    el.innerHTML = '<div style="display:grid;grid-template-columns:auto 1fr;gap:8px 16px;font-size:0.9rem;">' +
+                        '<span style="color:#6b7280;">模式:</span><span style="color:#00c853;">本機模式</span>' +
+                        '<span style="color:#6b7280;">認證:</span><span>未啟用（API 金鑰使用伺服器設定檔）</span>' +
+                        '<span style="color:#6b7280;">機器人上限:</span><span>無限制</span>' +
+                    '</div>';
+                } else {
+                    el.innerHTML = '<p style="color:#6b7280;">未登入</p>';
+                }
+                return;
+            }
+            el.innerHTML = '<div style="display:grid;grid-template-columns:auto 1fr;gap:8px 16px;font-size:0.9rem;">' +
+                '<span style="color:#6b7280;">Email:</span><span>' + currentUser.email + '</span>' +
+                '<span style="color:#6b7280;">顯示名稱:</span><span>' + (currentUser.display_name || '—') + '</span>' +
+                '<span style="color:#6b7280;">角色:</span><span>' + (currentUser.role === 'admin' ? '管理員' : '使用者') + '</span>' +
+                '<span style="color:#6b7280;">機器人上限:</span><span>' + (currentUser.max_bots >= 999 ? '無限制' : currentUser.max_bots) + '</span>' +
+            '</div>';
+        }
+
+        /* ════════════════════════════════════════════════
+           Tab 5: Strategies
+        ════════════════════════════════════════════════ */
+        async function loadStrategies() {
+            const container = document.getElementById('strat-list');
+            try {
+                const resp = await authFetch('/api/strategies');
+                const strats = await resp.json();
+                let html = '';
+                strats.forEach(s => {
+                    html += '<div class="strat-card">' +
+                        '<div style="display:flex;justify-content:space-between;align-items:center;">' +
+                            '<div><strong style="color:#f7931a;font-size:1.1rem;">' + s.display_name + '</strong>' +
+                                '<span style="color:#6b7280;font-size:0.8rem;margin-left:8px;">' + s.name + '</span></div>' +
+                            '<span style="color:#6b7280;font-size:0.85rem;">' + s.parameters.length + ' 個參數</span></div>' +
+                        '<p style="color:#6b7280;margin:8px 0;font-size:0.9rem;">' + s.description + '</p>';
+                    if (s.parameters.length > 0) {
+                        html += '<div class="strat-params">';
+                        s.parameters.forEach(p => {
+                            html += '<div class="strat-param"><span style="color:#6b7280;">' + p.display_name + ':</span> ' + p.default +
+                                (p.min != null ? ' <span style="color:#555;font-size:0.7rem;">(' + p.min + '-' + p.max + ')</span>' : '') + '</div>';
+                        });
+                        html += '</div>';
+                    }
+                    html += '</div>';
+                });
+                container.innerHTML = html;
+                strategiesLoaded = true;
+            } catch (err) {
+                container.innerHTML = '<div class="loading" style="color:#ff1744;">載入失敗: ' + err.message + '</div>';
+            }
+        }
+
+        /* ════════════════════════════════════════════════
+           Tab 7: Admin
+        ════════════════════════════════════════════════ */
+        async function loadAdminUsers() {
+            const container = document.getElementById('admin-users');
+            try {
+                const resp = await authFetch('/api/admin/users');
+                if (!resp.ok) { container.innerHTML = '<p style="color:#ff1744;">權限不足</p>'; return; }
+                const users = await resp.json();
+                let html = '<table class="data-table"><thead><tr>' +
+                    '<th>Email</th><th>顯示名稱</th><th>角色</th><th>機器人上限</th><th>狀態</th><th>註冊時間</th><th>操作</th></tr></thead><tbody>';
+                users.forEach(u => {
+                    const isActive = u.is_active !== false;
+                    html += '<tr><td>' + u.email + '</td><td>' + (u.display_name || '—') + '</td>' +
+                        '<td><span class="badge ' + (u.role === 'admin' ? 'badge-live' : 'badge-paper') + '">' + (u.role === 'admin' ? '管理員' : '使用者') + '</span></td>' +
+                        '<td><input type="number" value="' + u.max_bots + '" min="0" max="999" style="width:60px;padding:4px;background:#0a0a0f;border:1px solid #1e1e2e;border-radius:4px;color:#e7e9ea;text-align:center;" ' +
+                            'onchange="updateMaxBots(\'' + u.clerk_id + '\',this.value)"></td>' +
+                        '<td><span class="badge ' + (isActive ? 'badge-running' : 'badge-error') + '">' + (isActive ? '啟用' : '停用') + '</span></td>' +
+                        '<td style="font-size:0.8rem;color:#6b7280;">' + (u.created_at || '').slice(0, 10) + '</td>' +
+                        '<td><button class="btn btn-sm ' + (isActive ? 'btn-danger' : 'btn-success') + '" ' +
+                            'onclick="toggleUserActive(\'' + u.clerk_id + '\')">' + (isActive ? '停用' : '啟用') + '</button></td></tr>';
+                });
+                html += '</tbody></table>';
+                container.innerHTML = html;
+            } catch (err) { container.innerHTML = '<div class="loading" style="color:#ff1744;">載入失敗</div>'; }
+        }
+
+        async function toggleUserActive(clerkId) {
+            try { const resp = await authFetch('/api/admin/users/' + clerkId + '/toggle', { method: 'POST' }); if (resp.ok) loadAdminUsers(); }
+            catch (err) { alert('操作失敗'); }
+        }
+
+        async function updateMaxBots(clerkId, maxBots) {
+            try { await authFetch('/api/admin/users/' + clerkId + '/max-bots', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ max_bots: parseInt(maxBots) }) }); }
+            catch (err) { alert('操作失敗'); }
+        }
+
+        /* ════════════════════════════════════════════════
+           Init
+        ════════════════════════════════════════════════ */
+        window.addEventListener('load', () => {
+            initAuth();
+            loadStrategyParams('bt');
+            loadBacktestHistory();
+        });
+    </script>
+</body>
+</html>
