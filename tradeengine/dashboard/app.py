@@ -843,6 +843,28 @@ def create_app() -> FastAPI:
         finally:
             await session.close()
 
+    @app.post("/api/admin/users/{clerk_id}/update")
+    async def api_admin_update_user(clerk_id: str, request: Request):
+        user = await _optional_user(request)
+        if not user or user["role"] != "admin":
+            return JSONResponse({"error": "需要管理員權限"}, status_code=403)
+
+        data = await request.json()
+        allowed = {"email", "display_name"}
+        updates = {k: v for k, v in data.items() if k in allowed}
+        if not updates:
+            return JSONResponse({"error": "無有效欄位"}, status_code=400)
+
+        from tradeengine.database.connection import get_session
+        session = await get_session()
+        try:
+            session.table("users").update(updates).eq("clerk_id", clerk_id).execute()
+            return {"status": "ok"}
+        except Exception as e:
+            return JSONResponse({"error": str(e)}, status_code=500)
+        finally:
+            await session.close()
+
     return app
 
 
