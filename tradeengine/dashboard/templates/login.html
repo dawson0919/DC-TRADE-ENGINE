@@ -102,6 +102,44 @@
     </style>
 </head>
 <body>
+    <!-- In-app browser warning -->
+    <div id="inAppBrowserWarning" style="display:none;position:fixed;inset:0;z-index:99999;background:#0d1117;color:#e7e9ea;padding:24px;text-align:center;flex-direction:column;align-items:center;justify-content:center;gap:20px;">
+        <div style="font-size:3rem;">&#9888;&#65039;</div>
+        <h2 style="color:#f7931a;margin:0;">不支援應用程式內建瀏覽器</h2>
+        <p style="color:#9ca3af;max-width:360px;line-height:1.6;">LINE / Facebook 等應用程式的內建瀏覽器可能無法正常登入。請複製下方連結，用 Chrome / Safari 等瀏覽器開啟。</p>
+        <div style="background:#161b22;border:1px solid #30363d;border-radius:8px;padding:12px 16px;width:100%;max-width:360px;word-break:break-all;font-family:monospace;font-size:0.85rem;" id="inAppUrl"></div>
+        <button onclick="copyInAppUrl()" style="background:#f7931a;color:#000;border:none;padding:12px 32px;border-radius:8px;font-size:1rem;font-weight:600;cursor:pointer;" id="inAppCopyBtn">複製連結</button>
+        <p style="color:#6b7280;font-size:0.8rem;">複製後請開啟手機瀏覽器貼上網址</p>
+    </div>
+    <script>
+        (function() {
+            var ua = navigator.userAgent || '';
+            if (/Line\/|LIFF|FBAN|FBAV|Instagram|MicroMessenger|Twitter/i.test(ua)) {
+                var el = document.getElementById('inAppBrowserWarning');
+                el.style.display = 'flex';
+                document.getElementById('inAppUrl').textContent = location.href;
+            }
+        })();
+        function copyInAppUrl() {
+            var url = location.href;
+            if (navigator.clipboard) {
+                navigator.clipboard.writeText(url).then(function() {
+                    document.getElementById('inAppCopyBtn').textContent = '已複製!';
+                    setTimeout(function() { document.getElementById('inAppCopyBtn').textContent = '複製連結'; }, 2000);
+                });
+            } else {
+                var ta = document.createElement('textarea');
+                ta.value = url;
+                document.body.appendChild(ta);
+                ta.select();
+                document.execCommand('copy');
+                document.body.removeChild(ta);
+                document.getElementById('inAppCopyBtn').textContent = '已複製!';
+                setTimeout(function() { document.getElementById('inAppCopyBtn').textContent = '複製連結'; }, 2000);
+            }
+        }
+    </script>
+
     <!-- Ad Banner -->
     <div class="ad-banner" id="adBanner">
         <a href="https://copy-trading-strateg-had8.bolt.host/" target="_blank" rel="noopener">
