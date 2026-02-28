@@ -237,3 +237,59 @@ async def delete_backtest_result(client: Any, result_id: int, user_id: str) -> b
         .execute()
     )
     return len(result.data) > 0 if result.data else False
+
+
+# ─── Optimize Results ──────────────────────────────────────────────
+
+
+async def save_optimize_result(client: Any, user_id: str, result_data: dict) -> dict | None:
+    """Save an optimization result to DB."""
+    row = {
+        "user_id": user_id,
+        "strategy": result_data.get("strategy", ""),
+        "symbol": result_data.get("symbol", ""),
+        "timeframe": result_data.get("timeframe", ""),
+        "sort_by": result_data.get("sort_by", "sharpe_ratio"),
+        "tested": result_data.get("tested", 0),
+        "total_combinations": result_data.get("total_combinations", 0),
+        "results": result_data.get("results", []),
+    }
+    result = client.table("optimize_results").insert(row).execute()
+    return result.data[0] if result.data else None
+
+
+async def list_optimize_results(client: Any, user_id: str, limit: int = 50) -> list[dict]:
+    """List user's optimization history (newest first)."""
+    result = (
+        client.table("optimize_results")
+        .select("id,strategy,symbol,timeframe,sort_by,tested,total_combinations,created_at")
+        .eq("user_id", user_id)
+        .order("created_at", desc=True)
+        .limit(limit)
+        .execute()
+    )
+    return result.data or []
+
+
+async def get_optimize_result(client: Any, result_id: int, user_id: str) -> dict | None:
+    """Get a single optimization result (full data including results array)."""
+    result = (
+        client.table("optimize_results")
+        .select("*")
+        .eq("id", result_id)
+        .eq("user_id", user_id)
+        .execute()
+    )
+    return result.data[0] if result.data else None
+
+
+async def delete_optimize_result(client: Any, result_id: int, user_id: str) -> bool:
+    """Delete an optimization result."""
+    result = (
+        client.table("optimize_results")
+        .delete()
+        .eq("id", result_id)
+        .eq("user_id", user_id)
+        .execute()
+    )
+    return len(result.data) > 0 if result.data else False

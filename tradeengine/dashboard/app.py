@@ -525,6 +525,7 @@ def create_app() -> FastAPI:
 
     @app.get("/api/optimize")
     async def api_optimize(
+        request: Request,
         strategy: str = "ma_crossover",
         symbol: str = "BTC_USDT",
         timeframe: str = "1h",
@@ -567,7 +568,7 @@ def create_app() -> FastAPI:
             )
             results = optimize(engine, strat, ohlcv, opt_config, freq=timeframe)
 
-            return {
+            response_data = {
                 "strategy": strat.display_name,
                 "total_combinations": total,
                 "tested": min(total, max_combos),
@@ -576,8 +577,95 @@ def create_app() -> FastAPI:
                     for i, r in enumerate(results)
                 ],
             }
+
+            # Auto-save for logged-in users
+            user = await _optional_user(request)
+            if user and _db_available:
+                try:
+                    from tradeengine.database.connection import get_session
+                    from tradeengine.database.crud import save_optimize_result
+                    session = await get_session()
+                    try:
+                        saved = await save_optimize_result(session, user["user_id"], {
+                            "strategy": strat.display_name,
+                            "symbol": symbol,
+                            "timeframe": timeframe,
+                            "sort_by": sort_by,
+                            "tested": min(total, max_combos),
+                            "total_combinations": total,
+                            "results": response_data["results"],
+                        })
+                        if saved:
+                            response_data["id"] = saved["id"]
+                    finally:
+                        await session.close()
+                except Exception:
+                    logger.warning("Failed to save optimize result", exc_info=True)
+
+            return response_data
         except Exception as e:
             logger.exception("Optimization failed")
+            return JSONResponse({"error": str(e)}, status_code=500)
+
+    @app.get("/api/optimize/history")
+    async def api_optimize_history(request: Request):
+        """List user's saved optimization results."""
+        user = await _optional_user(request)
+        if not user:
+            return JSONResponse({"error": "請先登入"}, status_code=401)
+        try:
+            from tradeengine.database.connection import get_session
+            from tradeengine.database.crud import list_optimize_results
+            session = await get_session()
+            try:
+                results = await list_optimize_results(session, user["user_id"])
+            finally:
+                await session.close()
+            return {"results": results}
+        except Exception as e:
+            logger.exception("Failed to list optimize history")
+            return JSONResponse({"error": str(e)}, status_code=500)
+
+    @app.get("/api/optimize/history/{result_id}")
+    async def api_optimize_detail(result_id: int, request: Request):
+        """Get a single optimization result with full data."""
+        user = await _optional_user(request)
+        if not user:
+            return JSONResponse({"error": "請先登入"}, status_code=401)
+        try:
+            from tradeengine.database.connection import get_session
+            from tradeengine.database.crud import get_optimize_result
+            session = await get_session()
+            try:
+                result = await get_optimize_result(session, result_id, user["user_id"])
+            finally:
+                await session.close()
+            if not result:
+                return JSONResponse({"error": "找不到優化結果"}, status_code=404)
+            return result
+        except Exception as e:
+            logger.exception("Failed to get optimize detail")
+            return JSONResponse({"error": str(e)}, status_code=500)
+
+    @app.delete("/api/optimize/history/{result_id}")
+    async def api_delete_optimize(result_id: int, request: Request):
+        """Delete an optimization result."""
+        user = await _optional_user(request)
+        if not user:
+            return JSONResponse({"error": "請先登入"}, status_code=401)
+        try:
+            from tradeengine.database.connection import get_session
+            from tradeengine.database.crud import delete_optimize_result
+            session = await get_session()
+            try:
+                ok = await delete_optimize_result(session, result_id, user["user_id"])
+            finally:
+                await session.close()
+            if ok:
+                return {"status": "deleted"}
+            return JSONResponse({"error": "刪除失敗"}, status_code=400)
+        except Exception as e:
+            logger.exception("Failed to delete optimize result")
             return JSONResponse({"error": str(e)}, status_code=500)
 
     # ─── Bot Management API ──────────────────────────────────────────
@@ -626,6 +714,35 @@ def create_app() -> FastAPI:
             user_id=user_id,
             signal_source=signal_source,
         )
+        return _bot_to_dict(bot)
+
+    @app.put("/api/bots/{bot_id}")
+    async def api_update_bot(bot_id: str, request: Request):
+        user = await _optional_user(request)
+        user_id = user["user_id"] if user else None
+        data = await request.json()
+        updates = {}
+        if "name" in data:
+            updates["name"] = data["name"]
+        if "strategy" in data:
+            updates["strategy"] = data["strategy"]
+        if "symbol" in data:
+            updates["symbol"] = data["symbol"]
+        if "timeframe" in data:
+            updates["timeframe"] = data["timeframe"]
+        if "capital" in data:
+            updates["capital"] = float(data["capital"])
+        if "params" in data:
+            updates["params"] = data["params"]
+        if "paper_mode" in data:
+            updates["paper_mode"] = data["paper_mode"]
+        if "sl_pct" in data:
+            updates["sl_pct"] = float(data["sl_pct"]) if data["sl_pct"] else None
+        if "tp_pct" in data:
+            updates["tp_pct"] = float(data["tp_pct"]) if data["tp_pct"] else None
+        bot = bot_manager.update_bot(bot_id, user_id=user_id or "", **updates)
+        if not bot:
+            return JSONResponse({"error": "機器人不存在、運行中或無權限"}, status_code=400)
         return _bot_to_dict(bot)
 
     @app.post("/api/bots/{bot_id}/start")

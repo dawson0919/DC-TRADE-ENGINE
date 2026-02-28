@@ -854,6 +854,15 @@
                             <div class="loading">設定參數後按「開始優化」</div>
                         </div>
                     </div>
+                    <div class="card" id="opt-historyCard">
+                        <h3 style="display:flex;align-items:center;justify-content:space-between;">
+                            優化歷史
+                            <button type="button" class="btn" onclick="loadOptimizeHistory()" style="font-size:0.75rem;padding:4px 12px;">重新整理</button>
+                        </h3>
+                        <div id="opt-historyContent">
+                            <div class="loading">載入中...</div>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -948,7 +957,7 @@
                     </div>
                     <div id="bot-params" class="param-inputs"></div>
                     <div style="display:flex;gap:8px;margin-top:16px;">
-                        <button class="btn" onclick="createBot()" style="flex:1;">建立</button>
+                        <button class="btn" id="bot-submitBtn" onclick="submitBotModal()" style="flex:1;">建立</button>
                         <button class="btn btn-secondary" onclick="closeCreateBotModal()" style="flex:1;">取消</button>
                     </div>
                 </div>
@@ -1554,6 +1563,7 @@
                 const data = await resp.json();
                 if (data.error) throw new Error(data.error);
                 renderOptResults(data);
+                loadOptimizeHistory();
             } catch (err) {
                 content.innerHTML = '<div class="loading" style="color:#ff1744;">錯誤: ' + err.message + '</div>';
             } finally {
@@ -1617,6 +1627,60 @@
             });
         }
 
+        async function loadOptimizeHistory() {
+            const el = document.getElementById('opt-historyContent');
+            try {
+                const resp = await authFetch('/api/optimize/history');
+                if (resp.status === 401) { el.innerHTML = '<div class="loading" style="color:#6b7280;">登入後可查看優化歷史</div>'; return; }
+                const data = await resp.json();
+                if (data.error) { el.innerHTML = '<div class="loading" style="color:#6b7280;">'+data.error+'</div>'; return; }
+                const results = data.results || [];
+                if (results.length === 0) { el.innerHTML = '<div class="loading" style="color:#6b7280;">尚無優化紀錄</div>'; return; }
+                el.innerHTML = '<div style="overflow-x:auto;"><table class="data-table"><thead><tr>' +
+                    '<th>策略</th><th>交易對</th><th>時間框架</th><th>排序</th><th>測試數</th><th>時間</th><th></th>' +
+                    '</tr></thead><tbody>' +
+                    results.map(r => {
+                        const ts = r.created_at ? r.created_at.slice(0,16).replace('T',' ') : '';
+                        return '<tr>' +
+                            '<td>'+r.strategy+'</td>' +
+                            '<td>'+(r.symbol||'CSV')+'</td>' +
+                            '<td>'+(r.timeframe||'-')+'</td>' +
+                            '<td>'+r.sort_by+'</td>' +
+                            '<td>'+r.tested+'/'+r.total_combinations+'</td>' +
+                            '<td style="font-size:0.8rem;color:#6b7280;">'+ts+'</td>' +
+                            '<td style="white-space:nowrap;">' +
+                                '<button class="btn" style="font-size:0.7rem;padding:2px 8px;margin-right:4px;" onclick="viewOptimizeResult('+r.id+')">查看</button>' +
+                                '<button class="btn" style="font-size:0.7rem;padding:2px 8px;background:#2a1a1a;color:#ff4444;" onclick="deleteOptimizeResult('+r.id+')">刪除</button>' +
+                            '</td></tr>';
+                    }).join('') +
+                    '</tbody></table></div>';
+            } catch(e) {
+                el.innerHTML = '<div class="loading" style="color:#6b7280;">載入失敗</div>';
+            }
+        }
+
+        async function viewOptimizeResult(id) {
+            const content = document.getElementById('opt-content');
+            content.innerHTML = '<div class="loading"><div class="spinner"></div><br>載入優化結果...</div>';
+            try {
+                const resp = await authFetch('/api/optimize/history/' + id);
+                const data = await resp.json();
+                if (data.error) throw new Error(data.error);
+                renderOptResults(data);
+                document.getElementById('opt-content').scrollIntoView({behavior:'smooth'});
+            } catch(e) {
+                content.innerHTML = '<div class="loading" style="color:#ff1744;">錯誤: '+e.message+'</div>';
+            }
+        }
+
+        async function deleteOptimizeResult(id) {
+            if (!confirm('確定刪除此優化結果？')) return;
+            try {
+                await authFetch('/api/optimize/history/' + id, {method:'DELETE'});
+                loadOptimizeHistory();
+            } catch(e) { alert('刪除失敗: ' + e.message); }
+        }
+
         /* ════════════════════════════════════════════════
            Tab 3: Bots
         ════════════════════════════════════════════════ */
@@ -1669,6 +1733,9 @@
                             (bot.status !== 'running'
                                 ? '<button class="btn btn-sm btn-success" onclick="startBot(\'' + bot.bot_id + '\')">啟動</button>'
                                 : '<button class="btn btn-sm btn-danger" onclick="stopBot(\'' + bot.bot_id + '\')">停止</button>') +
+                            (bot.status !== 'running' && !isWebhook
+                                ? '<button class="btn btn-sm btn-secondary" onclick=\'editBot(' + JSON.stringify(JSON.stringify(bot)) + ')\'>編輯</button>'
+                                : '') +
                             (bot.status !== 'running'
                                 ? '<button class="btn btn-sm btn-danger" onclick="deleteBot(\'' + bot.bot_id + '\',\'' + bot.name.replace(/'/g, "\\'") + '\')">刪除</button>'
                                 : '') +
@@ -1683,13 +1750,93 @@
             }
         }
 
+        let _editingBotId = null;
+
         function showCreateBotModal() {
+            _editingBotId = null;
             document.getElementById('createBotModal').classList.add('active');
+            document.querySelector('#createBotModal h3').textContent = '新增交易機器人';
+            document.getElementById('bot-submitBtn').textContent = '建立';
+            document.getElementById('bot-submitBtn').onclick = createBot;
             document.getElementById('bot-signal-source').value = 'strategy';
+            document.getElementById('bot-signal-source').disabled = false;
+            document.getElementById('bot-name').value = '';
+            document.getElementById('bot-capital').value = '1000';
+            document.getElementById('bot-mode').value = 'true';
+            document.getElementById('bot-sl').value = '';
+            document.getElementById('bot-tp').value = '';
             onSignalSourceChange();
             loadStrategyParams('bot');
         }
-        function closeCreateBotModal() { document.getElementById('createBotModal').classList.remove('active'); }
+
+        function editBot(botJson) {
+            const bot = JSON.parse(botJson);
+            _editingBotId = bot.bot_id;
+            document.getElementById('createBotModal').classList.add('active');
+            document.querySelector('#createBotModal h3').textContent = '編輯機器人';
+            document.getElementById('bot-submitBtn').textContent = '儲存';
+            document.getElementById('bot-submitBtn').onclick = updateBot;
+            document.getElementById('bot-signal-source').value = bot.signal_source || 'strategy';
+            document.getElementById('bot-signal-source').disabled = true;
+            onSignalSourceChange();
+            document.getElementById('bot-name').value = bot.name;
+            document.getElementById('bot-strategy').value = bot.strategy;
+            document.getElementById('bot-symbol').value = bot.symbol;
+            onBotSymbolChange();
+            document.getElementById('bot-timeframe').value = bot.timeframe;
+            document.getElementById('bot-capital').value = bot.capital;
+            document.getElementById('bot-mode').value = bot.paper_mode ? 'true' : 'false';
+            document.getElementById('bot-sl').value = bot.sl_pct || '';
+            document.getElementById('bot-tp').value = bot.tp_pct || '';
+            loadStrategyParams('bot').then(() => {
+                if (bot.params) {
+                    Object.entries(bot.params).forEach(([k, v]) => {
+                        const input = document.getElementById('bot-param-' + k);
+                        if (input) input.value = v;
+                    });
+                }
+            });
+        }
+
+        async function updateBot() {
+            if (!_editingBotId) return;
+            const params = collectParams('bot');
+            const slVal = document.getElementById('bot-sl').value;
+            const tpVal = document.getElementById('bot-tp').value;
+            const body = {
+                name: document.getElementById('bot-name').value || '機器人',
+                strategy: document.getElementById('bot-strategy').value,
+                symbol: document.getElementById('bot-symbol').value,
+                timeframe: document.getElementById('bot-timeframe').value,
+                capital: parseFloat(document.getElementById('bot-capital').value),
+                paper_mode: document.getElementById('bot-mode').value === 'true',
+                sl_pct: slVal ? parseFloat(slVal) : null,
+                tp_pct: tpVal ? parseFloat(tpVal) : null,
+                params: params,
+            };
+            try {
+                const resp = await authFetch('/api/bots/' + _editingBotId, {
+                    method: 'PUT',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify(body),
+                });
+                const data = await resp.json();
+                if (data.error) throw new Error(data.error);
+                closeCreateBotModal();
+                loadBots();
+            } catch (err) { alert('更新失敗: ' + err.message); }
+        }
+
+        function submitBotModal() {
+            if (_editingBotId) updateBot();
+            else createBot();
+        }
+
+        function closeCreateBotModal() {
+            document.getElementById('createBotModal').classList.remove('active');
+            document.getElementById('bot-signal-source').disabled = false;
+            _editingBotId = null;
+        }
 
         function onBotSymbolChange() {
             const sym = document.getElementById('bot-symbol').value;
@@ -2044,6 +2191,7 @@
             initAuth();
             loadStrategyParams('bt');
             loadBacktestHistory();
+            loadOptimizeHistory();
         });
     </script>
 </body>

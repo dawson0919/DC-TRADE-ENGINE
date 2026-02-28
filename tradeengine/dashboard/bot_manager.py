@@ -177,6 +177,24 @@ class BotManager:
         self._save_bots()
         return True
 
+    def update_bot(self, bot_id: str, user_id: str = "", **updates) -> BotConfig | None:
+        """Update a stopped bot's configuration."""
+        bot = self._bots.get(bot_id)
+        if not bot:
+            return None
+        if user_id and bot.user_id and bot.user_id != user_id:
+            return None
+        if bot.status == "running":
+            return None
+        allowed = {"name", "strategy", "symbol", "timeframe", "capital", "params",
+                   "paper_mode", "sl_pct", "tp_pct"}
+        for key, val in updates.items():
+            if key in allowed:
+                setattr(bot, key, val)
+        self._save_bots()
+        logger.info(f"Updated bot {bot_id}: {list(updates.keys())}")
+        return bot
+
     def get_bot(self, bot_id: str, user_id: str = "") -> BotConfig | None:
         bot = self._bots.get(bot_id)
         if bot and user_id and bot.user_id and bot.user_id != user_id:
