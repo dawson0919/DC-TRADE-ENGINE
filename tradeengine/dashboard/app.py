@@ -777,13 +777,19 @@ def create_app() -> FastAPI:
         # If no user API key found, decide based on auth mode
         if not api_key:
             if _db_available and clerk_pk:
-                # Auth mode: always require user's own API key, no fallback
-                return JSONResponse({"error": "請先在帳戶頁面設定 API 金鑰"}, status_code=400)
-            # Local mode (no auth): use server config
-            api_key = config.pionex.api_key
-            api_secret = config.pionex.api_secret
-            if not api_key or api_key == "your_api_key_here":
-                return JSONResponse({"error": "API 金鑰未設定"}, status_code=400)
+                # Auth mode: paper trading can use server config (klines are public),
+                # but live trading always requires user's own API key
+                if bot.paper_mode:
+                    api_key = config.pionex.api_key or ""
+                    api_secret = config.pionex.api_secret or ""
+                else:
+                    return JSONResponse({"error": "請先在帳戶頁面設定 API 金鑰"}, status_code=400)
+            else:
+                # Local mode (no auth): use server config
+                api_key = config.pionex.api_key
+                api_secret = config.pionex.api_secret
+                if not api_key or api_key == "your_api_key_here":
+                    return JSONResponse({"error": "API 金鑰未設定"}, status_code=400)
 
         if bot.signal_source == "webhook":
             ok = await bot_manager.start_webhook_bot(
