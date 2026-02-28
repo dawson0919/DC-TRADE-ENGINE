@@ -30,6 +30,7 @@ dependencies = [
     "asyncpg>=0.29",
     "cryptography>=41.0",
     "PyJWT[crypto]>=2.8",
+    "supabase>=2.0",
 ]
 
 [project.optional-dependencies]
