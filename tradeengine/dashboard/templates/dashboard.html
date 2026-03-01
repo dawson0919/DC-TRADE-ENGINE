@@ -1645,42 +1645,50 @@
             let oosData = data.oos_equity_curve || [];
             if (isData.length > 200) { const s = Math.ceil(isData.length/200); isData = isData.filter((_,i)=>i%s===0); }
             if (oosData.length > 200) { const s = Math.ceil(oosData.length/200); oosData = oosData.filter((_,i)=>i%s===0); }
-            const allLabels = isData.map(d=>d.time.slice(0,10)).concat(oosData.map(d=>d.time.slice(0,10)));
-            const isValues = isData.map(d=>d.value).concat(Array(oosData.length).fill(null));
-            const oosValues = Array(isData.length).fill(null).concat(oosData.map(d=>d.value));
-            // Bridge: connect IS last point to OOS first point
-            if (isData.length > 0 && oosData.length > 0) {
-                oosValues[isData.length - 1] = isData[isData.length - 1].value;
-            }
+            // Overlay: both start from index 0, same initial capital
+            const maxLen = Math.max(isData.length, oosData.length);
+            const labels = Array.from({length: maxLen}, (_, i) => i + 1);
+            const isValues = isData.map(d => d.value);
+            const oosValues = oosData.map(d => d.value);
+            while (isValues.length < maxLen) isValues.push(null);
+            while (oosValues.length < maxLen) oosValues.push(null);
+            // Dates for tooltips
+            const isDates = isData.map(d => d.time.slice(0, 10));
+            const oosDates = oosData.map(d => d.time.slice(0, 10));
+            const isRange = isDates.length ? isDates[0] + ' ~ ' + isDates[isDates.length - 1] : '';
+            const oosRange = oosDates.length ? oosDates[0] + ' ~ ' + oosDates[oosDates.length - 1] : '';
             chart = new Chart(ctx, {
                 type: 'line',
                 data: {
-                    labels: allLabels,
+                    labels: labels,
                     datasets: [
-                        { label: 'In-Sample', data: isValues,
+                        { label: 'In-Sample (' + isRange + ')', data: isValues,
                           borderColor: '#f7931a', backgroundColor: 'rgba(247,147,26,0.08)',
-                          fill: true, tension: 0.1, pointRadius: 0, borderWidth: 2, spanGaps: false },
-                        { label: 'Out-of-Sample', data: oosValues,
+                          fill: true, tension: 0.1, pointRadius: 0, borderWidth: 2 },
+                        { label: 'Out-of-Sample (' + oosRange + ')', data: oosValues,
                           borderColor: '#2196f3', backgroundColor: 'rgba(33,150,243,0.08)',
-                          fill: true, tension: 0.1, pointRadius: 0, borderWidth: 2, spanGaps: false },
+                          fill: true, tension: 0.1, pointRadius: 0, borderWidth: 2 },
                     ],
                 },
                 options: {
                     responsive: true, maintainAspectRatio: false,
                     plugins: {
                         legend: { display: true, labels: { color: '#e7e9ea', font: { size: 11 } } },
-                        annotation: {
-                            annotations: {
-                                splitLine: {
-                                    type: 'line', xMin: isData.length - 1, xMax: isData.length - 1,
-                                    borderColor: '#6b728088', borderWidth: 1, borderDash: [6, 4],
-                                    label: { display: true, content: 'IS / OOS', color: '#6b7280', font: { size: 10 }, position: 'start' }
+                        tooltip: {
+                            callbacks: {
+                                title: function(items) {
+                                    const idx = items[0].dataIndex;
+                                    const parts = [];
+                                    if (idx < isDates.length) parts.push('IS: ' + isDates[idx]);
+                                    if (idx < oosDates.length) parts.push('OOS: ' + oosDates[idx]);
+                                    return parts.join('  |  ');
                                 }
                             }
                         }
                     },
                     scales: {
-                        x: { grid: { color: '#1e1e2e' }, ticks: { color: '#6b7280', maxTicksLimit: 8 } },
+                        x: { grid: { color: '#1e1e2e' }, ticks: { color: '#6b7280', maxTicksLimit: 8 },
+                             title: { display: true, text: 'K線序號', color: '#4a5568', font: { size: 10 } } },
                         y: { grid: { color: '#1e1e2e' }, ticks: { color: '#6b7280' } },
                     },
                     interaction: { intersect: false, mode: 'index' },
