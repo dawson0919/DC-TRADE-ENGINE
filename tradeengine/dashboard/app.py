@@ -1025,6 +1025,27 @@ def create_app() -> FastAPI:
         finally:
             await session.close()
 
+    @app.post("/api/admin/users/{clerk_id}/role")
+    async def api_admin_update_role(clerk_id: str, request: Request):
+        user = await _optional_user(request)
+        if not user or user["role"] != "admin":
+            return JSONResponse({"error": "需要管理員權限"}, status_code=403)
+
+        data = await request.json()
+        role = data.get("role", "standard")
+
+        from tradeengine.database.connection import get_session
+        from tradeengine.database.crud import update_user_role
+        session = await get_session()
+        try:
+            ok = await update_user_role(session, clerk_id, role)
+            if not ok:
+                return JSONResponse({"error": "無效角色或用戶不存在"}, status_code=400)
+            from tradeengine.database.crud import ROLE_BOT_LIMITS
+            return {"status": "ok", "role": role, "max_bots": ROLE_BOT_LIMITS.get(role, 1)}
+        finally:
+            await session.close()
+
     @app.post("/api/admin/users/{clerk_id}/update")
     async def api_admin_update_user(clerk_id: str, request: Request):
         user = await _optional_user(request)

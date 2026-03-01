@@ -52,6 +52,8 @@
             font-size: 0.7rem; font-weight: 600;
         }
         .user-bar .role-admin { background: #f7931a33; color: #f7931a; }
+        .user-bar .role-advanced { background: #ffd70033; color: #ffd700; }
+        .user-bar .role-standard { background: #6b728033; color: #9ca3af; }
         .user-bar .role-user { background: #29b6f633; color: #29b6f6; }
         /* Ad banner */
         .ad-banner {
@@ -1020,6 +1022,42 @@
                 <h3>帳戶資訊</h3>
                 <div id="acct-info"><div class="loading">載入中...</div></div>
             </div>
+            <!-- Partner upgrade section (standard users only) -->
+            <div id="partnerSection" class="card" style="display:none;margin-top:16px;">
+                <h3 style="text-align:center;color:#ffd700;font-size:0.9rem;letter-spacing:2px;margin-bottom:12px;">
+                    官方合作夥伴 — 註冊獲得進階權限
+                </h3>
+                <p style="text-align:center;color:#9ca3af;font-size:0.8rem;margin-bottom:16px;">
+                    普通會員可建立 <strong>1</strong> 個機器人，升級為進階會員可使用 <strong>5</strong> 個機器人
+                </p>
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px;">
+                    <a href="https://reurl.cc/oKAgxg" target="_blank"
+                        style="background:#0a0a0f;border:1px solid #1e1e2e;border-radius:12px;padding:20px 12px;display:flex;flex-direction:column;align-items:center;gap:8px;text-decoration:none;transition:border-color 0.2s;"
+                        onmouseover="this.style.borderColor='#f7931a66'" onmouseout="this.style.borderColor='#1e1e2e'">
+                        <img src="https://www.pionex.com/static/img/logo_white.png" alt="Pionex"
+                            style="height:28px;object-fit:contain;opacity:0.8;"
+                            onerror="this.style.display='none';this.nextElementSibling.style.display='inline'">
+                        <span style="display:none;color:#e7e9ea;font-weight:700;font-size:0.9rem;">Pionex</span>
+                        <span style="font-size:0.7rem;color:#f7931a;font-weight:600;">註冊帳號 &rarr;</span>
+                    </a>
+                    <a href="https://mytd.cc/py0h" target="_blank"
+                        style="background:#0a0a0f;border:1px solid #1e1e2e;border-radius:12px;padding:20px 12px;display:flex;flex-direction:column;align-items:center;gap:8px;text-decoration:none;transition:border-color 0.2s;"
+                        onmouseover="this.style.borderColor='#29b6f666'" onmouseout="this.style.borderColor='#1e1e2e'">
+                        <img src="https://www.mitrade.com/assets/public/images/logo/logo-white.svg" alt="MiTRADE"
+                            style="height:28px;object-fit:contain;opacity:0.8;"
+                            onerror="this.style.display='none';this.nextElementSibling.style.display='inline'">
+                        <span style="display:none;color:#e7e9ea;font-weight:700;font-size:0.9rem;">MiTRADE</span>
+                        <span style="font-size:0.7rem;color:#29b6f6;font-weight:600;">註冊帳號 &rarr;</span>
+                    </a>
+                </div>
+                <div style="text-align:center;padding:12px;background:#1a1a2e;border-radius:8px;">
+                    <p style="color:#9ca3af;font-size:0.78rem;margin-bottom:8px;">完成註冊與 KYC 後，聯繫管理員升級帳號</p>
+                    <a href="https://lin.ee/WuRqowF" target="_blank"
+                        style="display:inline-flex;align-items:center;gap:6px;background:#06c75533;color:#06c755;padding:6px 16px;border-radius:8px;font-size:0.8rem;font-weight:600;text-decoration:none;border:1px solid #06c75544;">
+                        &#128172; 聯繫 LINE 小編
+                    </a>
+                </div>
+            </div>
         </div>
 
         <!-- ═══ Tab 5: Strategies ═══ -->
@@ -1087,6 +1125,7 @@
                         <li><strong>supertrend</strong>：基於 ATR 的趨勢追蹤。</li>
                         <li><strong>combined</strong>：EMA + RSI + MACD 三重確認。</li>
                         <li><strong>triple_ema</strong>：三條 EMA 同向排列進場。</li>
+                        <li><strong>granville_pro</strong>：葛蘭碧法則精華版。EMA 交叉 + 停損偏離。</li>
                     </ul>
                 </div>
             </div>
@@ -1132,6 +1171,8 @@
         let strategiesLoaded = false;
         let currentUser = null;
         let clerkToken = null;
+        const roleMap = {admin: '管理員', advanced: '進階會員', standard: '普通會員', user: '普通會員'};
+        const roleClassMap = {admin: 'role-admin', advanced: 'role-advanced', standard: 'role-standard', user: 'role-standard'};
 
         /* ════════════════════════════════════════════════
            Auth: Clerk Integration
@@ -1185,12 +1226,15 @@
             const bar = document.getElementById('userBar');
             document.getElementById('userName').textContent = currentUser.display_name || currentUser.email;
             const roleEl = document.getElementById('userRole');
-            roleEl.textContent = currentUser.role === 'admin' ? '管理員' : '使用者';
-            roleEl.className = 'user-role ' + (currentUser.role === 'admin' ? 'role-admin' : 'role-user');
+            roleEl.textContent = roleMap[currentUser.role] || '普通會員';
+            roleEl.className = 'user-role ' + (roleClassMap[currentUser.role] || 'role-standard');
             bar.style.display = 'flex';
             if (currentUser.role === 'admin') document.getElementById('adminTab').style.display = '';
+            const limitEl = document.getElementById('botLimitInfo');
             if (currentUser.max_bots < 999) {
-                document.getElementById('botLimitInfo').textContent = '上限: ' + currentUser.max_bots + ' 個';
+                const label = currentUser.role === 'advanced' ? '進階會員' : '普通會員';
+                limitEl.innerHTML = label + ' · 上限 ' + currentUser.max_bots + ' 個' +
+                    (currentUser.role !== 'advanced' ? ' <a href="#" onclick="switchTab(\'account\');scrollToPartner();return false;" style="color:#ffd700;margin-left:4px;">升級</a>' : '');
             }
         }
 
@@ -1219,7 +1263,7 @@
 
             if (tabName === 'dashboard') loadDashboard();
             if (tabName === 'strategies' && !strategiesLoaded) loadStrategies();
-            if (tabName === 'bots') loadBots();
+            if (tabName === 'bots') loadBots(true);
             if (tabName === 'account') loadAccount();
             if (tabName === 'admin') loadAdminUsers();
         }
@@ -1236,6 +1280,11 @@
                 if (!resp.ok) return;  // Auth failed — keep existing display
                 const bots = await resp.json();
                 if (!Array.isArray(bots)) return;
+
+                // Skip re-render if data unchanged (prevents flicker)
+                const hash = JSON.stringify(bots.map(b => [b.bot_id, b.status, b.total_pnl, b.total_trades, b.win_rate, b.position]));
+                if (hash === _dashLastHash) return;
+                _dashLastHash = hash;
 
                 // Calculate stats
                 let totalAllocation = 0;
@@ -1327,6 +1376,7 @@
         }
 
         let _dashAllBots = [];
+        let _dashLastHash = '';
         function filterDashBots(filter) {
             document.querySelectorAll('.dash-bot-tab').forEach(btn => btn.classList.remove('active'));
             const tabs = document.querySelectorAll('.dash-bot-tab');
@@ -1851,12 +1901,19 @@
         /* ════════════════════════════════════════════════
            Tab 3: Bots
         ════════════════════════════════════════════════ */
-        async function loadBots() {
+        let _botsLastHash = '';
+        async function loadBots(force) {
             const container = document.getElementById('bots-list');
             try {
                 const resp = await authFetch('/api/bots');
                 if (!resp.ok) return;  // Auth failed — keep existing display
                 const bots = await resp.json();
+                // Skip re-render if data unchanged (prevents flicker on auto-refresh)
+                if (!force) {
+                    const bHash = JSON.stringify(bots.map(b => [b.bot_id, b.status, b.total_pnl, b.total_trades, b.win_rate, b.position]));
+                    if (bHash === _botsLastHash) return;
+                    _botsLastHash = bHash;
+                }
                 if (bots.length === 0) {
                     container.innerHTML = '<div class="loading">尚無機器人，點擊「+ 新增機器人」建立</div>';
                     return;
@@ -2012,7 +2069,7 @@
                 const data = await resp.json();
                 if (data.error) throw new Error(data.error);
                 closeCreateBotModal();
-                loadBots();
+                loadBots(true);
             } catch (err) { alert('更新失敗: ' + err.message); }
         }
 
@@ -2057,9 +2114,19 @@
             try {
                 const resp = await authFetch('/api/bots', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(body) });
                 const data = await resp.json();
-                if (data.error) throw new Error(data.error);
+                if (data.error) {
+                    if (resp.status === 403 && currentUser && currentUser.role !== 'advanced' && currentUser.role !== 'admin') {
+                        if (confirm('已達機器人上限（' + currentUser.max_bots + '個）。\n\n透過合作夥伴註冊可升級為進階會員（5個機器人）。\n\n前往查看升級方式？')) {
+                            closeCreateBotModal();
+                            switchTab('account');
+                            scrollToPartner();
+                        }
+                        return;
+                    }
+                    throw new Error(data.error);
+                }
                 closeCreateBotModal();
-                loadBots();
+                loadBots(true);
             } catch (err) { alert('建立失敗: ' + err.message); }
         }
 
@@ -2068,7 +2135,7 @@
                 const resp = await authFetch('/api/bots/' + botId + '/start', { method: 'POST' });
                 const data = await resp.json();
                 if (data.error) throw new Error(data.error);
-                loadBots();
+                loadBots(true);
             } catch (err) { alert('啟動失敗: ' + err.message); }
         }
 
@@ -2077,7 +2144,7 @@
                 const resp = await authFetch('/api/bots/' + botId + '/stop', { method: 'POST' });
                 const data = await resp.json();
                 if (data.error) throw new Error(data.error);
-                loadBots();
+                loadBots(true);
             } catch (err) { alert('停止失敗: ' + err.message); }
         }
 
@@ -2087,7 +2154,7 @@
                 const resp = await authFetch('/api/bots/' + botId, { method: 'DELETE' });
                 const data = await resp.json();
                 if (data.error) throw new Error(data.error);
-                loadBots();
+                loadBots(true);
             } catch (err) { alert('刪除失敗: ' + err.message); }
         }
 
@@ -2143,7 +2210,7 @@
         /* ════════════════════════════════════════════════
            Tab 4: Account
         ════════════════════════════════════════════════ */
-        async function loadAccount() { loadApiKeyStatus(); loadBalances(); loadAccountInfo(); }
+        async function loadAccount() { loadApiKeyStatus(); loadBalances(); loadAccountInfo(); updatePartnerSection(); }
 
         async function loadApiKeyStatus() {
             const dot = document.getElementById('apiKeyDot');
@@ -2233,9 +2300,27 @@
             el.innerHTML = '<div style="display:grid;grid-template-columns:auto 1fr;gap:8px 16px;font-size:0.9rem;">' +
                 '<span style="color:#6b7280;">Email:</span><span>' + currentUser.email + '</span>' +
                 '<span style="color:#6b7280;">顯示名稱:</span><span>' + (currentUser.display_name || '—') + '</span>' +
-                '<span style="color:#6b7280;">角色:</span><span>' + (currentUser.role === 'admin' ? '管理員' : '使用者') + '</span>' +
+                '<span style="color:#6b7280;">角色:</span><span>' + (roleMap[currentUser.role] || '普通會員') + '</span>' +
                 '<span style="color:#6b7280;">機器人上限:</span><span>' + (currentUser.max_bots >= 999 ? '無限制' : currentUser.max_bots) + '</span>' +
             '</div>';
+        }
+
+        function updatePartnerSection() {
+            const el = document.getElementById('partnerSection');
+            if (!el) return;
+            // Show for standard/user roles (not advanced/admin), and only when auth is enabled
+            if (currentUser && (currentUser.role === 'standard' || currentUser.role === 'user')) {
+                el.style.display = '';
+            } else {
+                el.style.display = 'none';
+            }
+        }
+
+        function scrollToPartner() {
+            setTimeout(() => {
+                const el = document.getElementById('partnerSection');
+                if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }, 200);
         }
 
         /* ════════════════════════════════════════════════
@@ -2313,7 +2398,12 @@
                     '<td><input type="text" value="' + name.replace(/"/g,'&quot;') + '" placeholder="未設定" style="' + inputStyle + '" ' +
                         'onchange="updateUserField(\'' + u.clerk_id + '\',\'display_name\',this.value)"></td>' +
                     '<td style="font-size:0.75rem;color:#4a5568;font-family:monospace;" title="' + u.clerk_id + '">...' + shortId + '</td>' +
-                    '<td><span class="badge ' + (u.role === 'admin' ? 'badge-live' : 'badge-paper') + '">' + (u.role === 'admin' ? '管理員' : '使用者') + '</span></td>' +
+                    '<td><select style="padding:4px;background:#0a0a0f;border:1px solid #1e1e2e;border-radius:4px;color:#e7e9ea;font-size:0.82rem;" ' +
+                        'onchange="updateUserRole(\'' + u.clerk_id + '\',this.value,this)">' +
+                        '<option value="standard"' + ((!u.role || u.role === 'standard' || u.role === 'user') ? ' selected' : '') + '>普通會員</option>' +
+                        '<option value="advanced"' + (u.role === 'advanced' ? ' selected' : '') + '>進階會員</option>' +
+                        '<option value="admin"' + (u.role === 'admin' ? ' selected' : '') + '>管理員</option>' +
+                    '</select></td>' +
                     '<td><input type="number" value="' + u.max_bots + '" min="0" max="999" style="width:60px;padding:4px;background:#0a0a0f;border:1px solid #1e1e2e;border-radius:4px;color:#e7e9ea;text-align:center;" ' +
                         'onchange="updateMaxBots(\'' + u.clerk_id + '\',this.value)"></td>' +
                     '<td><span class="badge ' + (isActive ? 'badge-running' : 'badge-error') + '">' + (isActive ? '啟用' : '停用') + '</span></td>' +
@@ -2328,6 +2418,24 @@
         async function toggleUserActive(clerkId) {
             try { const resp = await authFetch('/api/admin/users/' + clerkId + '/toggle', { method: 'POST' }); if (resp.ok) loadAdminUsers(); }
             catch (err) { alert('操作失敗'); }
+        }
+
+        async function updateUserRole(clerkId, role, selectEl) {
+            try {
+                const resp = await authFetch('/api/admin/users/' + clerkId + '/role', {
+                    method: 'POST', headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({ role: role })
+                });
+                if (resp.ok) {
+                    const data = await resp.json();
+                    // Update the max_bots input in the same row
+                    const row = selectEl.closest('tr');
+                    if (row) {
+                        const maxBotsInput = row.querySelector('input[type="number"]');
+                        if (maxBotsInput) maxBotsInput.value = data.max_bots;
+                    }
+                } else { alert('更新失敗'); }
+            } catch (err) { alert('操作失敗'); }
         }
 
         async function updateMaxBots(clerkId, maxBots) {

@@ -10,6 +10,9 @@ logger = logging.getLogger(__name__)
 # Admin email — auto-promoted to admin on first login
 ADMIN_EMAIL = "nbamoment@gmail.com"
 
+# Role → max_bots mapping
+ROLE_BOT_LIMITS = {"standard": 1, "advanced": 5, "admin": 999}
+
 
 class _UserProxy:
     """Lightweight proxy to match the ORM-style attribute access used by app.py."""
@@ -77,9 +80,9 @@ async def get_or_create_user(
         "clerk_id": clerk_id,
         "email": email,
         "display_name": display_name,
-        "role": "admin" if is_admin else "user",
+        "role": "admin" if is_admin else "standard",
         "is_active": True,
-        "max_bots": 999 if is_admin else 1,
+        "max_bots": ROLE_BOT_LIMITS["admin"] if is_admin else ROLE_BOT_LIMITS["standard"],
     }
     result = client.table("users").insert(new_user).execute()
     return _UserProxy(result.data[0])
@@ -101,6 +104,18 @@ async def toggle_user_active(client: Any, clerk_id: str) -> bool:
         return False
     new_active = not user.is_active
     client.table("users").update({"is_active": new_active}).eq("clerk_id", clerk_id).execute()
+    return True
+
+
+async def update_user_role(client: Any, clerk_id: str, role: str) -> bool:
+    """Update user role and automatically adjust max_bots."""
+    if role not in ROLE_BOT_LIMITS:
+        return False
+    user = await get_user(client, clerk_id)
+    if not user:
+        return False
+    max_bots = ROLE_BOT_LIMITS[role]
+    client.table("users").update({"role": role, "max_bots": max_bots}).eq("clerk_id", clerk_id).execute()
     return True
 
 
