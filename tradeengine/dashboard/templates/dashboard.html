@@ -2092,6 +2092,9 @@
 
         async function updateBot() {
             if (!_editingBotId) return;
+            const btn = document.getElementById('bot-submitBtn');
+            btn.disabled = true;
+            btn.textContent = '儲存中...';
             const params = collectParams('bot');
             const slVal = document.getElementById('bot-sl').value;
             const tpVal = document.getElementById('bot-tp').value;
@@ -2117,6 +2120,7 @@
                 closeCreateBotModal();
                 loadBots(true);
             } catch (err) { alert('更新失敗: ' + err.message); }
+            finally { btn.disabled = false; btn.textContent = '儲存'; }
         }
 
         function submitBotModal() {
@@ -2140,6 +2144,9 @@
         }
 
         async function createBot() {
+            const btn = document.getElementById('bot-submitBtn');
+            btn.disabled = true;
+            btn.textContent = '建立中...';
             const signalSource = document.getElementById('bot-signal-source').value;
             const isWebhook = signalSource === 'webhook';
             const params = isWebhook ? {} : collectParams('bot');
@@ -2174,6 +2181,7 @@
                 closeCreateBotModal();
                 loadBots(true);
             } catch (err) { alert('建立失敗: ' + err.message); }
+            finally { btn.disabled = false; btn.textContent = _editingBotId ? '儲存' : '建立'; }
         }
 
         async function startBot(botId) {
