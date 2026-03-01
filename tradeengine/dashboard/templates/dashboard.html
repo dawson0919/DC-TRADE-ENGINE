@@ -1157,6 +1157,7 @@
                 <h3 style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;">
                     使用者管理
                     <span style="display:flex;gap:8px;align-items:center;">
+                        <button class="btn btn-sm" onclick="reloadBotsFromDB(this)" style="font-size:0.78rem;padding:4px 10px;">重載 Bots</button>
                         <button class="btn btn-sm" onclick="syncClerkEmails(this)" style="font-size:0.78rem;padding:4px 10px;">同步 Email</button>
                         <input type="text" id="admin-search" placeholder="搜尋 Email / 名稱 / ID..."
                             oninput="filterAdminUsers()"
@@ -2588,6 +2589,21 @@
                 });
                 if (!resp.ok) alert('更新失敗');
             } catch (err) { alert('更新失敗'); }
+        }
+
+        async function reloadBotsFromDB(btn) {
+            btn.disabled = true; btn.textContent = '重載中...';
+            try {
+                const resp = await authFetch('/api/admin/reload-bots', { method: 'POST' });
+                if (resp.ok) {
+                    const data = await resp.json();
+                    btn.textContent = '已重載 ' + data.count + ' 個';
+                    loadBots(true);
+                    setTimeout(() => { btn.textContent = '重載 Bots'; btn.disabled = false; }, 3000);
+                } else {
+                    btn.textContent = '重載失敗'; btn.disabled = false;
+                }
+            } catch (err) { btn.textContent = '重載失敗'; btn.disabled = false; }
         }
 
         async function syncClerkEmails(btn) {

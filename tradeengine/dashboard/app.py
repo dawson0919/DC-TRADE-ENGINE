@@ -1104,6 +1104,18 @@ def create_app() -> FastAPI:
         finally:
             await session.close()
 
+    @app.post("/api/admin/reload-bots")
+    async def api_admin_reload_bots(request: Request):
+        """Force reload bots from DB, clearing stale in-memory/JSON cache."""
+        user = await _optional_user(request)
+        if not user or user["role"] != "admin":
+            return JSONResponse({"error": "Forbidden"}, status_code=403)
+        if bot_manager._db_client:
+            await bot_manager._load_bots_db()
+            bot_manager._save_bots_json()
+            return {"status": "reloaded", "count": len(bot_manager.list_bots())}
+        return JSONResponse({"error": "DB not connected"}, status_code=500)
+
     @app.post("/api/admin/sync-clerk")
     async def api_admin_sync_clerk(request: Request):
         """Batch-fetch email/name from Clerk for users missing email."""
