@@ -134,33 +134,32 @@ def create_app() -> FastAPI:
 
     def find_csv_files() -> list[dict]:
         import re
+        tf_map = {"240": "4H", "60": "1H", "15": "15M", "1D": "1D"}
         csvs = []
         for f in CSV_DIR.glob("*.csv"):
             name = f.stem
-            upper = name.upper()
-            symbol = "UNKNOWN"
+            # Extract symbol: after EXCHANGE_ prefix, before comma
+            sym = "UNKNOWN"
             if "_" in name:
-                pair_part = name.split(",")[0].split("_", 1)[-1]
-                pair_part = re.sub(r"\.\w+$", "", pair_part)
-                symbol = pair_part
-            elif "BTC" in upper:
-                symbol = "BTCUSD"
-            elif "ETH" in upper:
-                symbol = "ETHUSD"
-            if ", 240" in name or ",240" in name:
-                tf = "4h"
-            elif ", 60" in name or ",60" in name:
-                tf = "1h"
-            elif ", 15" in name or ",15" in name:
-                tf = "15m"
+                raw = name.split(",")[0].split("_", 1)[-1]
+                raw = re.sub(r"\.\w+$", "", raw)  # remove .P suffix
+                sym = raw.upper()
+            # Normalize to USDT pair (BTCUSD → BTCUSDT)
+            if sym.endswith("USD") and not sym.endswith("USDT"):
+                sym += "T"
+            # Detect timeframe from TradingView interval number
+            tf = "unknown"
+            tf_label = ""
+            m = re.search(r",\s*(\d+)", name)
+            if m:
+                tf_label = tf_map.get(m.group(1), m.group(1))
+                tf = tf_label.lower()
             elif "1D" in name or "1d" in name:
-                tf = "1d"
-            else:
-                tf = "unknown"
+                tf, tf_label = "1d", "1D"
             csvs.append({
                 "path": str(f), "filename": f.name,
-                "symbol": symbol, "timeframe": tf,
-                "label": f"{symbol} {tf} ({f.name})",
+                "symbol": sym, "timeframe": tf,
+                "label": f"{sym} {tf_label}" if tf_label else sym,
             })
         csvs.sort(key=lambda c: (c["symbol"], c["timeframe"]))
         return csvs
