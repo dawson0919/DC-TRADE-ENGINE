@@ -1334,6 +1334,18 @@
                 const pnlColor = bot.total_pnl > 0 ? '#00c853' : bot.total_pnl < 0 ? '#ff1744' : '#6b7280';
                 const isWebhook = bot.signal_source === 'webhook';
                 const sourceLabel = isWebhook ? 'Webhook' : bot.strategy;
+                const pos = bot.position;
+                let dashPosHtml = '';
+                if (pos) {
+                    const sideL = pos.side === 'long' ? 'LONG' : 'SHORT';
+                    const sideC = pos.side === 'long' ? '#00c853' : '#ff1744';
+                    const uC = pos.unrealized_pnl_usd > 0 ? '#00c853' : pos.unrealized_pnl_usd < 0 ? '#ff1744' : '#6b7280';
+                    dashPosHtml = '<div style="margin-top:4px;font-size:0.8rem;">' +
+                        '<span style="color:' + sideC + ';font-weight:700;">' + sideL + '</span>' +
+                        ' @ $' + pos.entry_price.toLocaleString(undefined, {minimumFractionDigits:2, maximumFractionDigits:4}) +
+                        ' <span style="color:' + uC + ';font-weight:600;">' + (pos.unrealized_pnl_usd >= 0 ? '+' : '') + '$' + pos.unrealized_pnl_usd.toFixed(2) + '</span>' +
+                    '</div>';
+                }
                 html += '<div class="dash-bot-item">' +
                     '<div class="dash-bot-item-header">' +
                         '<div class="dash-bot-item-name">' +
@@ -1350,6 +1362,7 @@
                         '<div><span>勝率: </span><strong>' + bot.win_rate.toFixed(1) + '%</strong></div>' +
                         '<div><span>狀態: </span><strong style="color:' + statusColor + ';">' + statusLabel + '</strong></div>' +
                     '</div>' +
+                    dashPosHtml +
                 '</div>';
             });
             container.innerHTML = html;
@@ -1721,6 +1734,26 @@
                     const infoLine = isWebhook
                         ? 'Webhook | ' + bot.symbol + ' | $' + bot.capital.toLocaleString()
                         : bot.strategy + ' | ' + bot.symbol + ' | ' + bot.timeframe + ' | $' + bot.capital.toLocaleString();
+                    // Position info
+                    const pos = bot.position;
+                    let posHtml = '';
+                    if (pos) {
+                        const sideLabel = pos.side === 'long' ? 'LONG' : 'SHORT';
+                        const sideColor = pos.side === 'long' ? '#00e676' : '#ff1744';
+                        const upnlColor = pos.unrealized_pnl_usd > 0 ? '#00e676' : pos.unrealized_pnl_usd < 0 ? '#ff1744' : '#e7e9ea';
+                        const upnlSign = pos.unrealized_pnl_usd > 0 ? '+' : '';
+                        posHtml = '<div style="margin-top:8px;padding:10px 12px;background:linear-gradient(135deg,#0d1117,#161b22);border:1px solid ' + sideColor + '33;border-radius:8px;">' +
+                            '<div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;">' +
+                                '<span style="background:' + sideColor + '22;color:' + sideColor + ';padding:2px 8px;border-radius:4px;font-weight:700;font-size:0.8rem;">' + sideLabel + '</span>' +
+                                '<span style="color:#6b7280;font-size:0.8rem;">持倉中</span>' +
+                            '</div>' +
+                            '<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;">' +
+                                '<div><div style="color:#6b7280;font-size:0.7rem;">進場價</div><div style="font-weight:600;font-size:0.95rem;">$' + pos.entry_price.toLocaleString(undefined, {minimumFractionDigits:2, maximumFractionDigits:6}) + '</div></div>' +
+                                '<div><div style="color:#6b7280;font-size:0.7rem;">現價</div><div style="font-weight:600;font-size:0.95rem;">' + (pos.current_price > 0 ? '$' + pos.current_price.toLocaleString(undefined, {minimumFractionDigits:2, maximumFractionDigits:6}) : '—') + '</div></div>' +
+                                '<div><div style="color:#6b7280;font-size:0.7rem;">未實現損益</div><div style="font-weight:700;font-size:0.95rem;color:' + upnlColor + ';">' + upnlSign + '$' + pos.unrealized_pnl_usd.toFixed(2) + ' (' + (pos.unrealized_pnl >= 0 ? '+' : '') + pos.unrealized_pnl.toFixed(2) + '%)</div></div>' +
+                            '</div>' +
+                        '</div>';
+                    }
                     html += '<div class="card" style="border-left:3px solid ' +
                         (bot.status === 'running' ? '#00e676' : bot.status === 'error' ? '#ff1744' : '#6b7280') + ';">' +
                         '<div style="display:flex;justify-content:space-between;align-items:start;flex-wrap:wrap;gap:12px;">' +
@@ -1734,7 +1767,7 @@
                             '</div>' +
                         '</div>' +
                         '<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-top:12px;padding:12px;background:#0a0a0f;border-radius:8px;">' +
-                            '<div style="text-align:center;"><div style="color:#6b7280;font-size:0.75rem;">損益</div>' +
+                            '<div style="text-align:center;"><div style="color:#6b7280;font-size:0.75rem;">已實現損益</div>' +
                                 '<div style="font-size:1.2rem;font-weight:700;color:' + pnlColor + ';">' + pnlSign + '$' + bot.total_pnl.toFixed(2) + '</div></div>' +
                             '<div style="text-align:center;"><div style="color:#6b7280;font-size:0.75rem;">交易數</div>' +
                                 '<div style="font-size:1.2rem;font-weight:700;">' + bot.total_trades + '</div></div>' +
@@ -1745,6 +1778,7 @@
                                 (bot.last_signal_time ? '<div style="font-size:0.65rem;color:#6b7280;">' + bot.last_signal_time + '</div>' : '') +
                             '</div>' +
                         '</div>' +
+                        posHtml +
                         (isWebhook ? '<div class="webhook-info-box" id="webhook-info-' + bot.bot_id + '"><div class="loading" style="padding:8px;font-size:0.8rem;">載入 Webhook 資訊...</div></div>' : '') +
                         '<div style="display:flex;gap:8px;margin-top:12px;">' +
                             (bot.status !== 'running'

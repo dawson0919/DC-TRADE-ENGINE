@@ -678,7 +678,10 @@ def create_app() -> FastAPI:
     @app.get("/api/bots")
     async def api_list_bots(request: Request):
         user = await _optional_user(request)
-        user_id = user["user_id"] if user else None
+        # Auth mode: require login to see bots
+        if _db_available and clerk_pk and not user:
+            return []
+        user_id = user["user_id"] if user else ""
         # Auto-claim legacy bots (no owner) for admin
         if user and user["role"] == "admin":
             claimed = False
@@ -688,7 +691,7 @@ def create_app() -> FastAPI:
                     claimed = True
             if claimed:
                 bot_manager._save_bots()
-        return [_bot_to_dict(b) for b in bot_manager.list_bots(user_id=user_id)]
+        return [_bot_to_dict(b, bot_manager) for b in bot_manager.list_bots(user_id=user_id)]
 
     @app.post("/api/bots")
     async def api_create_bot(request: Request):
@@ -719,7 +722,7 @@ def create_app() -> FastAPI:
             user_id=user_id,
             signal_source=signal_source,
         )
-        return _bot_to_dict(bot)
+        return _bot_to_dict(bot, bot_manager)
 
     @app.put("/api/bots/{bot_id}")
     async def api_update_bot(bot_id: str, request: Request):
@@ -748,7 +751,7 @@ def create_app() -> FastAPI:
         bot = bot_manager.update_bot(bot_id, user_id=user_id or "", **updates)
         if not bot:
             return JSONResponse({"error": "機器人不存在、運行中或無權限"}, status_code=400)
-        return _bot_to_dict(bot)
+        return _bot_to_dict(bot, bot_manager)
 
     @app.post("/api/bots/{bot_id}/start")
     async def api_start_bot(bot_id: str, request: Request):
@@ -837,7 +840,7 @@ def create_app() -> FastAPI:
         bot = bot_manager.get_bot(bot_id, user_id=user_id)
         if not bot:
             return JSONResponse({"error": "Not found"}, status_code=404)
-        return _bot_to_dict(bot)
+        return _bot_to_dict(bot, bot_manager)
 
     # ─── Webhook API ────────────────────────────────────────────────
 
@@ -997,9 +1000,9 @@ def create_app() -> FastAPI:
     return app
 
 
-def _bot_to_dict(bot) -> dict:
+def _bot_to_dict(bot, mgr=None) -> dict:
     """Convert BotConfig to serializable dict."""
-    return {
+    d = {
         "bot_id": bot.bot_id,
         "name": bot.name,
         "strategy": bot.strategy,
@@ -1021,4 +1024,10 @@ def _bot_to_dict(bot) -> dict:
         "last_signal": bot.last_signal,
         "last_signal_time": bot.last_signal_time,
         "error_msg": bot.error_msg,
+        "position": None,
     }
+    if mgr:
+        pos = mgr.get_position_info(bot.bot_id)
+        if pos:
+            d["position"] = pos
+    return d

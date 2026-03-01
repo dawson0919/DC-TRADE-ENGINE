@@ -612,6 +612,57 @@ class BotManager:
         if len(bot.trade_history) > 50:
             bot.trade_history = bot.trade_history[-50:]
 
+    def get_position_info(self, bot_id: str) -> dict | None:
+        """Get current position info from a running engine or webhook bot.
+
+        Returns dict with side, entry_price, size, unrealized_pnl, current_price
+        or None if no position is open.
+        """
+        # Strategy bot — check engine's position manager
+        engine = self._running_engines.get(bot_id)
+        if engine:
+            pm = getattr(engine, "position_manager", None)
+            bot = self._bots.get(bot_id)
+            if pm and bot:
+                pos = pm.get_position(bot.symbol)
+                if pos:
+                    # Try to get current price from executor
+                    current_price = 0.0
+                    executor = getattr(engine, "executor", None)
+                    if executor and hasattr(executor, "_current_prices"):
+                        current_price = executor._current_prices.get(bot.symbol, 0.0)
+                    # Calculate unrealized PnL in USD
+                    unrealized_pnl_usd = 0.0
+                    if current_price > 0 and pos.entry_price > 0:
+                        if pos.side.value == "long":
+                            unrealized_pnl_usd = (current_price - pos.entry_price) * pos.size
+                        else:
+                            unrealized_pnl_usd = (pos.entry_price - current_price) * pos.size
+                    return {
+                        "side": pos.side.value,
+                        "entry_price": pos.entry_price,
+                        "size": pos.size,
+                        "unrealized_pnl": pos.unrealized_pnl,
+                        "unrealized_pnl_usd": round(unrealized_pnl_usd, 4),
+                        "current_price": current_price,
+                        "entry_time": pos.entry_time.isoformat() if pos.entry_time else None,
+                    }
+
+        # Webhook bot — check webhook positions
+        wh_pos = self._webhook_positions.get(bot_id)
+        if wh_pos and wh_pos.get("side"):
+            return {
+                "side": wh_pos["side"],
+                "entry_price": wh_pos.get("entry_price", 0.0),
+                "size": wh_pos.get("size", 0.0),
+                "unrealized_pnl": 0.0,
+                "unrealized_pnl_usd": 0.0,
+                "current_price": 0.0,
+                "entry_time": None,
+            }
+
+        return None
+
     def get_bot_stats(self, bot_id: str) -> dict:
         """Get runtime stats for a bot."""
         bot = self._bots.get(bot_id)
