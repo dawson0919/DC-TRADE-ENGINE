@@ -70,10 +70,13 @@ def create_app() -> FastAPI:
         if _db_available:
             await bot_manager.init_db()
 
-        # Auto-restart bots that were running before shutdown
-        restarted = await bot_manager.auto_restart_bots(app_config=config)
-        if restarted:
-            logger.info(f"Auto-restarted {len(restarted)} bot(s): {restarted}")
+        # Auto-restart bots in background (don't block startup / healthcheck)
+        async def _deferred_restart():
+            await asyncio.sleep(3)  # let server finish binding first
+            restarted = await bot_manager.auto_restart_bots(app_config=config)
+            if restarted:
+                logger.info(f"Auto-restarted {len(restarted)} bot(s): {restarted}")
+        asyncio.create_task(_deferred_restart())
 
     @app.on_event("shutdown")
     async def shutdown():
