@@ -727,6 +727,15 @@
                         </div>
                     </div>
                     <div id="bt-params" class="param-inputs"></div>
+                    <div class="form-group" style="margin-top:12px;padding-top:12px;border-top:1px solid #1e1e2e;">
+                        <label>樣本外驗證 (OOS %)</label>
+                        <div style="display:flex;align-items:center;gap:8px;">
+                            <input type="range" id="bt-oos" min="0" max="50" value="30" step="5"
+                                   oninput="document.getElementById('bt-oos-val').textContent=this.value+'%'" style="flex:1;">
+                            <span id="bt-oos-val" style="min-width:36px;font-weight:600;color:#f7931a;">30%</span>
+                        </div>
+                        <small style="color:#6b7280;">0% = 不分割，建議 20-30%</small>
+                    </div>
                     <button type="button" class="btn" id="bt-runBtn" onclick="runBacktest()">執行回測</button>
                 </div>
                 <div class="main">
@@ -844,6 +853,15 @@
                             <label>最大組合數</label>
                             <input type="number" id="opt-maxcombos" value="2000" min="100" max="10000">
                         </div>
+                    </div>
+                    <div class="form-group" style="margin-top:12px;padding-top:12px;border-top:1px solid #1e1e2e;">
+                        <label>樣本外驗證 (OOS %)</label>
+                        <div style="display:flex;align-items:center;gap:8px;">
+                            <input type="range" id="opt-oos" min="0" max="50" value="30" step="5"
+                                   oninput="document.getElementById('opt-oos-val').textContent=this.value+'%'" style="flex:1;">
+                            <span id="opt-oos-val" style="min-width:36px;font-weight:600;color:#f7931a;">30%</span>
+                        </div>
+                        <small style="color:#6b7280;">IS 上優化，OOS 上驗證</small>
                     </div>
                     <button type="button" class="btn" id="opt-runBtn" onclick="runOptimize()">開始優化</button>
                 </div>
@@ -1435,17 +1453,24 @@
             const tp = document.getElementById('bt-tp').value;
             const customParams = collectParams('bt');
 
+            const oosPct = document.getElementById('bt-oos').value;
             let url = '/api/backtest?strategy=' + strategy + '&capital=' + capital + buildDataUrl('bt');
             if (sl) url += '&sl=' + sl;
             if (tp) url += '&tp=' + tp;
+            if (oosPct > 0) url += '&oos_pct=' + oosPct;
             if (Object.keys(customParams).length > 0) url += '&params_json=' + encodeURIComponent(JSON.stringify(customParams));
 
             try {
                 const resp = await authFetch(url);
                 const data = await resp.json();
                 if (data.error) throw new Error(data.error);
-                if (data.metrics) renderMetrics(data.metrics);
-                if (data.equity_curve && data.equity_curve.length > 0) renderChart(data.equity_curve);
+                if (data.is_metrics) {
+                    renderSplitMetrics(data);
+                    renderSplitChart(data);
+                } else {
+                    if (data.metrics) renderMetrics(data.metrics);
+                    if (data.equity_curve && data.equity_curve.length > 0) renderChart(data.equity_curve);
+                }
                 if (data.trades && data.trades.length > 0) { renderTrades(data.trades); }
                 else { document.getElementById('bt-tradesCard').style.display = 'none'; }
                 loadBacktestHistory();
@@ -1507,6 +1532,93 @@
                 <td class="${t.pnl >= 0 ? 'positive' : 'negative'}">$${t.pnl.toFixed(2)}</td>
                 <td class="${t.return_pct >= 0 ? 'positive' : 'negative'}">${t.return_pct >= 0 ? '+' : ''}${t.return_pct.toFixed(2)}%</td>
             </tr>`).join('');
+        }
+
+        function _metricsBlock(label, m, period, color) {
+            const retClass = m.total_return_pct >= 0 ? 'positive' : 'negative';
+            const sharpeClass = m.sharpe_ratio >= 1 ? 'positive' : m.sharpe_ratio < 0 ? 'negative' : '';
+            return '<div style="flex:1;min-width:260px;background:#0a0a0f;border-radius:8px;padding:16px;border-top:3px solid '+color+';">' +
+                '<h4 style="margin:0 0 4px;color:'+color+';font-size:0.95rem;">'+label+'</h4>' +
+                (period ? '<p style="font-size:0.75rem;color:#6b7280;margin:0 0 10px;">'+period+'</p>' : '') +
+                '<div class="metrics-grid">' +
+                    '<div class="metric"><div class="value '+retClass+'">'+(m.total_return_pct>=0?'+':'')+m.total_return_pct.toFixed(1)+'%</div><div class="label">總報酬率</div></div>' +
+                    '<div class="metric"><div class="value '+sharpeClass+'">'+m.sharpe_ratio.toFixed(2)+'</div><div class="label">夏普比率</div></div>' +
+                    '<div class="metric"><div class="value negative">'+m.max_drawdown_pct.toFixed(1)+'%</div><div class="label">最大回撤</div></div>' +
+                    '<div class="metric"><div class="value">'+m.win_rate.toFixed(0)+'%</div><div class="label">勝率</div></div>' +
+                    '<div class="metric"><div class="value">'+m.total_trades+'</div><div class="label">交易次數</div></div>' +
+                    '<div class="metric"><div class="value">'+m.profit_factor.toFixed(2)+'</div><div class="label">獲利因子</div></div>' +
+                '</div></div>';
+        }
+
+        function renderSplitMetrics(data) {
+            const oosPct = data.oos_pct || 30;
+            const isPct = 100 - oosPct;
+            let html = '<div style="display:flex;gap:16px;flex-wrap:wrap;">';
+            html += _metricsBlock('In-Sample (' + isPct + '%)', data.is_metrics, data.is_period, '#f7931a');
+            html += _metricsBlock('Out-of-Sample (' + oosPct + '%)', data.oos_metrics, data.oos_period, '#2196f3');
+            html += '</div>';
+            // Overfitting warning
+            const isSharpe = data.is_metrics.sharpe_ratio;
+            const oosSharpe = data.oos_metrics.sharpe_ratio;
+            const oosReturn = data.oos_metrics.total_return_pct;
+            if (oosReturn < 0 || (isSharpe > 0.5 && oosSharpe < isSharpe * 0.4)) {
+                html += '<div style="margin-top:12px;padding:10px 14px;background:#2a1a0a;border:1px solid #f7931a55;border-radius:8px;color:#ffa726;font-size:0.9rem;">' +
+                    '⚠ OOS 表現明顯弱於 IS，可能存在過擬合 (overfitting)。建議增加資料量或簡化策略參數。</div>';
+            } else if (isSharpe > 0.5 && oosSharpe >= isSharpe * 0.7) {
+                html += '<div style="margin-top:12px;padding:10px 14px;background:#0a2a0a;border:1px solid #00c85355;border-radius:8px;color:#66bb6a;font-size:0.9rem;">' +
+                    '✓ OOS 表現穩定，策略具有較好的泛化能力。</div>';
+            }
+            document.getElementById('bt-metricsContent').innerHTML = html;
+        }
+
+        function renderSplitChart(data) {
+            const ctx = document.getElementById('equityChart').getContext('2d');
+            if (chart) chart.destroy();
+            let isData = data.is_equity_curve || [];
+            let oosData = data.oos_equity_curve || [];
+            if (isData.length > 200) { const s = Math.ceil(isData.length/200); isData = isData.filter((_,i)=>i%s===0); }
+            if (oosData.length > 200) { const s = Math.ceil(oosData.length/200); oosData = oosData.filter((_,i)=>i%s===0); }
+            const allLabels = isData.map(d=>d.time.slice(0,10)).concat(oosData.map(d=>d.time.slice(0,10)));
+            const isValues = isData.map(d=>d.value).concat(Array(oosData.length).fill(null));
+            const oosValues = Array(isData.length).fill(null).concat(oosData.map(d=>d.value));
+            // Bridge: connect IS last point to OOS first point
+            if (isData.length > 0 && oosData.length > 0) {
+                oosValues[isData.length - 1] = isData[isData.length - 1].value;
+            }
+            chart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: allLabels,
+                    datasets: [
+                        { label: 'In-Sample', data: isValues,
+                          borderColor: '#f7931a', backgroundColor: 'rgba(247,147,26,0.08)',
+                          fill: true, tension: 0.1, pointRadius: 0, borderWidth: 2, spanGaps: false },
+                        { label: 'Out-of-Sample', data: oosValues,
+                          borderColor: '#2196f3', backgroundColor: 'rgba(33,150,243,0.08)',
+                          fill: true, tension: 0.1, pointRadius: 0, borderWidth: 2, spanGaps: false },
+                    ],
+                },
+                options: {
+                    responsive: true, maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: true, labels: { color: '#e7e9ea', font: { size: 11 } } },
+                        annotation: {
+                            annotations: {
+                                splitLine: {
+                                    type: 'line', xMin: isData.length - 1, xMax: isData.length - 1,
+                                    borderColor: '#6b728088', borderWidth: 1, borderDash: [6, 4],
+                                    label: { display: true, content: 'IS / OOS', color: '#6b7280', font: { size: 10 }, position: 'start' }
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        x: { grid: { color: '#1e1e2e' }, ticks: { color: '#6b7280', maxTicksLimit: 8 } },
+                        y: { grid: { color: '#1e1e2e' }, ticks: { color: '#6b7280' } },
+                    },
+                    interaction: { intersect: false, mode: 'index' },
+                },
+            });
         }
 
         /* ════════════════════════════════════════════════
@@ -1585,9 +1697,11 @@
             content.innerHTML = '<div class="loading"><div class="spinner"></div><br>正在進行參數優化...</div>';
 
             const strategy = document.getElementById('opt-strategy').value;
+            const optOos = document.getElementById('opt-oos').value;
             let url = '/api/optimize?strategy=' + strategy + '&sort_by=' + document.getElementById('opt-sort').value +
                       '&top_n=' + document.getElementById('opt-topn').value +
                       '&max_combos=' + document.getElementById('opt-maxcombos').value + buildDataUrl('opt');
+            if (optOos > 0) url += '&oos_pct=' + optOos;
 
             try {
                 const resp = await authFetch(url);
@@ -1604,20 +1718,42 @@
 
         function renderOptResults(data) {
             const content = document.getElementById('opt-content');
+            const hasOos = !!data.oos_pct;
             let html = '<p style="color:#6b7280;margin-bottom:12px;">策略: ' + data.strategy +
-                       ' | 測試: ' + data.tested + '/' + data.total_combinations + '</p>';
+                       ' | 測試: ' + data.tested + '/' + data.total_combinations;
+            if (hasOos) html += ' | IS: ' + data.is_period + ' | OOS: ' + data.oos_period;
+            html += '</p>';
             if (!data.results || data.results.length === 0) { content.innerHTML = html + '<p style="color:#ff1744;">無結果</p>'; return; }
             html += '<div style="overflow-x:auto;"><table class="data-table"><thead><tr>' +
-                '<th>#</th><th>參數</th><th>報酬率</th><th>夏普</th><th>回撤</th><th>勝率</th><th>交易數</th><th>獲利因子</th><th></th>' +
-                '</tr></thead><tbody>';
+                '<th>#</th><th>參數</th>';
+            if (hasOos) {
+                html += '<th>IS 報酬</th><th>IS 夏普</th><th>OOS 報酬</th><th>OOS 夏普</th><th>OOS 勝率</th><th>穩定度</th><th></th>';
+            } else {
+                html += '<th>報酬率</th><th>夏普</th><th>回撤</th><th>勝率</th><th>交易數</th><th>獲利因子</th><th></th>';
+            }
+            html += '</tr></thead><tbody>';
             data.results.forEach(r => {
                 const m = r.metrics;
                 const paramsStr = Object.entries(r.params).map(e => e[0] + '=' + e[1]).join(', ');
-                html += '<tr><td>' + r.rank + '</td><td style="font-size:0.8rem;">' + paramsStr + '</td>' +
-                    '<td class="' + (m.total_return_pct >= 0 ? 'positive' : 'negative') + '">' + (m.total_return_pct >= 0 ? '+' : '') + m.total_return_pct.toFixed(1) + '%</td>' +
-                    '<td>' + m.sharpe_ratio.toFixed(2) + '</td><td class="negative">' + m.max_drawdown_pct.toFixed(1) + '%</td>' +
-                    '<td>' + m.win_rate.toFixed(0) + '%</td><td>' + m.total_trades + '</td><td>' + m.profit_factor.toFixed(2) + '</td>' +
-                    '<td><button class="btn btn-sm btn-secondary" onclick=\'applyOptParams(' + JSON.stringify(JSON.stringify(r.params)) + ')\'>套用回測</button> ' +
+                html += '<tr><td>' + r.rank + '</td><td style="font-size:0.8rem;">' + paramsStr + '</td>';
+                if (hasOos && r.is_metrics && r.oos_metrics) {
+                    const im = r.is_metrics;
+                    const om = r.oos_metrics;
+                    const stability = im.sharpe_ratio > 0 ? (om.sharpe_ratio / im.sharpe_ratio) : 0;
+                    const stabColor = stability >= 0.7 ? '#00c853' : stability >= 0.4 ? '#ffc107' : '#ff1744';
+                    const stabLabel = stability >= 0.7 ? '穩定' : stability >= 0.4 ? '一般' : '過擬合';
+                    html += '<td class="' + (im.total_return_pct >= 0 ? 'positive' : 'negative') + '">' + (im.total_return_pct >= 0 ? '+' : '') + im.total_return_pct.toFixed(1) + '%</td>' +
+                        '<td>' + im.sharpe_ratio.toFixed(2) + '</td>' +
+                        '<td class="' + (om.total_return_pct >= 0 ? 'positive' : 'negative') + '">' + (om.total_return_pct >= 0 ? '+' : '') + om.total_return_pct.toFixed(1) + '%</td>' +
+                        '<td>' + om.sharpe_ratio.toFixed(2) + '</td>' +
+                        '<td>' + om.win_rate.toFixed(0) + '%</td>' +
+                        '<td style="color:' + stabColor + ';font-weight:700;">' + (stability*100).toFixed(0) + '% ' + stabLabel + '</td>';
+                } else {
+                    html += '<td class="' + (m.total_return_pct >= 0 ? 'positive' : 'negative') + '">' + (m.total_return_pct >= 0 ? '+' : '') + m.total_return_pct.toFixed(1) + '%</td>' +
+                        '<td>' + m.sharpe_ratio.toFixed(2) + '</td><td class="negative">' + m.max_drawdown_pct.toFixed(1) + '%</td>' +
+                        '<td>' + m.win_rate.toFixed(0) + '%</td><td>' + m.total_trades + '</td><td>' + m.profit_factor.toFixed(2) + '</td>';
+                }
+                html += '<td><button class="btn btn-sm btn-secondary" onclick=\'applyOptParams(' + JSON.stringify(JSON.stringify(r.params)) + ')\'>套用回測</button> ' +
                     '<button class="btn btn-sm" onclick=\'createBotFromOpt(' + JSON.stringify(JSON.stringify(r.params)) + ')\' style="margin-left:4px;">建立機器人</button></td></tr>';
             });
             html += '</tbody></table></div>';

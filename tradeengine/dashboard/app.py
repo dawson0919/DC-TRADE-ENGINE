@@ -357,6 +357,34 @@ def create_app() -> FastAPI:
 
     # ─── Backtest API ────────────────────────────────────────────────
 
+    def _extract_equity(result) -> list[dict]:
+        """Extract equity curve data from a BacktestResult."""
+        if result.equity_curve is None:
+            return []
+        eq = result.equity_curve
+        if len(eq) > 500:
+            step = max(1, len(eq) // 500)
+            eq = eq.iloc[::step]
+        return [{"time": str(t), "value": round(float(v), 2)} for t, v in eq.items()]
+
+    def _extract_trades(result) -> list[dict]:
+        """Extract trade list from a BacktestResult."""
+        if result.trades_df is None or len(result.trades_df) == 0:
+            return []
+        trades = []
+        for _, row in result.trades_df.iterrows():
+            trades.append({
+                "entry_time": str(row.get("Entry Timestamp", "")),
+                "exit_time": str(row.get("Exit Timestamp", "")),
+                "direction": str(row.get("Direction", "Long")),
+                "size": round(float(row.get("Size", 0)), 6),
+                "entry_price": round(float(row.get("Avg Entry Price", 0)), 2),
+                "exit_price": round(float(row.get("Avg Exit Price", 0)), 2),
+                "pnl": round(float(row.get("PnL", 0)), 2),
+                "return_pct": round(float(row.get("Return", 0)) * 100, 2),
+            })
+        return trades
+
     @app.get("/api/backtest")
     async def api_backtest(
         request: Request,
@@ -369,6 +397,7 @@ def create_app() -> FastAPI:
         sl: Optional[float] = None,
         tp: Optional[float] = None,
         params_json: Optional[str] = None,
+        oos_pct: int = 0,
     ):
         from tradeengine.backtest.engine import BacktestEngine
         from tradeengine.data.fetcher import DataFetcher, load_csv
@@ -401,32 +430,9 @@ def create_app() -> FastAPI:
             engine = BacktestEngine(capital, fees, slippage)
             sl_stop = sl / 100 if sl else None
             tp_stop = tp / 100 if tp else None
+
+            # Full-period backtest
             result = engine.run(strat, ohlcv, custom_params, sl_stop=sl_stop, tp_stop=tp_stop, freq=timeframe)
-
-            equity_data = []
-            if result.equity_curve is not None:
-                eq = result.equity_curve
-                if len(eq) > 500:
-                    step = max(1, len(eq) // 500)
-                    eq = eq.iloc[::step]
-                equity_data = [
-                    {"time": str(t), "value": round(float(v), 2)}
-                    for t, v in eq.items()
-                ]
-
-            trades_list = []
-            if result.trades_df is not None and len(result.trades_df) > 0:
-                for _, row in result.trades_df.iterrows():
-                    trades_list.append({
-                        "entry_time": str(row.get("Entry Timestamp", "")),
-                        "exit_time": str(row.get("Exit Timestamp", "")),
-                        "direction": str(row.get("Direction", "Long")),
-                        "size": round(float(row.get("Size", 0)), 6),
-                        "entry_price": round(float(row.get("Avg Entry Price", 0)), 2),
-                        "exit_price": round(float(row.get("Avg Exit Price", 0)), 2),
-                        "pnl": round(float(row.get("PnL", 0)), 2),
-                        "return_pct": round(float(row.get("Return", 0)) * 100, 2),
-                    })
 
             response_data = {
                 "strategy": strat.display_name,
@@ -435,12 +441,32 @@ def create_app() -> FastAPI:
                 "timeframe": timeframe,
                 "params": custom_params,
                 "metrics": result.metrics.model_dump(),
-                "equity_curve": equity_data,
-                "trades": trades_list[-100:],
+                "equity_curve": _extract_equity(result),
+                "trades": _extract_trades(result)[-100:],
                 "total_candles": len(ohlcv),
                 "period": f"{ohlcv.index[0]} ~ {ohlcv.index[-1]}",
                 "capital": capital,
             }
+
+            # IS/OOS split
+            if oos_pct and 5 <= oos_pct <= 50:
+                split_idx = int(len(ohlcv) * (1 - oos_pct / 100))
+                ohlcv_is = ohlcv.iloc[:split_idx]
+                ohlcv_oos = ohlcv.iloc[split_idx:]
+                if len(ohlcv_is) >= 50 and len(ohlcv_oos) >= 20:
+                    result_is = engine.run(strat, ohlcv_is, custom_params, sl_stop=sl_stop, tp_stop=tp_stop, freq=timeframe)
+                    result_oos = engine.run(strat, ohlcv_oos, custom_params, sl_stop=sl_stop, tp_stop=tp_stop, freq=timeframe)
+                    response_data["oos_pct"] = oos_pct
+                    response_data["is_metrics"] = result_is.metrics.model_dump()
+                    response_data["is_equity_curve"] = _extract_equity(result_is)
+                    response_data["is_trades"] = _extract_trades(result_is)[-100:]
+                    response_data["is_period"] = f"{ohlcv_is.index[0]} ~ {ohlcv_is.index[-1]}"
+                    response_data["is_candles"] = len(ohlcv_is)
+                    response_data["oos_metrics"] = result_oos.metrics.model_dump()
+                    response_data["oos_equity_curve"] = _extract_equity(result_oos)
+                    response_data["oos_trades"] = _extract_trades(result_oos)[-100:]
+                    response_data["oos_period"] = f"{ohlcv_oos.index[0]} ~ {ohlcv_oos.index[-1]}"
+                    response_data["oos_candles"] = len(ohlcv_oos)
 
             # Auto-save backtest result for logged-in users
             user = await _optional_user(request)
@@ -540,6 +566,7 @@ def create_app() -> FastAPI:
         sort_by: str = "sharpe_ratio",
         top_n: int = 10,
         max_combos: int = 2000,
+        oos_pct: int = 0,
     ):
         from tradeengine.backtest.engine import BacktestEngine
         from tradeengine.backtest.optimizer import OptimizationConfig, build_param_grid, estimate_combinations, optimize
@@ -566,22 +593,45 @@ def create_app() -> FastAPI:
             fees = config.trading.fees_pct / 100
             slippage = config.trading.slippage_pct / 100
             engine = BacktestEngine(capital, fees, slippage)
+
+            # Decide which data to optimize on
+            use_oos = oos_pct and 5 <= oos_pct <= 50
+            if use_oos:
+                split_idx = int(len(ohlcv) * (1 - oos_pct / 100))
+                ohlcv_is = ohlcv.iloc[:split_idx]
+                ohlcv_oos = ohlcv.iloc[split_idx:]
+            else:
+                ohlcv_is = ohlcv
+
             opt_config = OptimizationConfig(
                 param_ranges=grid, sort_by=sort_by,
                 top_n=top_n, max_combinations=max_combos,
                 deadline_seconds=120.0,
             )
-            results = optimize(engine, strat, ohlcv, opt_config, freq=timeframe)
+            results = optimize(engine, strat, ohlcv_is, opt_config, freq=timeframe)
+
+            result_rows = []
+            for i, r in enumerate(results):
+                row = {"rank": i + 1, "params": r.params, "metrics": r.metrics.model_dump()}
+                if use_oos:
+                    row["is_metrics"] = row["metrics"]
+                    try:
+                        oos_result = engine.run(strat, ohlcv_oos, r.params, freq=timeframe)
+                        row["oos_metrics"] = oos_result.metrics.model_dump()
+                    except Exception:
+                        row["oos_metrics"] = None
+                result_rows.append(row)
 
             response_data = {
                 "strategy": strat.display_name,
                 "total_combinations": total,
                 "tested": min(total, max_combos),
-                "results": [
-                    {"rank": i + 1, "params": r.params, "metrics": r.metrics.model_dump()}
-                    for i, r in enumerate(results)
-                ],
+                "results": result_rows,
             }
+            if use_oos:
+                response_data["oos_pct"] = oos_pct
+                response_data["is_period"] = f"{ohlcv_is.index[0]} ~ {ohlcv_is.index[-1]}"
+                response_data["oos_period"] = f"{ohlcv_oos.index[0]} ~ {ohlcv_oos.index[-1]}"
 
             # Auto-save for logged-in users
             user = await _optional_user(request)
