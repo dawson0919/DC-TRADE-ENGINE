@@ -23,6 +23,7 @@ _BOT_FIELDS = [
     "max_drawdown_pct", "created_at", "status", "signal_source",
     "webhook_token", "total_pnl", "total_trades", "win_rate",
     "last_signal", "last_signal_time", "trade_history", "error_msg",
+    "auto_start",
 ]
 
 
@@ -61,6 +62,7 @@ class BotConfig:
     last_signal_time: str = ""
     trade_history: list[dict] = field(default_factory=list)
     error_msg: str = ""
+    auto_start: bool = False
 
 
 def _bot_to_row(bot: BotConfig) -> dict:
@@ -88,6 +90,7 @@ def _bot_to_row(bot: BotConfig) -> dict:
         "last_signal_time": bot.last_signal_time,
         "trade_history": bot.trade_history[-50:],
         "error_msg": "",
+        "auto_start": bot.auto_start,
     }
 
 
@@ -106,6 +109,7 @@ def _row_to_bot(row: dict) -> BotConfig:
     row.setdefault("last_signal", "")
     row.setdefault("last_signal_time", "")
     row.setdefault("created_at", "")
+    row.setdefault("auto_start", False)
     # Filter only known fields
     known = {f.name for f in BotConfig.__dataclass_fields__.values()}
     filtered = {k: v for k, v in row.items() if k in known}
@@ -148,11 +152,10 @@ class BotManager:
             try:
                 data = json.loads(BOT_STORE_PATH.read_text(encoding="utf-8"))
                 for bot_data in data:
-                    prev_status = bot_data.get("status", "stopped")
                     bot = _row_to_bot(bot_data)
                     bot.status = "stopped"
                     self._bots[bot.bot_id] = bot
-                    if prev_status == "running":
+                    if bot.auto_start:
                         self._pending_restart.add(bot.bot_id)
                 logger.info(f"Loaded {len(self._bots)} bots from JSON")
             except Exception as e:
@@ -166,11 +169,11 @@ class BotManager:
             self._bots.clear()
             self._pending_restart.clear()
             for row in rows:
-                prev_status = row.get("status", "stopped")
                 bot = _row_to_bot(row)
                 bot.status = "stopped"
                 self._bots[bot.bot_id] = bot
-                if prev_status == "running":
+                # Use auto_start flag (persists across deploys)
+                if bot.auto_start:
                     self._pending_restart.add(bot.bot_id)
             logger.info(f"Loaded {len(self._bots)} bots from Supabase")
         except Exception as e:
@@ -364,6 +367,7 @@ class BotManager:
 
             bot.status = "running"
             bot.error_msg = ""
+            bot.auto_start = True
             self._running_engines[bot_id] = engine
 
             # Register trade callback to update bot stats
@@ -452,6 +456,7 @@ class BotManager:
 
         bot.status = "stopped"
         bot.error_msg = ""
+        bot.auto_start = False
         self._save_one_bot(bot)
         return True
 
@@ -502,6 +507,7 @@ class BotManager:
             self._webhook_positions[bot_id] = {"side": None, "entry_price": 0.0, "size": 0.0}
             bot.status = "running"
             bot.error_msg = ""
+            bot.auto_start = True
             self._save_one_bot(bot)
             logger.info(f"Webhook bot {bot_id} started, waiting for signals")
             return True
