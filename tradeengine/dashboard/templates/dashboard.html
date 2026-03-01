@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="zh-TW">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -13,16 +14,42 @@
     <meta name="twitter:title" content="THE DC'S TRADE ENGINE">
     <meta name="twitter:description" content="優化 · 回測 · 創建你的自動交易機器人">
     <meta name="twitter:image" content="/static/og-image.png">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Outfit:wght@500;600;700;800&display=swap"
+        rel="stylesheet">
+    <script src="https://unpkg.com/lucide@latest"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0"></script>
     <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; }
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
         body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-            background: #0a0a0f;
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: #050508;
             color: #e7e9ea;
             line-height: 1.6;
+            -webkit-font-smoothing: antialiased;
         }
-        .container { max-width: 1400px; margin: 0 auto; padding: 20px; }
+
+        h1,
+        h2,
+        h3,
+        h4,
+        h5,
+        h6 {
+            font-family: 'Outfit', sans-serif;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+        }
 
         /* ─── Header ─── */
         header {
@@ -31,6 +58,7 @@
             padding: 14px 0;
             margin-bottom: 0;
         }
+
         .header-row {
             display: flex;
             align-items: center;
@@ -38,23 +66,61 @@
             flex-wrap: wrap;
             gap: 12px;
         }
-        header h1 { font-size: 1.4rem; font-weight: 800; letter-spacing: -0.5px; }
-        header h1 span { color: #f7931a; }
+
+        header h1 {
+            font-size: 1.5rem;
+            font-weight: 800;
+            letter-spacing: -0.5px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        header h1 span {
+            color: #f7931a;
+        }
 
         /* User bar */
         .user-bar {
-            display: flex; align-items: center; gap: 12px;
-            font-size: 0.85rem; color: #8899a6;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            font-size: 0.85rem;
+            color: #8899a6;
         }
-        .user-bar .user-name { color: #e7e9ea; font-weight: 600; }
+
+        .user-bar .user-name {
+            color: #e7e9ea;
+            font-weight: 600;
+        }
+
         .user-bar .user-role {
-            padding: 2px 8px; border-radius: 10px;
-            font-size: 0.7rem; font-weight: 600;
+            padding: 2px 8px;
+            border-radius: 10px;
+            font-size: 0.7rem;
+            font-weight: 600;
         }
-        .user-bar .role-admin { background: #f7931a33; color: #f7931a; }
-        .user-bar .role-advanced { background: #ffd70033; color: #ffd700; }
-        .user-bar .role-standard { background: #6b728033; color: #9ca3af; }
-        .user-bar .role-user { background: #29b6f633; color: #29b6f6; }
+
+        .user-bar .role-admin {
+            background: #f7931a33;
+            color: #f7931a;
+        }
+
+        .user-bar .role-advanced {
+            background: #ffd70033;
+            color: #ffd700;
+        }
+
+        .user-bar .role-standard {
+            background: #6b728033;
+            color: #9ca3af;
+        }
+
+        .user-bar .role-user {
+            background: #29b6f633;
+            color: #29b6f6;
+        }
+
         /* Ad banner */
         .ad-banner {
             background: linear-gradient(90deg, #1a1a2e 0%, #16213e 50%, #1a1a2e 100%);
@@ -64,12 +130,18 @@
             position: relative;
             overflow: hidden;
         }
+
         .ad-banner::before {
             content: '';
-            position: absolute; top: 0; left: 0; right: 0; bottom: 0;
-            background: linear-gradient(90deg, transparent, rgba(247,147,26,0.05), transparent);
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(90deg, transparent, rgba(247, 147, 26, 0.05), transparent);
             pointer-events: none;
         }
+
         .ad-banner a {
             color: #e7e9ea;
             text-decoration: none;
@@ -81,10 +153,12 @@
             border-radius: 6px;
             transition: all 0.2s;
         }
+
         .ad-banner a:hover {
-            background: rgba(247,147,26,0.1);
+            background: rgba(247, 147, 26, 0.1);
             color: #f7931a;
         }
+
         .ad-banner .ad-tag {
             font-size: 0.65rem;
             padding: 1px 6px;
@@ -94,17 +168,21 @@
             font-weight: 700;
             letter-spacing: 0.5px;
         }
+
         .ad-banner .ad-text {
             color: #b0b8c1;
         }
+
         .ad-banner .ad-text strong {
             color: #f7931a;
             font-weight: 600;
         }
+
         .ad-banner .ad-arrow {
             color: #f7931a;
             font-size: 1rem;
         }
+
         .ad-banner .ad-close {
             position: absolute;
             right: 12px;
@@ -118,36 +196,78 @@
             padding: 4px;
             line-height: 1;
         }
-        .ad-banner .ad-close:hover { color: #8899a6; }
+
+        .ad-banner .ad-close:hover {
+            color: #8899a6;
+        }
 
         .user-bar .btn-logout {
-            padding: 4px 12px; border-radius: 6px; border: 1px solid #2a2a3a;
-            background: transparent; color: #8899a6; cursor: pointer; font-size: 0.8rem;
+            padding: 4px 12px;
+            border-radius: 6px;
+            border: 1px solid #2a2a3a;
+            background: transparent;
+            color: #8899a6;
+            cursor: pointer;
+            font-size: 0.8rem;
         }
-        .user-bar .btn-logout:hover { background: #2a2a3a; color: #e7e9ea; }
+
+        .user-bar .btn-logout:hover {
+            background: #2a2a3a;
+            color: #e7e9ea;
+        }
 
         /* ─── Tab navigation ─── */
-        .tab-bar { background: #0e0e16; border-bottom: 1px solid #1e1e2e; padding: 0; }
-        .tab-nav { display: flex; gap: 0; flex-wrap: wrap; }
+        .tab-bar {
+            background: #0e0e16;
+            border-bottom: 1px solid #1e1e2e;
+            padding: 0;
+        }
+
+        .tab-nav {
+            display: flex;
+            gap: 0;
+            flex-wrap: wrap;
+        }
+
         .tab-nav .tab {
-            padding: 12px 20px;
+            padding: 14px 24px;
             background: transparent;
-            color: #6b7280;
+            color: #8899a6;
             border: none;
             border-bottom: 2px solid transparent;
             cursor: pointer;
-            font-size: 0.88rem;
-            font-weight: 500;
+            font-size: 0.9rem;
+            font-weight: 600;
             transition: all 0.2s;
             font-family: inherit;
+            display: flex;
+            align-items: center;
+            gap: 8px;
         }
-        .tab-nav .tab:hover { color: #e7e9ea; }
+
+        .tab-nav .tab:hover {
+            color: #e7e9ea;
+            background: rgba(255, 255, 255, 0.03);
+        }
+
         .tab-nav .tab.active {
             color: #f7931a;
             border-bottom-color: #f7931a;
+            background: rgba(247, 147, 26, 0.05);
         }
-        .tab-content { display: none; }
-        .tab-content.active { display: block; }
+
+        .tab-nav .tab i {
+            width: 18px;
+            height: 18px;
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
 
         /* ─── Dashboard Overview Stats ─── */
         .stats-row {
@@ -156,21 +276,36 @@
             gap: 16px;
             margin-bottom: 24px;
         }
+
         .stat-card {
-            background: linear-gradient(135deg, #14141e 0%, #1a1a2a 100%);
-            border: 1px solid #1e1e2e;
-            border-radius: 16px;
-            padding: 20px 24px;
+            background: rgba(20, 20, 30, 0.4);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 20px;
+            padding: 24px;
             position: relative;
             overflow: hidden;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
         }
+
+        .stat-card:hover {
+            transform: translateY(-5px);
+            border-color: rgba(247, 147, 26, 0.3);
+            background: rgba(20, 20, 30, 0.6);
+            box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.5);
+        }
+
         .stat-card::before {
             content: '';
             position: absolute;
-            top: 0; left: 0; right: 0;
+            top: 0;
+            left: 0;
+            right: 0;
             height: 2px;
             background: linear-gradient(90deg, transparent, #f7931a40, transparent);
         }
+
         .stat-card .stat-label {
             font-size: 0.7rem;
             font-weight: 700;
@@ -179,15 +314,20 @@
             color: #6b7280;
             margin-bottom: 8px;
         }
+
         .stat-card .stat-value {
             font-size: 2rem;
             font-weight: 800;
             letter-spacing: -1px;
             color: #e7e9ea;
         }
+
         .stat-card .stat-tags {
-            display: flex; gap: 8px; margin-top: 12px;
+            display: flex;
+            gap: 8px;
+            margin-top: 12px;
         }
+
         .stat-tag {
             padding: 3px 10px;
             border-radius: 20px;
@@ -196,8 +336,16 @@
             background: #1e1e2e;
             color: #6b7280;
         }
-        .stat-tag.active { background: #00c85320; color: #00c853; }
-        .stat-tag.live { background: #f7931a20; color: #f7931a; }
+
+        .stat-tag.active {
+            background: #00c85320;
+            color: #00c853;
+        }
+
+        .stat-tag.live {
+            background: #f7931a20;
+            color: #f7931a;
+        }
 
         /* ─── Dashboard Grid ─── */
         .dash-grid {
@@ -212,22 +360,26 @@
             border-radius: 16px;
             padding: 24px;
         }
+
         .dash-card-header {
             display: flex;
             justify-content: space-between;
             align-items: flex-start;
             margin-bottom: 16px;
         }
+
         .dash-card-header h2 {
             font-size: 1.1rem;
             font-weight: 800;
             letter-spacing: -0.3px;
         }
+
         .dash-card-header p {
             color: #6b7280;
             font-size: 0.8rem;
             margin-top: 4px;
         }
+
         .dash-pnl-summary {
             display: flex;
             gap: 24px;
@@ -236,13 +388,23 @@
             padding-bottom: 16px;
             border-bottom: 1px solid #1e1e2e;
         }
-        .dash-pnl-summary span { color: #6b7280; }
-        .dash-pnl-summary strong { color: #e7e9ea; margin-left: 4px; }
+
+        .dash-pnl-summary span {
+            color: #6b7280;
+        }
+
+        .dash-pnl-summary strong {
+            color: #e7e9ea;
+            margin-left: 4px;
+        }
 
         /* ─── Bot List in Dashboard ─── */
         .dash-bot-tabs {
-            display: flex; gap: 8px; margin-bottom: 16px;
+            display: flex;
+            gap: 8px;
+            margin-bottom: 16px;
         }
+
         .dash-bot-tab {
             padding: 6px 14px;
             border-radius: 8px;
@@ -254,7 +416,12 @@
             cursor: pointer;
             font-family: inherit;
         }
-        .dash-bot-tab.active { border-color: #f7931a; color: #f7931a; }
+
+        .dash-bot-tab.active {
+            border-color: #f7931a;
+            color: #f7931a;
+        }
+
         .dash-bot-item {
             background: #0f0f18;
             border: 1px solid #1e1e2e;
@@ -262,26 +429,48 @@
             padding: 14px;
             margin-bottom: 10px;
         }
+
         .dash-bot-item-header {
-            display: flex; justify-content: space-between; align-items: center;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
         }
+
         .dash-bot-item-name {
-            font-weight: 600; font-size: 0.9rem;
+            font-weight: 600;
+            font-size: 0.9rem;
         }
+
         .dash-bot-item-stats {
-            display: grid; grid-template-columns: 1fr 1fr; gap: 8px;
-            margin-top: 10px; font-size: 0.8rem;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+            margin-top: 10px;
+            font-size: 0.8rem;
         }
-        .dash-bot-item-stats span { color: #6b7280; }
+
+        .dash-bot-item-stats span {
+            color: #6b7280;
+        }
+
         .dash-empty {
             text-align: center;
             padding: 40px 20px;
             color: #6b7280;
         }
-        .dash-empty p { margin-bottom: 12px; font-size: 0.9rem; }
+
+        .dash-empty p {
+            margin-bottom: 12px;
+            font-size: 1.1rem;
+            font-weight: 600;
+        }
 
         /* ─── Sidebar & Grid for other tabs ─── */
-        .grid { display: grid; grid-template-columns: 350px 1fr; gap: 20px; }
+        .grid {
+            display: grid;
+            grid-template-columns: 350px 1fr;
+            gap: 20px;
+        }
 
         .sidebar {
             background: #14141e;
@@ -289,49 +478,130 @@
             padding: 20px;
             border: 1px solid #1e1e2e;
         }
-        .sidebar h2 { font-size: 1.1rem; margin-bottom: 16px; color: #f7931a; }
 
-        .form-group { margin-bottom: 16px; }
+        .sidebar h2 {
+            font-size: 1.1rem;
+            margin-bottom: 16px;
+            color: #f7931a;
+        }
+
+        .form-group {
+            margin-bottom: 16px;
+        }
+
         .form-group label {
-            display: block; font-size: 0.85rem; color: #6b7280; margin-bottom: 4px;
+            display: block;
+            font-size: 0.85rem;
+            color: #6b7280;
+            margin-bottom: 4px;
         }
-        .form-group select, .form-group input {
-            width: 100%; padding: 8px 12px;
-            background: #0a0a0f; border: 1px solid #1e1e2e;
-            border-radius: 8px; color: #e7e9ea; font-size: 0.9rem;
+
+        .form-group select,
+        .form-group input {
+            width: 100%;
+            padding: 8px 12px;
+            background: #0a0a0f;
+            border: 1px solid #1e1e2e;
+            border-radius: 8px;
+            color: #e7e9ea;
+            font-size: 0.9rem;
         }
-        .form-group select:focus, .form-group input:focus {
-            outline: none; border-color: #f7931a;
+
+        .form-group select:focus,
+        .form-group input:focus {
+            outline: none;
+            border-color: #f7931a;
         }
-        .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+
+        .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+        }
 
         .btn {
-            width: 100%; padding: 10px;
-            background: #f7931a; color: #000;
-            border: none; border-radius: 8px;
-            font-size: 1rem; font-weight: 600;
-            cursor: pointer; margin-top: 8px; font-family: inherit;
+            width: 100%;
+            padding: 10px;
+            background: #f7931a;
+            color: #000;
+            border: none;
+            border-radius: 8px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            margin-top: 8px;
+            font-family: inherit;
         }
-        .btn:hover { background: #e8851a; }
-        .btn:disabled { opacity: 0.5; cursor: not-allowed; }
-        .btn-sm { padding: 6px 14px; font-size: 0.85rem; border-radius: 6px; width: auto; margin-top: 0; }
-        .btn-danger { background: #ff1744; color: #fff; }
-        .btn-danger:hover { background: #d50000; }
-        .btn-success { background: #00c853; color: #000; }
-        .btn-success:hover { background: #00a844; }
-        .btn-secondary { background: #2a2a3a; color: #e7e9ea; }
-        .btn-secondary:hover { background: #3a3a4a; }
+
+        .btn:hover {
+            background: #e8851a;
+        }
+
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .btn-sm {
+            padding: 6px 14px;
+            font-size: 0.85rem;
+            border-radius: 6px;
+            width: auto;
+            margin-top: 0;
+        }
+
+        .btn-danger {
+            background: #ff1744;
+            color: #fff;
+        }
+
+        .btn-danger:hover {
+            background: #d50000;
+        }
+
+        .btn-success {
+            background: #00c853;
+            color: #000;
+        }
+
+        .btn-success:hover {
+            background: #00a844;
+        }
+
+        .btn-secondary {
+            background: #2a2a3a;
+            color: #e7e9ea;
+        }
+
+        .btn-secondary:hover {
+            background: #3a3a4a;
+        }
+
         .btn-accent {
             background: linear-gradient(135deg, #ff1744 0%, #f44336 100%);
-            color: #fff; font-weight: 700;
+            color: #fff;
+            font-weight: 700;
         }
-        .btn-accent:hover { background: linear-gradient(135deg, #e01540 0%, #d32f2f 100%); }
-        .btn-outline {
-            background: transparent; border: 1px solid #2a2a3a; color: #e7e9ea;
-        }
-        .btn-outline:hover { background: #1e1e2e; }
 
-        .main { display: flex; flex-direction: column; gap: 20px; }
+        .btn-accent:hover {
+            background: linear-gradient(135deg, #e01540 0%, #d32f2f 100%);
+        }
+
+        .btn-outline {
+            background: transparent;
+            border: 1px solid #2a2a3a;
+            color: #e7e9ea;
+        }
+
+        .btn-outline:hover {
+            background: #1e1e2e;
+        }
+
+        .main {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
 
         .card {
             background: #14141e;
@@ -339,7 +609,12 @@
             padding: 20px;
             border: 1px solid #1e1e2e;
         }
-        .card h3 { font-size: 1rem; margin-bottom: 12px; color: #6b7280; }
+
+        .card h3 {
+            font-size: 1rem;
+            margin-bottom: 12px;
+            color: #6b7280;
+        }
 
         /* Metrics grid */
         .metrics-grid {
@@ -347,186 +622,468 @@
             grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
             gap: 12px;
         }
+
         .metric {
-            text-align: center; padding: 12px;
-            background: #0a0a0f; border-radius: 8px;
+            text-align: center;
+            padding: 12px;
+            background: #0a0a0f;
+            border-radius: 8px;
         }
-        .metric .value { font-size: 1.4rem; font-weight: 700; }
-        .metric .label { font-size: 0.75rem; color: #6b7280; margin-top: 4px; }
-        .positive { color: #00c853; }
-        .negative { color: #ff1744; }
 
-        .chart-container { position: relative; height: 350px; }
-        .chart-container-sm { position: relative; height: 250px; }
+        .metric .value {
+            font-size: 1.4rem;
+            font-weight: 700;
+        }
 
-        .loading { text-align: center; padding: 40px; color: #6b7280; }
+        .metric .label {
+            font-size: 0.75rem;
+            color: #6b7280;
+            margin-top: 4px;
+        }
+
+        .positive {
+            color: #00c853;
+        }
+
+        .negative {
+            color: #ff1744;
+        }
+
+        .chart-container {
+            position: relative;
+            height: 350px;
+        }
+
+        .chart-container-sm {
+            position: relative;
+            height: 250px;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #6b7280;
+        }
+
         .spinner {
-            display: inline-block; width: 30px; height: 30px;
-            border: 3px solid #1e1e2e; border-top-color: #f7931a;
-            border-radius: 50%; animation: spin 0.8s linear infinite;
+            display: inline-block;
+            width: 30px;
+            height: 30px;
+            border: 3px solid #1e1e2e;
+            border-top-color: #f7931a;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
         }
-        @keyframes spin { to { transform: rotate(360deg); } }
 
-        .data-table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
-        .data-table th {
-            text-align: left; padding: 8px 12px;
-            border-bottom: 2px solid #1e1e2e;
-            color: #6b7280; font-weight: 600;
+        @keyframes spin {
+            to {
+                transform: rotate(360deg);
+            }
         }
-        .data-table td { padding: 8px 12px; border-bottom: 1px solid #141420; }
-        .data-table tr:hover { background: #141420; }
+
+        .data-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.85rem;
+        }
+
+        .data-table th {
+            text-align: left;
+            padding: 8px 12px;
+            border-bottom: 2px solid #1e1e2e;
+            color: #6b7280;
+            font-weight: 600;
+        }
+
+        .data-table td {
+            padding: 8px 12px;
+            border-bottom: 1px solid #141420;
+        }
+
+        .data-table tr:hover {
+            background: #141420;
+        }
 
         .badge {
-            display: inline-block; padding: 2px 8px;
-            border-radius: 12px; font-size: 0.75rem; font-weight: 600; margin-left: 6px;
+            display: inline-block;
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            margin-left: 6px;
         }
-        .badge-running { background: #00c85333; color: #00c853; }
-        .badge-stopped { background: #6b728033; color: #6b7280; }
-        .badge-error { background: #ff174433; color: #ff1744; }
-        .badge-paper { background: #29b6f633; color: #29b6f6; }
-        .badge-live { background: #ff174433; color: #ff1744; }
-        .badge-webhook { background: #f7931a33; color: #f7931a; }
+
+        .badge-running {
+            background: #00c85333;
+            color: #00c853;
+        }
+
+        .badge-stopped {
+            background: #6b728033;
+            color: #6b7280;
+        }
+
+        .badge-error {
+            background: #ff174433;
+            color: #ff1744;
+        }
+
+        .badge-paper {
+            background: #29b6f633;
+            color: #29b6f6;
+        }
+
+        .badge-live {
+            background: #ff174433;
+            color: #ff1744;
+        }
+
+        .badge-webhook {
+            background: #f7931a33;
+            color: #f7931a;
+        }
 
         .webhook-info-box {
-            margin-top: 12px; padding: 14px;
-            background: #0a0a0f; border: 1px solid #1e1e2e; border-radius: 8px;
+            margin-top: 12px;
+            padding: 14px;
+            background: #0a0a0f;
+            border: 1px solid #1e1e2e;
+            border-radius: 8px;
         }
+
         .webhook-info-box label {
-            display: block; font-size: 0.75rem; color: #6b7280;
-            margin-bottom: 4px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;
+            display: block;
+            font-size: 0.75rem;
+            color: #6b7280;
+            margin-bottom: 4px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
         }
+
         .webhook-info-box .copy-row {
-            display: flex; align-items: center; gap: 8px; margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 10px;
         }
+
         .webhook-info-box .copy-row input,
         .webhook-info-box .copy-row textarea {
-            flex: 1; padding: 6px 10px;
-            background: #14141e; border: 1px solid #1e1e2e; border-radius: 6px;
-            color: #e7e9ea; font-size: 0.8rem; font-family: 'Consolas', monospace;
+            flex: 1;
+            padding: 6px 10px;
+            background: #14141e;
+            border: 1px solid #1e1e2e;
+            border-radius: 6px;
+            color: #e7e9ea;
+            font-size: 0.8rem;
+            font-family: 'Consolas', monospace;
         }
-        .webhook-info-box .copy-row textarea { resize: none; height: 60px; }
+
+        .webhook-info-box .copy-row textarea {
+            resize: none;
+            height: 60px;
+        }
+
         .btn-copy {
-            padding: 6px 10px; border-radius: 6px; border: 1px solid #2a2a3a;
-            background: #1e1e2e; color: #e7e9ea; cursor: pointer; font-size: 0.75rem;
+            padding: 6px 10px;
+            border-radius: 6px;
+            border: 1px solid #2a2a3a;
+            background: #1e1e2e;
+            color: #e7e9ea;
+            cursor: pointer;
+            font-size: 0.75rem;
             white-space: nowrap;
         }
-        .btn-copy:hover { background: #2a2a3a; }
 
-        .param-inputs { margin-top: 12px; }
-        .param-inputs .form-group { margin-bottom: 10px; }
+        .btn-copy:hover {
+            background: #2a2a3a;
+        }
+
+        .param-inputs {
+            margin-top: 12px;
+        }
+
+        .param-inputs .form-group {
+            margin-bottom: 10px;
+        }
 
         .modal-overlay {
-            display: none; position: fixed;
-            top: 0; left: 0; right: 0; bottom: 0;
-            background: rgba(0,0,0,0.7); z-index: 100;
-            align-items: center; justify-content: center;
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.7);
+            z-index: 100;
+            align-items: center;
+            justify-content: center;
         }
-        .modal-overlay.active { display: flex; }
+
+        .modal-overlay.active {
+            display: flex;
+        }
+
         .modal {
-            background: #14141e; border: 1px solid #1e1e2e;
-            border-radius: 16px; padding: 24px;
-            width: 90%; max-width: 500px; max-height: 80vh; overflow-y: auto;
+            background: #14141e;
+            border: 1px solid #1e1e2e;
+            border-radius: 16px;
+            padding: 24px;
+            width: 90%;
+            max-width: 500px;
+            max-height: 80vh;
+            overflow-y: auto;
         }
-        .modal h3 { color: #f7931a; margin-bottom: 16px; }
+
+        .modal h3 {
+            color: #f7931a;
+            margin-bottom: 16px;
+        }
 
         .balance-grid {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
             gap: 12px;
         }
+
         .balance-card {
-            background: #0a0a0f; border-radius: 8px; padding: 16px; text-align: center;
+            background: #0a0a0f;
+            border-radius: 8px;
+            padding: 16px;
+            text-align: center;
         }
-        .balance-card .asset { font-size: 1rem; color: #f7931a; font-weight: 600; }
-        .balance-card .amount { font-size: 1.3rem; font-weight: 700; margin: 4px 0; }
-        .balance-card .locked { font-size: 0.8rem; color: #6b7280; }
+
+        .balance-card .asset {
+            font-size: 1rem;
+            color: #f7931a;
+            font-weight: 600;
+        }
+
+        .balance-card .amount {
+            font-size: 1.3rem;
+            font-weight: 700;
+            margin: 4px 0;
+        }
+
+        .balance-card .locked {
+            font-size: 0.8rem;
+            color: #6b7280;
+        }
 
         .strat-card {
-            background: #14141e; border: 1px solid #1e1e2e;
-            border-radius: 12px; padding: 16px; margin-bottom: 12px;
+            background: #14141e;
+            border: 1px solid #1e1e2e;
+            border-radius: 12px;
+            padding: 16px;
+            margin-bottom: 12px;
         }
-        .strat-params { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px; }
+
+        .strat-params {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-top: 8px;
+        }
+
         .strat-param {
-            background: #0a0a0f; padding: 4px 10px; border-radius: 6px; font-size: 0.8rem;
+            background: #0a0a0f;
+            padding: 4px 10px;
+            border-radius: 6px;
+            font-size: 0.8rem;
         }
 
         /* API Key */
         .api-key-status {
-            display: flex; align-items: center; gap: 8px;
-            padding: 12px; background: #0a0a0f; border-radius: 8px; margin-bottom: 12px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 12px;
+            background: #0a0a0f;
+            border-radius: 8px;
+            margin-bottom: 12px;
         }
-        .api-key-dot { width: 10px; height: 10px; border-radius: 50%; }
-        .api-key-dot.connected { background: #00c853; }
-        .api-key-dot.disconnected { background: #ff1744; }
+
+        .api-key-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+        }
+
+        .api-key-dot.connected {
+            background: #00c853;
+        }
+
+        .api-key-dot.disconnected {
+            background: #ff1744;
+        }
 
         /* Guide */
         .guide-step {
-            background: #14141e; border: 1px solid #1e1e2e;
-            border-radius: 12px; padding: 20px; margin-bottom: 16px;
+            background: #14141e;
+            border: 1px solid #1e1e2e;
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 16px;
         }
+
         .guide-step .step-num {
-            display: inline-block; width: 32px; height: 32px; line-height: 32px;
-            background: #f7931a; color: #000; border-radius: 50%;
-            text-align: center; font-weight: 700; font-size: 0.95rem; margin-right: 10px;
+            display: inline-block;
+            width: 32px;
+            height: 32px;
+            line-height: 32px;
+            background: #f7931a;
+            color: #000;
+            border-radius: 50%;
+            text-align: center;
+            font-weight: 700;
+            font-size: 0.95rem;
+            margin-right: 10px;
         }
-        .guide-step h3 { display: inline; font-size: 1.05rem; color: #e7e9ea; vertical-align: middle; }
-        .guide-step p, .guide-step ul { color: #6b7280; margin-top: 10px; font-size: 0.9rem; }
-        .guide-step ul { padding-left: 20px; }
-        .guide-step li { margin-bottom: 6px; }
+
+        .guide-step h3 {
+            display: inline;
+            font-size: 1.05rem;
+            color: #e7e9ea;
+            vertical-align: middle;
+        }
+
+        .guide-step p,
+        .guide-step ul {
+            color: #6b7280;
+            margin-top: 10px;
+            font-size: 0.9rem;
+        }
+
+        .guide-step ul {
+            padding-left: 20px;
+        }
+
+        .guide-step li {
+            margin-bottom: 6px;
+        }
+
         .guide-step code {
-            background: #0a0a0f; padding: 2px 8px; border-radius: 4px;
-            font-family: 'Consolas', monospace; font-size: 0.85rem; color: #f7931a;
+            background: #0a0a0f;
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-family: 'Consolas', monospace;
+            font-size: 0.85rem;
+            color: #f7931a;
         }
+
         .guide-step .warn {
-            background: #ff174420; border-left: 3px solid #ff1744;
-            padding: 10px 14px; border-radius: 0 8px 8px 0; margin-top: 10px;
-            color: #ff8a80; font-size: 0.85rem;
+            background: #ff174420;
+            border-left: 3px solid #ff1744;
+            padding: 10px 14px;
+            border-radius: 0 8px 8px 0;
+            margin-top: 10px;
+            color: #ff8a80;
+            font-size: 0.85rem;
         }
 
         .tab-tip {
             background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
-            border: 1px solid #1e2d4a; border-radius: 10px;
-            padding: 12px 16px; margin-bottom: 16px;
-            display: flex; align-items: flex-start; gap: 10px;
-            font-size: 0.85rem; color: #8899a6; line-height: 1.5;
+            border: 1px solid #1e2d4a;
+            border-radius: 10px;
+            padding: 12px 16px;
+            margin-bottom: 16px;
+            display: flex;
+            align-items: flex-start;
+            gap: 10px;
+            font-size: 0.85rem;
+            color: #8899a6;
+            line-height: 1.5;
         }
-        .tab-tip-icon { font-size: 1.1rem; flex-shrink: 0; margin-top: 1px; }
-        .tab-tip strong { color: #e7e9ea; }
-        .tab-tip a { color: #29b6f6; text-decoration: none; }
-        .tab-tip a:hover { text-decoration: underline; }
+
+        .tab-tip-icon {
+            font-size: 1.1rem;
+            flex-shrink: 0;
+            margin-top: 1px;
+        }
+
+        .tab-tip strong {
+            color: #e7e9ea;
+        }
+
+        .tab-tip a {
+            color: #29b6f6;
+            text-decoration: none;
+        }
+
+        .tab-tip a:hover {
+            text-decoration: underline;
+        }
+
         .tab-tip .tip-close {
-            margin-left: auto; background: none; border: none; color: #4a5568;
-            cursor: pointer; font-size: 1rem; padding: 0 4px; flex-shrink: 0;
+            margin-left: auto;
+            background: none;
+            border: none;
+            color: #4a5568;
+            cursor: pointer;
+            font-size: 1rem;
+            padding: 0 4px;
+            flex-shrink: 0;
         }
-        .tab-tip .tip-close:hover { color: #8899a6; }
+
+        .tab-tip .tip-close:hover {
+            color: #8899a6;
+        }
 
         @media (max-width: 900px) {
-            .stats-row { grid-template-columns: repeat(2, 1fr); }
-            .dash-grid { grid-template-columns: 1fr; }
-            .grid { grid-template-columns: 1fr; }
-            .header-row { flex-direction: column; align-items: flex-start; }
-            .form-row { grid-template-columns: 1fr; }
+            .stats-row {
+                grid-template-columns: repeat(2, 1fr);
+            }
+
+            .dash-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .grid {
+                grid-template-columns: 1fr;
+            }
+
+            .header-row {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+
+            .form-row {
+                grid-template-columns: 1fr;
+            }
         }
+
         @media (max-width: 500px) {
-            .stats-row { grid-template-columns: 1fr; }
+            .stats-row {
+                grid-template-columns: 1fr;
+            }
         }
     </style>
 </head>
+
 <body>
     <!-- In-app browser warning -->
-    <div id="inAppBrowserWarning" style="display:none;position:fixed;inset:0;z-index:99999;background:#0d1117;color:#e7e9ea;padding:24px;text-align:center;display:none;flex-direction:column;align-items:center;justify-content:center;gap:20px;">
+    <div id="inAppBrowserWarning"
+        style="display:none;position:fixed;inset:0;z-index:99999;background:#0d1117;color:#e7e9ea;padding:24px;text-align:center;display:none;flex-direction:column;align-items:center;justify-content:center;gap:20px;">
         <div style="font-size:3rem;">&#9888;&#65039;</div>
         <h2 style="color:#f7931a;margin:0;">不支援應用程式內建瀏覽器</h2>
-        <p style="color:#9ca3af;max-width:360px;line-height:1.6;">LINE / Facebook 等應用程式的內建瀏覽器可能無法正常顯示本網站。請複製下方連結，用 Chrome / Safari 等瀏覽器開啟。</p>
-        <div style="background:#161b22;border:1px solid #30363d;border-radius:8px;padding:12px 16px;width:100%;max-width:360px;word-break:break-all;font-family:monospace;font-size:0.85rem;" id="inAppUrl"></div>
-        <button onclick="copyInAppUrl()" style="background:#f7931a;color:#000;border:none;padding:12px 32px;border-radius:8px;font-size:1rem;font-weight:600;cursor:pointer;" id="inAppCopyBtn">複製連結</button>
+        <p style="color:#9ca3af;max-width:360px;line-height:1.6;">LINE / Facebook 等應用程式的內建瀏覽器可能無法正常顯示本網站。請複製下方連結，用
+            Chrome / Safari 等瀏覽器開啟。</p>
+        <div style="background:#161b22;border:1px solid #30363d;border-radius:8px;padding:12px 16px;width:100%;max-width:360px;word-break:break-all;font-family:monospace;font-size:0.85rem;"
+            id="inAppUrl"></div>
+        <button onclick="copyInAppUrl()"
+            style="background:#f7931a;color:#000;border:none;padding:12px 32px;border-radius:8px;font-size:1rem;font-weight:600;cursor:pointer;"
+            id="inAppCopyBtn">複製連結</button>
         <p style="color:#6b7280;font-size:0.8rem;">複製後請開啟手機瀏覽器貼上網址</p>
     </div>
 
     <!-- Header -->
     <header>
-        <div class="container header-row">
-            <h1><span>THE DC'S</span> TRADE ENGINE</h1>
+        <div class="header-row container">
+            <h1>
+                <i data-lucide="zap" style="color: #f7931a;"></i>
+                THE DC'S <span>TRADE ENGINE</span>
+            </h1>
             <div class="user-bar" id="userBar" style="display:none;">
                 <span class="user-name" id="userName"></span>
                 <span class="user-role" id="userRole"></span>
@@ -542,21 +1099,22 @@
             <span class="ad-text"><strong>加密跟單策略</strong> — 跟隨頂尖交易員，自動複製盈利策略</span>
             <span class="ad-arrow">&#8594;</span>
         </a>
-        <button class="ad-close" onclick="document.getElementById('adBanner').style.display='none'" title="關閉">&times;</button>
+        <button class="ad-close" onclick="document.getElementById('adBanner').style.display='none'"
+            title="關閉">&times;</button>
     </div>
 
     <!-- Tab Bar -->
     <div class="tab-bar">
-        <div class="container" style="padding-top:0;padding-bottom:0;">
-            <nav class="tab-nav" id="tabNav">
-                <button class="tab active" data-tab="dashboard">儀表板</button>
-                <button class="tab" data-tab="backtest">回測</button>
-                <button class="tab" data-tab="optimize">優化</button>
-                <button class="tab" data-tab="bots">機器人</button>
-                <button class="tab" data-tab="account">帳戶</button>
-                <button class="tab" data-tab="strategies">策略</button>
-                <button class="tab" data-tab="guide">教學</button>
-                <button class="tab" data-tab="admin" id="adminTab" style="display:none;">管理員</button>
+        <div class="container">
+            <nav class="tab-nav">
+                <button class="tab active" onclick="showTab('dashboard')"><i data-lucide="layout-dashboard"></i>
+                    總覽</button>
+                <button class="tab" onclick="showTab('backtest')"><i data-lucide="play-circle"></i> 策略回測</button>
+                <button class="tab" onclick="showTab('optimize')"><i data-lucide="trending-up"></i> 參數優化</button>
+                <button class="tab" onclick="showTab('bots')"><i data-lucide="bot"></i> 實盤機器人</button>
+                <button class="tab" onclick="showTab('api-keys')"><i data-lucide="key"></i> API 金鑰</button>
+                <button class="tab" onclick="showTab('admin')" id="adminTab" style="display:none;"><i
+                        data-lucide="shield-check"></i> 管理後台</button>
             </nav>
         </div>
     </div>
@@ -567,13 +1125,18 @@
         <div class="tab-content active" id="tab-dashboard">
             <div class="tab-tip" id="tip-dashboard">
                 <span class="tab-tip-icon">&#128161;</span>
-                <div><strong>儀表板</strong> — 查看所有機器人的即時狀態與綜合損益。點「建立」可快速新增機器人。新手請先前往 <a href="#" onclick="switchTab('account');return false;">帳戶</a> 設定 API 金鑰，再到 <a href="#" onclick="switchTab('backtest');return false;">回測</a> 驗證策略。</div>
+                <div><strong>儀表板</strong> — 查看所有機器人的即時狀態與綜合損益。點「建立」可快速新增機器人。新手請先前往 <a href="#"
+                        onclick="switchTab('account');return false;">帳戶</a> 設定 API 金鑰，再到 <a href="#"
+                        onclick="switchTab('backtest');return false;">回測</a> 驗證策略。</div>
                 <button class="tip-close" onclick="this.parentElement.style.display='none'" title="關閉">&times;</button>
             </div>
             <!-- Stats Row -->
             <div class="stats-row">
                 <div class="stat-card">
-                    <div class="stat-label">機器人資金配置</div>
+                    <div style="display:flex; justify-content:space-between; align-items:center;">
+                        <div class="stat-label">機器人資金配置</div>
+                        <i data-lucide="wallet" style="color:#6b7280; width:18px;"></i>
+                    </div>
                     <div class="stat-value" id="dash-allocation">$0</div>
                     <div class="stat-tags">
                         <span class="stat-tag active">即時</span>
@@ -581,7 +1144,10 @@
                     </div>
                 </div>
                 <div class="stat-card">
-                    <div class="stat-label">損益 P&L</div>
+                    <div style="display:flex; justify-content:space-between; align-items:center;">
+                        <div class="stat-label">損益 P&L</div>
+                        <i data-lucide="trending-up" style="color:#00c853; width:18px;"></i>
+                    </div>
                     <div class="stat-value" id="dash-pnl" style="color:#00c853;">+0.00%</div>
                     <div class="stat-tags">
                         <span class="stat-tag active">今日</span>
@@ -589,7 +1155,10 @@
                     </div>
                 </div>
                 <div class="stat-card">
-                    <div class="stat-label">運行中機器人</div>
+                    <div style="display:flex; justify-content:space-between; align-items:center;">
+                        <div class="stat-label">運行中機器人</div>
+                        <i data-lucide="bot" style="color:#f7931a; width:18px;"></i>
+                    </div>
                     <div class="stat-value" id="dash-active-bots">0</div>
                     <div class="stat-tags">
                         <span class="stat-tag active">Running</span>
@@ -597,7 +1166,10 @@
                     </div>
                 </div>
                 <div class="stat-card">
-                    <div class="stat-label">總勝率</div>
+                    <div style="display:flex; justify-content:space-between; align-items:center;">
+                        <div class="stat-label">總勝率</div>
+                        <i data-lucide="bar-chart-3" style="color:#29b6f6; width:18px;"></i>
+                    </div>
                     <div class="stat-value" id="dash-winrate">0.0%</div>
                     <div class="stat-tags">
                         <span class="stat-tag active">今日</span>
@@ -634,8 +1206,10 @@
                             <p>管理你的自動交易機器人</p>
                         </div>
                         <div style="display:flex;gap:8px;">
-                            <button class="btn btn-sm btn-outline" onclick="loadDashboard()">刷新</button>
-                            <button class="btn btn-sm btn-accent" onclick="switchTab('bots');showCreateBotModal();">建立</button>
+                            <button class="btn btn-sm btn-outline" onclick="loadDashboard()"><i data-lucide="refresh-cw"
+                                    style="width:14px; height:14px;"></i> 刷新</button>
+                            <button class="btn btn-sm btn-accent" onclick="switchTab('bots');showCreateBotModal();"><i
+                                    data-lucide="plus" style="width:14px; height:14px;"></i> 建立</button>
                         </div>
                     </div>
                     <div class="dash-bot-tabs">
@@ -646,7 +1220,12 @@
                         <div class="dash-empty">
                             <p style="font-size:1.1rem;font-weight:600;">尚無機器人</p>
                             <p>建立你的第一個自動交易機器人</p>
-                            <button class="btn btn-sm btn-accent" style="margin-top:12px;" onclick="switchTab('bots');showCreateBotModal();">建立機器人</button>
+                            <button class="btn btn-sm btn-accent"
+                                style="margin-top:12px; display:flex; align-items:center; gap:6px;"
+                                onclick="switchTab('bots');showCreateBotModal();">
+                                <i data-lucide="plus-circle" style="width:16px; height:16px;"></i>
+                                建立機器人
+                            </button>
                         </div>
                     </div>
                 </div>
@@ -657,12 +1236,17 @@
         <div class="tab-content" id="tab-backtest">
             <div class="tab-tip" id="tip-backtest">
                 <span class="tab-tip-icon">&#128200;</span>
-                <div><strong>回測</strong> — 用歷史數據驗證策略表現。選擇策略和交易對，點「執行回測」即可。關鍵指標：<strong>夏普比率 > 1</strong>（風險調整報酬好）、<strong>最大回撤 < 20%</strong>（風險可控）、<strong>獲利因子 > 1.5</strong>（盈虧比佳）。回測結果會自動儲存到下方歷史。</div>
+                <div><strong>回測</strong> — 用歷史數據驗證策略表現。選擇策略和交易對，點「執行回測」即可。關鍵指標：<strong>夏普比率 >
+                        1</strong>（風險調整報酬好）、<strong>最大回撤 < 20%</strong>（風險可控）、<strong>獲利因子 >
+                                1.5</strong>（盈虧比佳）。回測結果會自動儲存到下方歷史。</div>
                 <button class="tip-close" onclick="this.parentElement.style.display='none'" title="關閉">&times;</button>
             </div>
             <div class="grid">
                 <div class="sidebar">
-                    <h2>回測設定</h2>
+                    <h2 style="display:flex; align-items:center; gap:8px;">
+                        <i data-lucide="settings-2" style="width:20px; height:20px;"></i>
+                        回測設定
+                    </h2>
                     <div class="form-group">
                         <label>策略</label>
                         <select id="bt-strategy" onchange="loadStrategyParams('bt')">
@@ -687,7 +1271,7 @@
                             <option value="1d">1 天</option>
                         </select>
                     </div>
-                    <div id="bt-api-fields" {% if csv_files %}style="display:none;"{% endif %}>
+                    <div id="bt-api-fields" {% if csv_files %}style="display:none;" {% endif %}>
                         <div class="form-group">
                             <label>交易對</label>
                             <select id="bt-symbol">
@@ -704,7 +1288,7 @@
                             <input type="number" id="bt-limit" value="2000" min="100" max="10000">
                         </div>
                     </div>
-                    <div id="bt-csv-fields" {% if csv_files %}{% else %}style="display:none;"{% endif %}>
+                    <div id="bt-csv-fields" {% if csv_files %}{% else %}style="display:none;" {% endif %}>
                         <div class="form-group">
                             <label>CSV 檔案</label>
                             <select id="bt-csv">
@@ -733,12 +1317,16 @@
                         <label>樣本外驗證 (OOS %)</label>
                         <div style="display:flex;align-items:center;gap:8px;">
                             <input type="range" id="bt-oos" min="0" max="50" value="30" step="5"
-                                   oninput="document.getElementById('bt-oos-val').textContent=this.value+'%'" style="flex:1;">
+                                oninput="document.getElementById('bt-oos-val').textContent=this.value+'%'"
+                                style="flex:1;">
                             <span id="bt-oos-val" style="min-width:36px;font-weight:600;color:#f7931a;">30%</span>
                         </div>
                         <small style="color:#6b7280;">0% = 不分割，建議 20-30%</small>
                     </div>
-                    <button type="button" class="btn" id="bt-runBtn" onclick="runBacktest()">執行回測</button>
+                    <button type="button" class="btn" id="bt-runBtn" onclick="runBacktest()">
+                        <i data-lucide="play" style="width:18px; height:18px;"></i>
+                        執行回測
+                    </button>
                 </div>
                 <div class="main">
                     <div class="card">
@@ -755,10 +1343,17 @@
                         <h3>交易記錄 <span id="bt-tradeCount" style="color:#6b7280;font-size:0.85rem;"></span></h3>
                         <div style="overflow-x:auto;">
                             <table class="data-table">
-                                <thead><tr>
-                                    <th>進場時間</th><th>出場時間</th><th>方向</th>
-                                    <th>進場價</th><th>出場價</th><th>損益</th><th>報酬率</th>
-                                </tr></thead>
+                                <thead>
+                                    <tr>
+                                        <th>進場時間</th>
+                                        <th>出場時間</th>
+                                        <th>方向</th>
+                                        <th>進場價</th>
+                                        <th>出場價</th>
+                                        <th>損益</th>
+                                        <th>報酬率</th>
+                                    </tr>
+                                </thead>
                                 <tbody id="bt-tradesBody"></tbody>
                             </table>
                         </div>
@@ -766,7 +1361,8 @@
                     <div class="card" id="bt-historyCard">
                         <h3 style="display:flex;align-items:center;justify-content:space-between;">
                             回測歷史
-                            <button type="button" class="btn" onclick="loadBacktestHistory()" style="font-size:0.75rem;padding:4px 12px;">重新整理</button>
+                            <button type="button" class="btn" onclick="loadBacktestHistory()"
+                                style="font-size:0.75rem;padding:4px 12px;">重新整理</button>
                         </h3>
                         <div id="bt-historyContent">
                             <div class="loading">載入中...</div>
@@ -780,12 +1376,17 @@
         <div class="tab-content" id="tab-optimize">
             <div class="tab-tip" id="tip-optimize">
                 <span class="tab-tip-icon">&#9881;</span>
-                <div><strong>參數優化</strong> — 自動測試策略的不同參數組合，找出最佳設定。選擇策略後點「開始優化」，系統會窮舉所有參數組合並排名。結果按夏普比率排序，直接點「套用」可帶入回測。建議用 <strong>1000+ 根K線</strong>的數據量以確保結果穩定。</div>
+                <div><strong>參數優化</strong> — 自動測試策略的不同參數組合，找出最佳設定。選擇策略後點「開始優化」，系統會窮舉所有參數組合並排名。結果按夏普比率排序，直接點「套用」可帶入回測。建議用
+                    <strong>1000+ 根K線</strong>的數據量以確保結果穩定。
+                </div>
                 <button class="tip-close" onclick="this.parentElement.style.display='none'" title="關閉">&times;</button>
             </div>
             <div class="grid">
                 <div class="sidebar">
-                    <h2>參數優化設定</h2>
+                    <h2 style="display:flex; align-items:center; gap:8px;">
+                        <i data-lucide="activity" style="width:20px; height:20px;"></i>
+                        參數優化設定
+                    </h2>
                     <div class="form-group">
                         <label>策略</label>
                         <select id="opt-strategy">
@@ -810,7 +1411,7 @@
                             <option value="1d">1 天</option>
                         </select>
                     </div>
-                    <div id="opt-api-fields" {% if csv_files %}style="display:none;"{% endif %}>
+                    <div id="opt-api-fields" {% if csv_files %}style="display:none;" {% endif %}>
                         <div class="form-group">
                             <label>交易對</label>
                             <select id="opt-symbol">
@@ -827,7 +1428,7 @@
                             <input type="number" id="opt-limit" value="3000" min="500" max="10000">
                         </div>
                     </div>
-                    <div id="opt-csv-fields" {% if csv_files %}{% else %}style="display:none;"{% endif %}>
+                    <div id="opt-csv-fields" {% if csv_files %}{% else %}style="display:none;" {% endif %}>
                         <div class="form-group">
                             <label>CSV 檔案</label>
                             <select id="opt-csv">
@@ -861,12 +1462,16 @@
                         <label>樣本外驗證 (OOS %)</label>
                         <div style="display:flex;align-items:center;gap:8px;">
                             <input type="range" id="opt-oos" min="0" max="50" value="30" step="5"
-                                   oninput="document.getElementById('opt-oos-val').textContent=this.value+'%'" style="flex:1;">
+                                oninput="document.getElementById('opt-oos-val').textContent=this.value+'%'"
+                                style="flex:1;">
                             <span id="opt-oos-val" style="min-width:36px;font-weight:600;color:#f7931a;">30%</span>
                         </div>
                         <small style="color:#6b7280;">IS 上優化，OOS 上驗證</small>
                     </div>
-                    <button type="button" class="btn" id="opt-runBtn" onclick="runOptimize()">開始優化</button>
+                    <button type="button" class="btn" id="opt-runBtn" onclick="runOptimize()">
+                        <i data-lucide="zap" style="width:18px; height:18px;"></i>
+                        開始優化
+                    </button>
                 </div>
                 <div class="main">
                     <div class="card">
@@ -878,7 +1483,8 @@
                     <div class="card" id="opt-historyCard">
                         <h3 style="display:flex;align-items:center;justify-content:space-between;">
                             優化歷史
-                            <button type="button" class="btn" onclick="loadOptimizeHistory()" style="font-size:0.75rem;padding:4px 12px;">重新整理</button>
+                            <button type="button" class="btn" onclick="loadOptimizeHistory()"
+                                style="font-size:0.75rem;padding:4px 12px;">重新整理</button>
                         </h3>
                         <div id="opt-historyContent">
                             <div class="loading">載入中...</div>
@@ -892,7 +1498,10 @@
         <div class="tab-content" id="tab-bots">
             <div class="tab-tip" id="tip-bots">
                 <span class="tab-tip-icon">&#129302;</span>
-                <div><strong>交易機器人</strong> — 管理自動交易機器人。建立時選擇「模擬交易」先測試，確認穩定後再切換「即時交易」。支援兩種信號來源：<strong>內建策略</strong>（自動產生信號）或 <strong>TradingView Webhook</strong>（外部信號觸發）。即時交易前請務必設定<strong>停損</strong>。啟動前需先在 <a href="#" onclick="switchTab('account');return false;">帳戶</a> 設定 API 金鑰。</div>
+                <div><strong>交易機器人</strong> —
+                    管理自動交易機器人。建立時選擇「模擬交易」先測試，確認穩定後再切換「即時交易」。支援兩種信號來源：<strong>內建策略</strong>（自動產生信號）或 <strong>TradingView
+                        Webhook</strong>（外部信號觸發）。即時交易前請務必設定<strong>停損</strong>。啟動前需先在 <a href="#"
+                        onclick="switchTab('account');return false;">帳戶</a> 設定 API 金鑰。</div>
                 <button class="tip-close" onclick="this.parentElement.style.display='none'" title="關閉">&times;</button>
             </div>
             <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
@@ -916,7 +1525,8 @@
                             <option value="webhook">TradingView Webhook</option>
                         </select>
                     </div>
-                    <div id="bot-webhook-hint" style="display:none;padding:12px;background:#f7931a15;border:1px solid #f7931a40;border-radius:8px;margin-bottom:12px;font-size:0.85rem;color:#f7931a;">
+                    <div id="bot-webhook-hint"
+                        style="display:none;padding:12px;background:#f7931a15;border:1px solid #f7931a40;border-radius:8px;margin-bottom:12px;font-size:0.85rem;color:#f7931a;">
                         Webhook 模式：建立後可取得 Webhook URL，貼到 TradingView Alert 即可接收外部信號。不需要選擇策略或時間框架。
                     </div>
                     <div class="form-group">
@@ -989,7 +1599,9 @@
         <div class="tab-content" id="tab-account">
             <div class="tab-tip" id="tip-account">
                 <span class="tab-tip-icon">&#128273;</span>
-                <div><strong>帳戶設定</strong> — 在此管理你的 Pionex API 金鑰。步驟：1. 登入 <a href="https://www.pionex.com/en/apiManagement" target="_blank">Pionex API 管理頁面</a> → 2. 建立 API，勾選 <strong>Reading + Trading</strong> → 3. 將 API Key 和 Secret 貼到下方儲存。金鑰以加密方式儲存，其他用戶無法存取。</div>
+                <div><strong>帳戶設定</strong> — 在此管理你的 Pionex API 金鑰。步驟：1. 登入 <a
+                        href="https://www.pionex.com/en/apiManagement" target="_blank">Pionex API 管理頁面</a> → 2. 建立
+                    API，勾選 <strong>Reading + Trading</strong> → 3. 將 API Key 和 Secret 貼到下方儲存。金鑰以加密方式儲存，其他用戶無法存取。</div>
                 <button class="tip-close" onclick="this.parentElement.style.display='none'" title="關閉">&times;</button>
             </div>
             <div class="card">
@@ -1010,18 +1622,23 @@
                         </div>
                         <div style="display:flex;gap:8px;">
                             <button class="btn btn-sm" onclick="saveApiKey()">儲存 API 金鑰</button>
-                            <button class="btn btn-sm btn-danger" id="apikey-deleteBtn" onclick="deleteApiKey()" style="display:none;">刪除</button>
+                            <button class="btn btn-sm btn-danger" id="apikey-deleteBtn" onclick="deleteApiKey()"
+                                style="display:none;">刪除</button>
                         </div>
                     </div>
                 </div>
             </div>
             <div class="card" style="margin-top:16px;">
                 <h3>帳戶餘額</h3>
-                <div id="acct-balances"><div class="loading">載入中...</div></div>
+                <div id="acct-balances">
+                    <div class="loading">載入中...</div>
+                </div>
             </div>
             <div class="card" style="margin-top:16px;">
                 <h3>帳戶資訊</h3>
-                <div id="acct-info"><div class="loading">載入中...</div></div>
+                <div id="acct-info">
+                    <div class="loading">載入中...</div>
+                </div>
             </div>
             <!-- Partner upgrade section (standard users only) -->
             <div id="partnerSection" class="card" style="display:none;margin-top:16px;">
@@ -1065,10 +1682,14 @@
         <div class="tab-content" id="tab-strategies">
             <div class="tab-tip" id="tip-strategies">
                 <span class="tab-tip-icon">&#128218;</span>
-                <div><strong>策略總覽</strong> — 查看所有可用的交易策略及其參數說明。每個策略都有不同的適用行情：<strong>趨勢型</strong>（MA交叉、超級趨勢、唐奇安通道）適合單邊行情，<strong>震盪型</strong>（RSI、布林帶）適合盤整行情，<strong>複合型</strong>（多重確認、三重EMA）降低假信號。點擊策略可查看詳細參數。</div>
+                <div><strong>策略總覽</strong> —
+                    查看所有可用的交易策略及其參數說明。每個策略都有不同的適用行情：<strong>趨勢型</strong>（MA交叉、超級趨勢、唐奇安通道）適合單邊行情，<strong>震盪型</strong>（RSI、布林帶）適合盤整行情，<strong>複合型</strong>（多重確認、三重EMA、唐奇安+SuperTrend）降低假信號。點擊策略可查看詳細參數。
+                </div>
                 <button class="tip-close" onclick="this.parentElement.style.display='none'" title="關閉">&times;</button>
             </div>
-            <div id="strat-list"><div class="loading">載入中...</div></div>
+            <div id="strat-list">
+                <div class="loading">載入中...</div>
+            </div>
         </div>
 
         <!-- ═══ Tab 6: Guide ═══ -->
@@ -1081,7 +1702,8 @@
                     <h3>設定 Pionex API Key</h3>
                     <p>前往「帳戶」分頁，輸入你的 Pionex API 金鑰。</p>
                     <ul>
-                        <li>登入 <a href="https://www.pionex.com/en/apiManagement" target="_blank" style="color:#29b6f6;">Pionex API 管理頁面</a></li>
+                        <li>登入 <a href="https://www.pionex.com/en/apiManagement" target="_blank"
+                                style="color:#29b6f6;">Pionex API 管理頁面</a></li>
                         <li>建立 API，勾選 <code>Reading</code> + <code>Trading</code></li>
                         <li>到「帳戶」分頁貼入金鑰</li>
                     </ul>
@@ -1091,7 +1713,8 @@
                 <div class="guide-step">
                     <span class="step-num">2</span>
                     <h3>回測驗證策略</h3>
-                    <p>先用回測確認策略表現。重點指標：<strong>夏普比率 > 1</strong>、<strong>最大回撤 < 20%</strong>、<strong>獲利因子 > 1.5</strong></p>
+                    <p>先用回測確認策略表現。重點指標：<strong>夏普比率 > 1</strong>、<strong>最大回撤 < 20%</strong>、<strong>獲利因子 > 1.5</strong>
+                    </p>
                 </div>
 
                 <div class="guide-step">
@@ -1111,14 +1734,16 @@
                         <li>在 TradingView 建立 Alert，將 Webhook URL 貼入，Message 貼入模板</li>
                         <li>啟動機器人後，TradingView 觸發 Alert 時會自動執行交易</li>
                     </ul>
-                    <p style="margin-top:8px;">支援的 action：<code>buy</code>（做多）、<code>sell</code>（做空）、<code>close</code>（平倉）</p>
+                    <p style="margin-top:8px;">支援的
+                        action：<code>buy</code>（做多）、<code>sell</code>（做空）、<code>close</code>（平倉）</p>
                 </div>
 
                 <div class="guide-step">
                     <span class="step-num">?</span>
                     <h3>策略簡介</h3>
-                    <p style="margin-bottom:8px;">共 11 種內建策略，分為四大類：</p>
-                    <p style="margin:8px 0 4px;"><span style="color:#00c853;font-weight:600;">📈 趨勢追蹤</span> — 適合單邊上漲/下跌行情</p>
+                    <p style="margin-bottom:8px;">共 12 種內建策略，分為四大類：</p>
+                    <p style="margin:8px 0 4px;"><span style="color:#00c853;font-weight:600;">📈 趨勢追蹤</span> —
+                        適合單邊上漲/下跌行情</p>
                     <ul>
                         <li><strong>ma_crossover</strong>：均線交叉。快線穿越慢線判斷趨勢方向。</li>
                         <li><strong>macd</strong>：MACD 交叉。MACD 線穿越訊號線進出場。</li>
@@ -1128,16 +1753,20 @@
                         <li><strong>turtle_breakout</strong>：海龜突破。偵測樞紐高低點突破進場。</li>
                         <li><strong>granville_pro</strong>：葛蘭碧大師。EMA 交叉 + 停損偏離。</li>
                     </ul>
-                    <p style="margin:8px 0 4px;"><span style="color:#29b6f6;font-weight:600;">🔄 震盪回歸</span> — 適合盤整行情</p>
+                    <p style="margin:8px 0 4px;"><span style="color:#29b6f6;font-weight:600;">🔄 震盪回歸</span> — 適合盤整行情
+                    </p>
                     <ul>
                         <li><strong>rsi</strong>：RSI 超買超賣。超賣做多、超買做空。</li>
                         <li><strong>bollinger</strong>：布林通道。價格觸及通道邊界反向操作。</li>
                     </ul>
-                    <p style="margin:8px 0 4px;"><span style="color:#ab47bc;font-weight:600;">🔗 複合指標</span> — 多重確認降低假信號</p>
+                    <p style="margin:8px 0 4px;"><span style="color:#ab47bc;font-weight:600;">🔗 複合指標</span> — 多重確認降低假信號
+                    </p>
                     <ul>
                         <li><strong>combined</strong>：EMA 趨勢 + RSI 過濾 + MACD 確認。</li>
+                        <li><strong>donchian_supertrend</strong>：唐奇安通道突破 + SuperTrend 趨勢過濾，雙重確認減少假突破。</li>
                     </ul>
-                    <p style="margin:8px 0 4px;"><span style="color:#ff9800;font-weight:600;">🏀 動能突破</span> — 連續 K 線動能判斷</p>
+                    <p style="margin:8px 0 4px;"><span style="color:#ff9800;font-weight:600;">🏀 動能突破</span> — 連續 K
+                        線動能判斷</p>
                     <ul>
                         <li><strong>consecutive_breakout</strong>：多空區域連續 K 線突破。</li>
                     </ul>
@@ -1150,26 +1779,32 @@
         <div class="tab-content" id="tab-admin">
             <div class="tab-tip" id="tip-admin">
                 <span class="tab-tip-icon">&#128736;</span>
-                <div><strong>管理員</strong> — 管理所有註冊使用者。可直接編輯 Email 和名稱（點擊欄位修改，離開自動儲存）。調整機器人上限控制每位使用者可建立的 Bot 數量。「停用」可暫時禁止用戶登入操作。</div>
+                <div><strong>管理員</strong> — 管理所有註冊使用者。可直接編輯 Email 和名稱（點擊欄位修改，離開自動儲存）。調整機器人上限控制每位使用者可建立的 Bot
+                    數量。「停用」可暫時禁止用戶登入操作。</div>
                 <button class="tip-close" onclick="this.parentElement.style.display='none'" title="關閉">&times;</button>
             </div>
             <div class="card">
                 <h3 style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;">
                     使用者管理
                     <span style="display:flex;gap:8px;align-items:center;">
-                        <button class="btn btn-sm" onclick="reloadBotsFromDB(this)" style="font-size:0.78rem;padding:4px 10px;">重載 Bots</button>
-                        <button class="btn btn-sm" onclick="syncClerkEmails(this)" style="font-size:0.78rem;padding:4px 10px;">同步 Email</button>
+                        <button class="btn btn-sm" onclick="reloadBotsFromDB(this)"
+                            style="font-size:0.78rem;padding:4px 10px;">重載 Bots</button>
+                        <button class="btn btn-sm" onclick="syncClerkEmails(this)"
+                            style="font-size:0.78rem;padding:4px 10px;">同步 Email</button>
                         <input type="text" id="admin-search" placeholder="搜尋 Email / 名稱 / ID..."
                             oninput="filterAdminUsers()"
                             style="width:280px;padding:6px 12px;background:#0a0a0f;border:1px solid #1e1e2e;border-radius:6px;color:#e7e9ea;font-size:0.85rem;">
                     </span>
                 </h3>
-                <div id="admin-users"><div class="loading">載入中...</div></div>
+                <div id="admin-users">
+                    <div class="loading">載入中...</div>
+                </div>
             </div>
         </div>
 
         <!-- ═══ Global Footer: Sponsors ═══ -->
-        <div id="globalSponsorFooter" style="margin-top:32px;padding:20px 0;border-top:1px solid #1e1e2e;text-align:center;">
+        <div id="globalSponsorFooter"
+            style="margin-top:32px;padding:20px 0;border-top:1px solid #1e1e2e;text-align:center;">
             <p style="color:#6b7280;font-size:0.72rem;letter-spacing:1px;margin-bottom:12px;">合作夥伴</p>
             <div style="display:flex;justify-content:center;align-items:center;gap:24px;flex-wrap:wrap;">
                 <a href="https://reurl.cc/oKAgxg" target="_blank"
@@ -1197,13 +1832,8 @@
 
     <!-- Clerk JS SDK (only load when auth is enabled) -->
     {% if auth_enabled %}
-    <script
-        async
-        crossorigin="anonymous"
-        data-clerk-publishable-key="{{ clerk_publishable_key }}"
-        src="https://cdn.jsdelivr.net/npm/@clerk/clerk-js@latest/dist/clerk.browser.js"
-        type="text/javascript"
-    ></script>
+    <script async crossorigin="anonymous" data-clerk-publishable-key="{{ clerk_publishable_key }}"
+        src="https://cdn.jsdelivr.net/npm/@clerk/clerk-js@latest/dist/clerk.browser.js" type="text/javascript"></script>
     {% endif %}
 
     <script>
@@ -1215,8 +1845,8 @@
         let strategiesLoaded = false;
         let currentUser = null;
         let clerkToken = null;
-        const roleMap = {admin: '管理員', advanced: '進階會員', standard: '普通會員', user: '普通會員'};
-        const roleClassMap = {admin: 'role-admin', advanced: 'role-advanced', standard: 'role-standard', user: 'role-standard'};
+        const roleMap = { admin: '管理員', advanced: '進階會員', standard: '普通會員', user: '普通會員' };
+        const roleClassMap = { admin: 'role-admin', advanced: 'role-advanced', standard: 'role-standard', user: 'role-standard' };
 
         /* ════════════════════════════════════════════════
            Auth: Clerk Integration
@@ -1245,7 +1875,7 @@
                     try {
                         const s = window.Clerk.session;
                         if (s) clerkToken = await s.getToken();
-                    } catch (e) {}
+                    } catch (e) { }
                 }, 50000);
                 const resp = await authFetch('/api/account/me');
                 if (resp.ok) {
@@ -1283,7 +1913,7 @@
         }
 
         async function doLogout() {
-            try { await window.Clerk.signOut(); } catch (e) {}
+            try { await window.Clerk.signOut(); } catch (e) { }
             window.location.href = '/login';
         }
 
@@ -1437,7 +2067,7 @@
                     '<p style="font-size:1.1rem;font-weight:600;">尚無機器人</p>' +
                     '<p>建立你的第一個自動交易機器人</p>' +
                     '<button class="btn btn-sm btn-accent" style="margin-top:12px;" onclick="switchTab(\'bots\');showCreateBotModal();">建立機器人</button>' +
-                '</div>';
+                    '</div>';
                 return;
             }
             let html = '';
@@ -1455,28 +2085,28 @@
                     const uC = pos.unrealized_pnl_usd > 0 ? '#00c853' : pos.unrealized_pnl_usd < 0 ? '#ff1744' : '#6b7280';
                     dashPosHtml = '<div style="margin-top:4px;font-size:0.8rem;">' +
                         '<span style="color:' + sideC + ';font-weight:700;">' + sideL + '</span>' +
-                        ' @ $' + pos.entry_price.toLocaleString(undefined, {minimumFractionDigits:2, maximumFractionDigits:4}) +
+                        ' @ $' + pos.entry_price.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 4 }) +
                         ' <span style="color:' + uC + ';font-weight:600;">' + (pos.unrealized_pnl_usd >= 0 ? '+' : '') + '$' + pos.unrealized_pnl_usd.toFixed(2) + '</span>' +
-                    '</div>';
+                        '</div>';
                 }
                 html += '<div class="dash-bot-item">' +
                     '<div class="dash-bot-item-header">' +
-                        '<div class="dash-bot-item-name">' +
-                            '<span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:' + statusColor + ';margin-right:8px;"></span>' +
-                            bot.name +
-                            '<span class="badge ' + (bot.paper_mode ? 'badge-paper' : 'badge-live') + '">' + (bot.paper_mode ? '模擬' : '即時') + '</span>' +
-                            (isWebhook ? '<span class="badge badge-webhook">WH</span>' : '') +
-                        '</div>' +
-                        '<span style="font-size:0.8rem;color:#6b7280;">' + sourceLabel + ' | ' + bot.symbol + '</span>' +
+                    '<div class="dash-bot-item-name">' +
+                    '<span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:' + statusColor + ';margin-right:8px;"></span>' +
+                    bot.name +
+                    '<span class="badge ' + (bot.paper_mode ? 'badge-paper' : 'badge-live') + '">' + (bot.paper_mode ? '模擬' : '即時') + '</span>' +
+                    (isWebhook ? '<span class="badge badge-webhook">WH</span>' : '') +
+                    '</div>' +
+                    '<span style="font-size:0.8rem;color:#6b7280;">' + sourceLabel + ' | ' + bot.symbol + '</span>' +
                     '</div>' +
                     '<div class="dash-bot-item-stats">' +
-                        '<div><span>損益: </span><strong style="color:' + pnlColor + ';">' + (bot.total_pnl >= 0 ? '+' : '') + '$' + bot.total_pnl.toFixed(2) + '</strong></div>' +
-                        '<div><span>交易: </span><strong>' + bot.total_trades + '</strong></div>' +
-                        '<div><span>勝率: </span><strong>' + bot.win_rate.toFixed(1) + '%</strong></div>' +
-                        '<div><span>狀態: </span><strong style="color:' + statusColor + ';">' + statusLabel + '</strong></div>' +
+                    '<div><span>損益: </span><strong style="color:' + pnlColor + ';">' + (bot.total_pnl >= 0 ? '+' : '') + '$' + bot.total_pnl.toFixed(2) + '</strong></div>' +
+                    '<div><span>交易: </span><strong>' + bot.total_trades + '</strong></div>' +
+                    '<div><span>勝率: </span><strong>' + bot.win_rate.toFixed(1) + '%</strong></div>' +
+                    '<div><span>狀態: </span><strong style="color:' + statusColor + ';">' + statusLabel + '</strong></div>' +
                     '</div>' +
                     dashPosHtml +
-                '</div>';
+                    '</div>';
             });
             container.innerHTML = html;
         }
@@ -1548,8 +2178,8 @@
             const tf = document.getElementById(prefix + '-timeframe').value;
             if (source === 'csv') return '&csv_path=' + encodeURIComponent(document.getElementById(prefix + '-csv').value) + '&timeframe=' + tf;
             return '&symbol=' + document.getElementById(prefix + '-symbol').value +
-                   '&timeframe=' + tf +
-                   '&limit=' + document.getElementById(prefix + '-limit').value;
+                '&timeframe=' + tf +
+                '&limit=' + document.getElementById(prefix + '-limit').value;
         }
 
         /* ════════════════════════════════════════════════
@@ -1620,9 +2250,11 @@
                 type: 'line',
                 data: {
                     labels: data.map(d => d.time.slice(0, 10)),
-                    datasets: [{ label: '資金曲線', data: data.map(d => d.value),
+                    datasets: [{
+                        label: '資金曲線', data: data.map(d => d.value),
                         borderColor: '#f7931a', backgroundColor: 'rgba(247,147,26,0.1)',
-                        fill: true, tension: 0.1, pointRadius: 0, borderWidth: 2 }],
+                        fill: true, tension: 0.1, pointRadius: 0, borderWidth: 2
+                    }],
                 },
                 options: {
                     responsive: true, maintainAspectRatio: false,
@@ -1640,7 +2272,7 @@
             document.getElementById('bt-tradesCard').style.display = '';
             document.getElementById('bt-tradeCount').textContent = '(最近 ' + trades.length + ' 筆)';
             document.getElementById('bt-tradesBody').innerHTML = trades.map(t => `<tr>
-                <td>${t.entry_time.slice(0,16)}</td><td>${t.exit_time.slice(0,16)}</td>
+                <td>${t.entry_time.slice(0, 16)}</td><td>${t.exit_time.slice(0, 16)}</td>
                 <td>${t.direction === 'Long' ? '做多' : '做空'}</td>
                 <td>${t.entry_price.toLocaleString()}</td><td>${t.exit_price.toLocaleString()}</td>
                 <td class="${t.pnl >= 0 ? 'positive' : 'negative'}">$${t.pnl.toFixed(2)}</td>
@@ -1651,16 +2283,16 @@
         function _metricsBlock(label, m, period, color) {
             const retClass = m.total_return_pct >= 0 ? 'positive' : 'negative';
             const sharpeClass = m.sharpe_ratio >= 1 ? 'positive' : m.sharpe_ratio < 0 ? 'negative' : '';
-            return '<div style="flex:1;min-width:260px;background:#0a0a0f;border-radius:8px;padding:16px;border-top:3px solid '+color+';">' +
-                '<h4 style="margin:0 0 4px;color:'+color+';font-size:0.95rem;">'+label+'</h4>' +
-                (period ? '<p style="font-size:0.75rem;color:#6b7280;margin:0 0 10px;">'+period+'</p>' : '') +
+            return '<div style="flex:1;min-width:260px;background:#0a0a0f;border-radius:8px;padding:16px;border-top:3px solid ' + color + ';">' +
+                '<h4 style="margin:0 0 4px;color:' + color + ';font-size:0.95rem;">' + label + '</h4>' +
+                (period ? '<p style="font-size:0.75rem;color:#6b7280;margin:0 0 10px;">' + period + '</p>' : '') +
                 '<div class="metrics-grid">' +
-                    '<div class="metric"><div class="value '+retClass+'">'+(m.total_return_pct>=0?'+':'')+m.total_return_pct.toFixed(1)+'%</div><div class="label">總報酬率</div></div>' +
-                    '<div class="metric"><div class="value '+sharpeClass+'">'+m.sharpe_ratio.toFixed(2)+'</div><div class="label">夏普比率</div></div>' +
-                    '<div class="metric"><div class="value negative">'+m.max_drawdown_pct.toFixed(1)+'%</div><div class="label">最大回撤</div></div>' +
-                    '<div class="metric"><div class="value">'+m.win_rate.toFixed(0)+'%</div><div class="label">勝率</div></div>' +
-                    '<div class="metric"><div class="value">'+m.total_trades+'</div><div class="label">交易次數</div></div>' +
-                    '<div class="metric"><div class="value">'+m.profit_factor.toFixed(2)+'</div><div class="label">獲利因子</div></div>' +
+                '<div class="metric"><div class="value ' + retClass + '">' + (m.total_return_pct >= 0 ? '+' : '') + m.total_return_pct.toFixed(1) + '%</div><div class="label">總報酬率</div></div>' +
+                '<div class="metric"><div class="value ' + sharpeClass + '">' + m.sharpe_ratio.toFixed(2) + '</div><div class="label">夏普比率</div></div>' +
+                '<div class="metric"><div class="value negative">' + m.max_drawdown_pct.toFixed(1) + '%</div><div class="label">最大回撤</div></div>' +
+                '<div class="metric"><div class="value">' + m.win_rate.toFixed(0) + '%</div><div class="label">勝率</div></div>' +
+                '<div class="metric"><div class="value">' + m.total_trades + '</div><div class="label">交易次數</div></div>' +
+                '<div class="metric"><div class="value">' + m.profit_factor.toFixed(2) + '</div><div class="label">獲利因子</div></div>' +
                 '</div></div>';
         }
 
@@ -1690,11 +2322,11 @@
             if (chart) chart.destroy();
             let isData = data.is_equity_curve || [];
             let oosData = data.oos_equity_curve || [];
-            if (isData.length > 200) { const s = Math.ceil(isData.length/200); isData = isData.filter((_,i)=>i%s===0); }
-            if (oosData.length > 200) { const s = Math.ceil(oosData.length/200); oosData = oosData.filter((_,i)=>i%s===0); }
+            if (isData.length > 200) { const s = Math.ceil(isData.length / 200); isData = isData.filter((_, i) => i % s === 0); }
+            if (oosData.length > 200) { const s = Math.ceil(oosData.length / 200); oosData = oosData.filter((_, i) => i % s === 0); }
             // Overlay: both start from index 0, same initial capital
             const maxLen = Math.max(isData.length, oosData.length);
-            const labels = Array.from({length: maxLen}, (_, i) => i + 1);
+            const labels = Array.from({ length: maxLen }, (_, i) => i + 1);
             const isValues = isData.map(d => d.value);
             const oosValues = oosData.map(d => d.value);
             while (isValues.length < maxLen) isValues.push(null);
@@ -1709,12 +2341,16 @@
                 data: {
                     labels: labels,
                     datasets: [
-                        { label: 'In-Sample (' + isRange + ')', data: isValues,
-                          borderColor: '#f7931a', backgroundColor: 'rgba(247,147,26,0.08)',
-                          fill: true, tension: 0.1, pointRadius: 0, borderWidth: 2 },
-                        { label: 'Out-of-Sample (' + oosRange + ')', data: oosValues,
-                          borderColor: '#2196f3', backgroundColor: 'rgba(33,150,243,0.08)',
-                          fill: true, tension: 0.1, pointRadius: 0, borderWidth: 2 },
+                        {
+                            label: 'In-Sample (' + isRange + ')', data: isValues,
+                            borderColor: '#f7931a', backgroundColor: 'rgba(247,147,26,0.08)',
+                            fill: true, tension: 0.1, pointRadius: 0, borderWidth: 2
+                        },
+                        {
+                            label: 'Out-of-Sample (' + oosRange + ')', data: oosValues,
+                            borderColor: '#2196f3', backgroundColor: 'rgba(33,150,243,0.08)',
+                            fill: true, tension: 0.1, pointRadius: 0, borderWidth: 2
+                        },
                     ],
                 },
                 options: {
@@ -1723,7 +2359,7 @@
                         legend: { display: true, labels: { color: '#e7e9ea', font: { size: 11 } } },
                         tooltip: {
                             callbacks: {
-                                title: function(items) {
+                                title: function (items) {
                                     const idx = items[0].dataIndex;
                                     const parts = [];
                                     if (idx < isDates.length) parts.push('IS: ' + isDates[idx]);
@@ -1734,8 +2370,10 @@
                         }
                     },
                     scales: {
-                        x: { grid: { color: '#1e1e2e' }, ticks: { color: '#6b7280', maxTicksLimit: 8 },
-                             title: { display: true, text: 'K線序號', color: '#4a5568', font: { size: 10 } } },
+                        x: {
+                            grid: { color: '#1e1e2e' }, ticks: { color: '#6b7280', maxTicksLimit: 8 },
+                            title: { display: true, text: 'K線序號', color: '#4a5568', font: { size: 10 } }
+                        },
                         y: { grid: { color: '#1e1e2e' }, ticks: { color: '#6b7280' } },
                     },
                     interaction: { intersect: false, mode: 'index' },
@@ -1752,7 +2390,7 @@
                 const resp = await authFetch('/api/backtest/history');
                 if (resp.status === 401) { el.innerHTML = '<div class="loading" style="color:#6b7280;">登入後可查看回測歷史</div>'; return; }
                 const data = await resp.json();
-                if (data.error) { el.innerHTML = '<div class="loading" style="color:#6b7280;">'+data.error+'</div>'; return; }
+                if (data.error) { el.innerHTML = '<div class="loading" style="color:#6b7280;">' + data.error + '</div>'; return; }
                 const results = data.results || [];
                 if (results.length === 0) { el.innerHTML = '<div class="loading" style="color:#6b7280;">尚無回測紀錄</div>'; return; }
                 el.innerHTML = '<div style="overflow-x:auto;"><table class="data-table"><thead><tr>' +
@@ -1762,23 +2400,23 @@
                         const m = r.metrics || {};
                         const ret = m.total_return_pct || 0;
                         const retClass = ret >= 0 ? 'positive' : 'negative';
-                        const ts = r.created_at ? r.created_at.slice(0,16).replace('T',' ') : '';
+                        const ts = r.created_at ? r.created_at.slice(0, 16).replace('T', ' ') : '';
                         return '<tr>' +
-                            '<td>'+r.strategy+'</td>' +
-                            '<td>'+r.symbol+'</td>' +
-                            '<td>'+r.timeframe+'</td>' +
-                            '<td class="'+retClass+'">'+(ret>=0?'+':'')+ret.toFixed(1)+'%</td>' +
-                            '<td>'+(m.sharpe_ratio||0).toFixed(2)+'</td>' +
-                            '<td>'+(m.win_rate||0).toFixed(0)+'%</td>' +
-                            '<td>'+(m.total_trades||0)+'</td>' +
-                            '<td style="font-size:0.8rem;color:#6b7280;">'+ts+'</td>' +
+                            '<td>' + r.strategy + '</td>' +
+                            '<td>' + r.symbol + '</td>' +
+                            '<td>' + r.timeframe + '</td>' +
+                            '<td class="' + retClass + '">' + (ret >= 0 ? '+' : '') + ret.toFixed(1) + '%</td>' +
+                            '<td>' + (m.sharpe_ratio || 0).toFixed(2) + '</td>' +
+                            '<td>' + (m.win_rate || 0).toFixed(0) + '%</td>' +
+                            '<td>' + (m.total_trades || 0) + '</td>' +
+                            '<td style="font-size:0.8rem;color:#6b7280;">' + ts + '</td>' +
                             '<td style="white-space:nowrap;">' +
-                                '<button class="btn" style="font-size:0.7rem;padding:2px 8px;margin-right:4px;" onclick="viewBacktestResult('+r.id+')">查看</button>' +
-                                '<button class="btn" style="font-size:0.7rem;padding:2px 8px;background:#2a1a1a;color:#ff4444;" onclick="deleteBacktestResult('+r.id+')">刪除</button>' +
+                            '<button class="btn" style="font-size:0.7rem;padding:2px 8px;margin-right:4px;" onclick="viewBacktestResult(' + r.id + ')">查看</button>' +
+                            '<button class="btn" style="font-size:0.7rem;padding:2px 8px;background:#2a1a1a;color:#ff4444;" onclick="deleteBacktestResult(' + r.id + ')">刪除</button>' +
                             '</td></tr>';
                     }).join('') +
                     '</tbody></table></div>';
-            } catch(e) {
+            } catch (e) {
                 el.innerHTML = '<div class="loading" style="color:#6b7280;">載入失敗</div>';
             }
         }
@@ -1795,18 +2433,18 @@
                 if (data.trades && data.trades.length > 0) { renderTrades(data.trades); }
                 else { document.getElementById('bt-tradesCard').style.display = 'none'; }
                 // Scroll to top of results
-                document.getElementById('bt-metricsContent').scrollIntoView({behavior:'smooth'});
-            } catch(e) {
-                content.innerHTML = '<div class="loading" style="color:#ff1744;">錯誤: '+e.message+'</div>';
+                document.getElementById('bt-metricsContent').scrollIntoView({ behavior: 'smooth' });
+            } catch (e) {
+                content.innerHTML = '<div class="loading" style="color:#ff1744;">錯誤: ' + e.message + '</div>';
             }
         }
 
         async function deleteBacktestResult(id) {
             if (!confirm('確定刪除此回測結果？')) return;
             try {
-                await authFetch('/api/backtest/history/' + id, {method:'DELETE'});
+                await authFetch('/api/backtest/history/' + id, { method: 'DELETE' });
                 loadBacktestHistory();
-            } catch(e) { alert('刪除失敗: ' + e.message); }
+            } catch (e) { alert('刪除失敗: ' + e.message); }
         }
 
         /* ════════════════════════════════════════════════
@@ -1821,8 +2459,8 @@
             const strategy = document.getElementById('opt-strategy').value;
             const optOos = document.getElementById('opt-oos').value;
             let url = '/api/optimize?strategy=' + strategy + '&sort_by=' + document.getElementById('opt-sort').value +
-                      '&top_n=' + document.getElementById('opt-topn').value +
-                      '&max_combos=' + document.getElementById('opt-maxcombos').value + buildDataUrl('opt');
+                '&top_n=' + document.getElementById('opt-topn').value +
+                '&max_combos=' + document.getElementById('opt-maxcombos').value + buildDataUrl('opt');
             if (optOos > 0) url += '&oos_pct=' + optOos;
 
             try {
@@ -1842,7 +2480,7 @@
             const content = document.getElementById('opt-content');
             const hasOos = !!data.oos_pct;
             let html = '<p style="color:#6b7280;margin-bottom:12px;">策略: ' + data.strategy +
-                       ' | 測試: ' + data.tested + '/' + data.total_combinations;
+                ' | 測試: ' + data.tested + '/' + data.total_combinations;
             if (hasOos) html += ' | IS: ' + data.is_period + ' | OOS: ' + data.oos_period;
             html += '</p>';
             if (!data.results || data.results.length === 0) { content.innerHTML = html + '<p style="color:#ff1744;">無結果</p>'; return; }
@@ -1869,7 +2507,7 @@
                         '<td class="' + (om.total_return_pct >= 0 ? 'positive' : 'negative') + '">' + (om.total_return_pct >= 0 ? '+' : '') + om.total_return_pct.toFixed(1) + '%</td>' +
                         '<td>' + om.sharpe_ratio.toFixed(2) + '</td>' +
                         '<td>' + om.win_rate.toFixed(0) + '%</td>' +
-                        '<td style="color:' + stabColor + ';font-weight:700;">' + (stability*100).toFixed(0) + '% ' + stabLabel + '</td>';
+                        '<td style="color:' + stabColor + ';font-weight:700;">' + (stability * 100).toFixed(0) + '% ' + stabLabel + '</td>';
                 } else {
                     html += '<td class="' + (m.total_return_pct >= 0 ? 'positive' : 'negative') + '">' + (m.total_return_pct >= 0 ? '+' : '') + m.total_return_pct.toFixed(1) + '%</td>' +
                         '<td>' + m.sharpe_ratio.toFixed(2) + '</td><td class="negative">' + m.max_drawdown_pct.toFixed(1) + '%</td>' +
@@ -1922,28 +2560,28 @@
                 const resp = await authFetch('/api/optimize/history');
                 if (resp.status === 401) { el.innerHTML = '<div class="loading" style="color:#6b7280;">登入後可查看優化歷史</div>'; return; }
                 const data = await resp.json();
-                if (data.error) { el.innerHTML = '<div class="loading" style="color:#6b7280;">'+data.error+'</div>'; return; }
+                if (data.error) { el.innerHTML = '<div class="loading" style="color:#6b7280;">' + data.error + '</div>'; return; }
                 const results = data.results || [];
                 if (results.length === 0) { el.innerHTML = '<div class="loading" style="color:#6b7280;">尚無優化紀錄</div>'; return; }
                 el.innerHTML = '<div style="overflow-x:auto;"><table class="data-table"><thead><tr>' +
                     '<th>策略</th><th>交易對</th><th>時間框架</th><th>排序</th><th>測試數</th><th>時間</th><th></th>' +
                     '</tr></thead><tbody>' +
                     results.map(r => {
-                        const ts = r.created_at ? r.created_at.slice(0,16).replace('T',' ') : '';
+                        const ts = r.created_at ? r.created_at.slice(0, 16).replace('T', ' ') : '';
                         return '<tr>' +
-                            '<td>'+r.strategy+'</td>' +
-                            '<td>'+(r.symbol||'CSV')+'</td>' +
-                            '<td>'+(r.timeframe||'-')+'</td>' +
-                            '<td>'+r.sort_by+'</td>' +
-                            '<td>'+r.tested+'/'+r.total_combinations+'</td>' +
-                            '<td style="font-size:0.8rem;color:#6b7280;">'+ts+'</td>' +
+                            '<td>' + r.strategy + '</td>' +
+                            '<td>' + (r.symbol || 'CSV') + '</td>' +
+                            '<td>' + (r.timeframe || '-') + '</td>' +
+                            '<td>' + r.sort_by + '</td>' +
+                            '<td>' + r.tested + '/' + r.total_combinations + '</td>' +
+                            '<td style="font-size:0.8rem;color:#6b7280;">' + ts + '</td>' +
                             '<td style="white-space:nowrap;">' +
-                                '<button class="btn" style="font-size:0.7rem;padding:2px 8px;margin-right:4px;" onclick="viewOptimizeResult('+r.id+')">查看</button>' +
-                                '<button class="btn" style="font-size:0.7rem;padding:2px 8px;background:#2a1a1a;color:#ff4444;" onclick="deleteOptimizeResult('+r.id+')">刪除</button>' +
+                            '<button class="btn" style="font-size:0.7rem;padding:2px 8px;margin-right:4px;" onclick="viewOptimizeResult(' + r.id + ')">查看</button>' +
+                            '<button class="btn" style="font-size:0.7rem;padding:2px 8px;background:#2a1a1a;color:#ff4444;" onclick="deleteOptimizeResult(' + r.id + ')">刪除</button>' +
                             '</td></tr>';
                     }).join('') +
                     '</tbody></table></div>';
-            } catch(e) {
+            } catch (e) {
                 el.innerHTML = '<div class="loading" style="color:#6b7280;">載入失敗</div>';
             }
         }
@@ -1956,18 +2594,18 @@
                 const data = await resp.json();
                 if (data.error) throw new Error(data.error);
                 renderOptResults(data);
-                document.getElementById('opt-content').scrollIntoView({behavior:'smooth'});
-            } catch(e) {
-                content.innerHTML = '<div class="loading" style="color:#ff1744;">錯誤: '+e.message+'</div>';
+                document.getElementById('opt-content').scrollIntoView({ behavior: 'smooth' });
+            } catch (e) {
+                content.innerHTML = '<div class="loading" style="color:#ff1744;">錯誤: ' + e.message + '</div>';
             }
         }
 
         async function deleteOptimizeResult(id) {
             if (!confirm('確定刪除此優化結果？')) return;
             try {
-                await authFetch('/api/optimize/history/' + id, {method:'DELETE'});
+                await authFetch('/api/optimize/history/' + id, { method: 'DELETE' });
                 loadOptimizeHistory();
-            } catch(e) { alert('刪除失敗: ' + e.message); }
+            } catch (e) { alert('刪除失敗: ' + e.message); }
         }
 
         /* ════════════════════════════════════════════════
@@ -2011,52 +2649,52 @@
                         const upnlSign = pos.unrealized_pnl_usd > 0 ? '+' : '';
                         posHtml = '<div style="margin-top:8px;padding:10px 12px;background:linear-gradient(135deg,#0d1117,#161b22);border:1px solid ' + sideColor + '33;border-radius:8px;">' +
                             '<div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;">' +
-                                '<span style="background:' + sideColor + '22;color:' + sideColor + ';padding:2px 8px;border-radius:4px;font-weight:700;font-size:0.8rem;">' + sideLabel + '</span>' +
-                                '<span style="color:#6b7280;font-size:0.8rem;">持倉中</span>' +
+                            '<span style="background:' + sideColor + '22;color:' + sideColor + ';padding:2px 8px;border-radius:4px;font-weight:700;font-size:0.8rem;">' + sideLabel + '</span>' +
+                            '<span style="color:#6b7280;font-size:0.8rem;">持倉中</span>' +
                             '</div>' +
                             '<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;">' +
-                                '<div><div style="color:#6b7280;font-size:0.7rem;">進場價</div><div style="font-weight:600;font-size:0.95rem;">$' + pos.entry_price.toLocaleString(undefined, {minimumFractionDigits:2, maximumFractionDigits:6}) + '</div></div>' +
-                                '<div><div style="color:#6b7280;font-size:0.7rem;">現價</div><div style="font-weight:600;font-size:0.95rem;">' + (pos.current_price > 0 ? '$' + pos.current_price.toLocaleString(undefined, {minimumFractionDigits:2, maximumFractionDigits:6}) : '—') + '</div></div>' +
-                                '<div><div style="color:#6b7280;font-size:0.7rem;">未實現損益</div><div style="font-weight:700;font-size:0.95rem;color:' + upnlColor + ';">' + upnlSign + '$' + pos.unrealized_pnl_usd.toFixed(2) + ' (' + (pos.unrealized_pnl >= 0 ? '+' : '') + pos.unrealized_pnl.toFixed(2) + '%)</div></div>' +
+                            '<div><div style="color:#6b7280;font-size:0.7rem;">進場價</div><div style="font-weight:600;font-size:0.95rem;">$' + pos.entry_price.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 6 }) + '</div></div>' +
+                            '<div><div style="color:#6b7280;font-size:0.7rem;">現價</div><div style="font-weight:600;font-size:0.95rem;">' + (pos.current_price > 0 ? '$' + pos.current_price.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 6 }) : '—') + '</div></div>' +
+                            '<div><div style="color:#6b7280;font-size:0.7rem;">未實現損益</div><div style="font-weight:700;font-size:0.95rem;color:' + upnlColor + ';">' + upnlSign + '$' + pos.unrealized_pnl_usd.toFixed(2) + ' (' + (pos.unrealized_pnl >= 0 ? '+' : '') + pos.unrealized_pnl.toFixed(2) + '%)</div></div>' +
                             '</div>' +
-                        '</div>';
+                            '</div>';
                     }
                     html += '<div class="card" style="border-left:3px solid ' +
                         (bot.status === 'running' ? '#00e676' : bot.status === 'error' ? '#ff1744' : '#6b7280') + ';">' +
                         '<div style="display:flex;justify-content:space-between;align-items:start;flex-wrap:wrap;gap:12px;">' +
-                            '<div>' +
-                                '<strong style="font-size:1.15rem;">' + bot.name + '</strong> ' +
-                                '<span class="badge ' + statusClass + '">' + statusLabel + '</span> ' +
-                                '<span class="badge ' + modeClass + '">' + (bot.paper_mode ? '模擬' : '即時') + '</span>' +
-                                (isWebhook ? '<span class="badge badge-webhook">Webhook</span>' : '') +
-                                '<p style="color:#6b7280;font-size:0.85rem;margin-top:4px;">' + infoLine + '</p>' +
-                                (bot.error_msg ? '<p style="color:#ff1744;font-size:0.8rem;margin-top:2px;">' + bot.error_msg + '</p>' : '') +
-                            '</div>' +
+                        '<div>' +
+                        '<strong style="font-size:1.15rem;">' + bot.name + '</strong> ' +
+                        '<span class="badge ' + statusClass + '">' + statusLabel + '</span> ' +
+                        '<span class="badge ' + modeClass + '">' + (bot.paper_mode ? '模擬' : '即時') + '</span>' +
+                        (isWebhook ? '<span class="badge badge-webhook">Webhook</span>' : '') +
+                        '<p style="color:#6b7280;font-size:0.85rem;margin-top:4px;">' + infoLine + '</p>' +
+                        (bot.error_msg ? '<p style="color:#ff1744;font-size:0.8rem;margin-top:2px;">' + bot.error_msg + '</p>' : '') +
+                        '</div>' +
                         '</div>' +
                         '<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-top:12px;padding:12px;background:#0a0a0f;border-radius:8px;">' +
-                            '<div style="text-align:center;"><div style="color:#6b7280;font-size:0.75rem;">已實現損益</div>' +
-                                '<div style="font-size:1.2rem;font-weight:700;color:' + pnlColor + ';">' + pnlSign + '$' + bot.total_pnl.toFixed(2) + '</div></div>' +
-                            '<div style="text-align:center;"><div style="color:#6b7280;font-size:0.75rem;">交易數</div>' +
-                                '<div style="font-size:1.2rem;font-weight:700;">' + bot.total_trades + '</div></div>' +
-                            '<div style="text-align:center;"><div style="color:#6b7280;font-size:0.75rem;">勝率</div>' +
-                                '<div style="font-size:1.2rem;font-weight:700;">' + bot.win_rate.toFixed(1) + '%</div></div>' +
-                            '<div style="text-align:center;"><div style="color:#6b7280;font-size:0.75rem;">最後信號</div>' +
-                                '<div style="font-size:0.9rem;font-weight:600;">' + (bot.last_signal || '—') + '</div>' +
-                                (bot.last_signal_time ? '<div style="font-size:0.65rem;color:#6b7280;">' + bot.last_signal_time + '</div>' : '') +
-                            '</div>' +
+                        '<div style="text-align:center;"><div style="color:#6b7280;font-size:0.75rem;">已實現損益</div>' +
+                        '<div style="font-size:1.2rem;font-weight:700;color:' + pnlColor + ';">' + pnlSign + '$' + bot.total_pnl.toFixed(2) + '</div></div>' +
+                        '<div style="text-align:center;"><div style="color:#6b7280;font-size:0.75rem;">交易數</div>' +
+                        '<div style="font-size:1.2rem;font-weight:700;">' + bot.total_trades + '</div></div>' +
+                        '<div style="text-align:center;"><div style="color:#6b7280;font-size:0.75rem;">勝率</div>' +
+                        '<div style="font-size:1.2rem;font-weight:700;">' + bot.win_rate.toFixed(1) + '%</div></div>' +
+                        '<div style="text-align:center;"><div style="color:#6b7280;font-size:0.75rem;">最後信號</div>' +
+                        '<div style="font-size:0.9rem;font-weight:600;">' + (bot.last_signal || '—') + '</div>' +
+                        (bot.last_signal_time ? '<div style="font-size:0.65rem;color:#6b7280;">' + bot.last_signal_time + '</div>' : '') +
+                        '</div>' +
                         '</div>' +
                         posHtml +
                         (isWebhook ? '<div class="webhook-info-box" id="webhook-info-' + bot.bot_id + '"><div class="loading" style="padding:8px;font-size:0.8rem;">載入 Webhook 資訊...</div></div>' : '') +
                         '<div style="display:flex;gap:8px;margin-top:12px;">' +
-                            (bot.status !== 'running'
-                                ? '<button class="btn btn-sm btn-success" onclick="startBot(\'' + bot.bot_id + '\')">啟動</button>'
-                                : '<button class="btn btn-sm btn-danger" onclick="stopBot(\'' + bot.bot_id + '\')">停止</button>') +
-                            (bot.status !== 'running' && !isWebhook
-                                ? '<button class="btn btn-sm btn-secondary" onclick=\'editBot(' + JSON.stringify(JSON.stringify(bot)) + ')\'>編輯</button>'
-                                : '') +
-                            (bot.status !== 'running'
-                                ? '<button class="btn btn-sm btn-danger" onclick="deleteBot(\'' + bot.bot_id + '\',\'' + bot.name.replace(/'/g, "\\'") + '\')">刪除</button>'
-                                : '') +
+                        (bot.status !== 'running'
+                            ? '<button class="btn btn-sm btn-success" onclick="startBot(\'' + bot.bot_id + '\')">啟動</button>'
+                            : '<button class="btn btn-sm btn-danger" onclick="stopBot(\'' + bot.bot_id + '\')">停止</button>') +
+                        (bot.status !== 'running' && !isWebhook
+                            ? '<button class="btn btn-sm btn-secondary" onclick=\'editBot(' + JSON.stringify(JSON.stringify(bot)) + ')\'>編輯</button>'
+                            : '') +
+                        (bot.status !== 'running'
+                            ? '<button class="btn btn-sm btn-danger" onclick="deleteBot(\'' + bot.bot_id + '\',\'' + bot.name.replace(/'/g, "\\'") + '\')">刪除</button>'
+                            : '') +
                         '</div></div>';
                 });
                 // Load webhook info for webhook bots
@@ -2138,7 +2776,7 @@
             try {
                 const resp = await authFetch('/api/bots/' + _editingBotId, {
                     method: 'PUT',
-                    headers: {'Content-Type': 'application/json'},
+                    headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(body),
                 });
                 const data = await resp.json();
@@ -2179,7 +2817,7 @@
             const slVal = document.getElementById('bot-sl').value;
             const tpVal = document.getElementById('bot-tp').value;
             const body = {
-                name: document.getElementById('bot-name').value || (isWebhook ? 'Webhook Bot' : (document.getElementById('bot-strategy').selectedOptions[0]?.text || '策略') + ' ' + document.getElementById('bot-symbol').value.replace('_USDT','').replace('_PERP','')),
+                name: document.getElementById('bot-name').value || (isWebhook ? 'Webhook Bot' : (document.getElementById('bot-strategy').selectedOptions[0]?.text || '策略') + ' ' + document.getElementById('bot-symbol').value.replace('_USDT', '').replace('_PERP', '')),
                 strategy: isWebhook ? 'webhook' : document.getElementById('bot-strategy').value,
                 symbol: document.getElementById('bot-symbol').value,
                 timeframe: isWebhook ? '' : document.getElementById('bot-timeframe').value,
@@ -2191,7 +2829,7 @@
                 signal_source: signalSource,
             };
             try {
-                const resp = await authFetch('/api/bots', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(body) });
+                const resp = await authFetch('/api/bots', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
                 const data = await resp.json();
                 if (data.error) {
                     if (resp.status === 403 && currentUser && currentUser.role !== 'advanced' && currentUser.role !== 'admin') {
@@ -2259,13 +2897,13 @@
                 container.innerHTML =
                     '<label>Webhook URL</label>' +
                     '<div class="copy-row">' +
-                        '<input type="text" readonly value="' + info.webhook_url + '" id="wh-url-' + botId + '">' +
-                        '<button class="btn-copy" onclick="copyToClipboard(\'wh-url-' + botId + '\',this)">複製</button>' +
+                    '<input type="text" readonly value="' + info.webhook_url + '" id="wh-url-' + botId + '">' +
+                    '<button class="btn-copy" onclick="copyToClipboard(\'wh-url-' + botId + '\',this)">複製</button>' +
                     '</div>' +
                     '<label>TradingView Alert Message 模板</label>' +
                     '<div class="copy-row">' +
-                        '<textarea readonly id="wh-tpl-' + botId + '">' + info.alert_message_template + '</textarea>' +
-                        '<button class="btn-copy" onclick="copyToClipboard(\'wh-tpl-' + botId + '\',this)">複製</button>' +
+                    '<textarea readonly id="wh-tpl-' + botId + '">' + info.alert_message_template + '</textarea>' +
+                    '<button class="btn-copy" onclick="copyToClipboard(\'wh-tpl-' + botId + '\',this)">複製</button>' +
                     '</div>' +
                     '<p style="font-size:0.75rem;color:#6b7280;margin-top:4px;">在 TradingView 建立 Alert，Webhook URL 貼上方網址，Alert Message 貼上方模板。</p>';
             } catch (err) { container.innerHTML = '<span style="color:#ff1744;font-size:0.8rem;">載入失敗</span>'; }
@@ -2327,7 +2965,7 @@
             const secret = document.getElementById('apikey-secret').value.trim();
             if (!key || !secret) { alert('請輸入 API Key 和 API Secret'); return; }
             try {
-                const resp = await authFetch('/api/api-keys', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ api_key: key, api_secret: secret }) });
+                const resp = await authFetch('/api/api-keys', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ api_key: key, api_secret: secret }) });
                 const data = await resp.json();
                 if (data.error) throw new Error(data.error);
                 document.getElementById('apikey-key').value = '';
@@ -2371,7 +3009,7 @@
                         '<span style="color:#6b7280;">模式:</span><span style="color:#00c853;">本機模式</span>' +
                         '<span style="color:#6b7280;">認證:</span><span>未啟用（API 金鑰使用伺服器設定檔）</span>' +
                         '<span style="color:#6b7280;">機器人上限:</span><span>無限制</span>' +
-                    '</div>';
+                        '</div>';
                 } else {
                     el.innerHTML = '<p style="color:#6b7280;">未登入</p>';
                 }
@@ -2382,13 +3020,13 @@
                 '<span style="color:#6b7280;">Email:</span><span>' + currentUser.email + '</span>' +
                 '<span style="color:#6b7280;">顯示名稱:</span>' +
                 '<div style="display:flex;align-items:center;gap:8px;">' +
-                    '<input id="acct-display-name" type="text" value="' + nameVal + '" placeholder="輸入你的名稱" ' +
-                        'style="flex:1;padding:4px 8px;background:#0a0a0f;border:1px solid #1e1e2e;border-radius:4px;color:#e7e9ea;font-size:0.9rem;">' +
-                    '<button class="btn btn-sm" onclick="saveDisplayName()" style="padding:4px 12px;font-size:0.78rem;">儲存</button>' +
+                '<input id="acct-display-name" type="text" value="' + nameVal + '" placeholder="輸入你的名稱" ' +
+                'style="flex:1;padding:4px 8px;background:#0a0a0f;border:1px solid #1e1e2e;border-radius:4px;color:#e7e9ea;font-size:0.9rem;">' +
+                '<button class="btn btn-sm" onclick="saveDisplayName()" style="padding:4px 12px;font-size:0.78rem;">儲存</button>' +
                 '</div>' +
                 '<span style="color:#6b7280;">角色:</span><span>' + (roleMap[currentUser.role] || '普通會員') + '</span>' +
                 '<span style="color:#6b7280;">機器人上限:</span><span>' + (currentUser.max_bots >= 999 ? '無限制' : currentUser.max_bots) + '</span>' +
-            '</div>';
+                '</div>';
         }
 
         async function saveDisplayName() {
@@ -2397,7 +3035,7 @@
             if (!name) { alert('名稱不能為空'); return; }
             try {
                 const resp = await authFetch('/api/account/update', {
-                    method: 'POST', headers: {'Content-Type': 'application/json'},
+                    method: 'POST', headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ display_name: name })
                 });
                 const data = await resp.json();
@@ -2431,28 +3069,54 @@
            Tab 5: Strategies
         ════════════════════════════════════════════════ */
         const _stratMeta = {
-            ma_crossover: { category: '趨勢', catColor: '#00c853', icon: '📈',
-                detail: '使用兩條不同週期的均線（快線與慢線），當快線從下方穿越慢線（黃金交叉）時做多，反之（死亡交叉）做空。支援 SMA 與 EMA 兩種均線類型。適合有明確趨勢的行情，震盪市容易產生假信號。' },
-            rsi: { category: '震盪', catColor: '#29b6f6', icon: '🔄',
-                detail: 'RSI（相對強弱指標）衡量價格動能。當 RSI 跌至超賣線以下，代表市場超跌可能反彈，進場做多；升至超買線以上則平倉。屬於均值回歸策略，適合盤整行情，趨勢行情中可能過早離場。' },
-            macd: { category: '趨勢', catColor: '#00c853', icon: '📊',
-                detail: 'MACD 由快慢兩條指數移動平均的差值與訊號線組成。當 MACD 線上穿訊號線為做多信號，下穿為做空信號。兼具趨勢追蹤與動能判斷，是最受歡迎的技術指標之一。反應較快但可能有雜訊。' },
-            bollinger: { category: '震盪', catColor: '#29b6f6', icon: '📉',
-                detail: '布林通道以移動平均為中軌，上下各加減 N 倍標準差構成通道。價格觸及下軌代表極端超跌，做多等待回歸中軌；觸及上軌則反向操作。適合區間震盪行情，突破趨勢中可能逆勢操作。' },
-            donchian: { category: '趨勢', catColor: '#00c853', icon: '🚀',
-                detail: '唐奇安通道為 N 週期最高價與最低價形成的通道。價格突破最高點做多，跌破最低點做空。經典的趨勢突破策略（海龜交易法原型），能捕捉大行情但在盤整期會頻繁止損。進場與出場使用不同週期可減少假突破。' },
-            supertrend: { category: '趨勢', catColor: '#00c853', icon: '⚡',
-                detail: 'SuperTrend 基於 ATR（平均真實範圍）計算動態止損線，價格在線上方為多頭趨勢，跌破翻空。自動適應市場波動度，趨勢明確時表現出色。只有兩個參數（ATR 週期與倍數），簡單且有效。' },
-            combined: { category: '複合', catColor: '#ab47bc', icon: '🔗',
-                detail: '結合三大指標：EMA 判斷趨勢方向、RSI 過濾超買超賣、MACD 確認動能。三者同時滿足才進場，大幅降低假信號。參數較多但穩定性高，適合追求低頻高品質信號的交易者。' },
-            triple_ema: { category: '趨勢', catColor: '#00c853', icon: '🗡️',
-                detail: '三刀流策略使用快、中、慢三條 EMA。當三線呈多頭排列（快>中>慢）進場做多，快線跌破中線出場。比雙均線交叉更嚴格，能過濾部分假信號，但可能錯過行情起始段。' },
-            consecutive_breakout: { category: '動能', catColor: '#ff9800', icon: '🏀',
-                detail: '根據均線劃分多頭區與空頭區，在不同區域使用不同的連續 K 線閾值判斷進出場。多頭區只需較少連漲即做多（順勢），但需較多連跌才做空（逆勢需更強確認）。支援 6 種均線類型，參數靈活。' },
-            turtle_breakout: { category: '趨勢', catColor: '#00c853', icon: '🐢',
-                detail: '偵測樞紐高低點（Pivot High/Low），當價格突破最近一個樞紐高點做多，跌破樞紐低點做空。與唐奇安通道類似但以樞紐點為基準，信號更精確。左右 K 棒數控制樞紐靈敏度。' },
-            granville_pro: { category: '趨勢', catColor: '#00c853', icon: '👨‍🏫',
-                detail: '葛蘭碧法則精華版，使用單一 EMA 的交叉判斷多空方向。價格從下方穿越 EMA 做多（黃金交叉），從上方穿越做空（死亡交叉）。內建停損偏離機制：當價格偏離 EMA 超過設定百分比自動平倉。預設參數為 4H 級別深度優化結果（BTC: EMA-178, ETH: EMA-203, SOL: EMA-156）。' },
+            ma_crossover: {
+                category: '趨勢', catColor: '#00c853', icon: '📈',
+                detail: '使用兩條不同週期的均線（快線與慢線），當快線從下方穿越慢線（黃金交叉）時做多，反之（死亡交叉）做空。支援 SMA 與 EMA 兩種均線類型。適合有明確趨勢的行情，震盪市容易產生假信號。'
+            },
+            rsi: {
+                category: '震盪', catColor: '#29b6f6', icon: '🔄',
+                detail: 'RSI（相對強弱指標）衡量價格動能。當 RSI 跌至超賣線以下，代表市場超跌可能反彈，進場做多；升至超買線以上則平倉。屬於均值回歸策略，適合盤整行情，趨勢行情中可能過早離場。'
+            },
+            macd: {
+                category: '趨勢', catColor: '#00c853', icon: '📊',
+                detail: 'MACD 由快慢兩條指數移動平均的差值與訊號線組成。當 MACD 線上穿訊號線為做多信號，下穿為做空信號。兼具趨勢追蹤與動能判斷，是最受歡迎的技術指標之一。反應較快但可能有雜訊。'
+            },
+            bollinger: {
+                category: '震盪', catColor: '#29b6f6', icon: '📉',
+                detail: '布林通道以移動平均為中軌，上下各加減 N 倍標準差構成通道。價格觸及下軌代表極端超跌，做多等待回歸中軌；觸及上軌則反向操作。適合區間震盪行情，突破趨勢中可能逆勢操作。'
+            },
+            donchian: {
+                category: '趨勢', catColor: '#00c853', icon: '🚀',
+                detail: '唐奇安通道為 N 週期最高價與最低價形成的通道。價格突破最高點做多，跌破最低點做空。經典的趨勢突破策略（海龜交易法原型），能捕捉大行情但在盤整期會頻繁止損。進場與出場使用不同週期可減少假突破。'
+            },
+            supertrend: {
+                category: '趨勢', catColor: '#00c853', icon: '⚡',
+                detail: 'SuperTrend 基於 ATR（平均真實範圍）計算動態止損線，價格在線上方為多頭趨勢，跌破翻空。自動適應市場波動度，趨勢明確時表現出色。只有兩個參數（ATR 週期與倍數），簡單且有效。'
+            },
+            combined: {
+                category: '複合', catColor: '#ab47bc', icon: '🔗',
+                detail: '結合三大指標：EMA 判斷趨勢方向、RSI 過濾超買超賣、MACD 確認動能。三者同時滿足才進場，大幅降低假信號。參數較多但穩定性高，適合追求低頻高品質信號的交易者。'
+            },
+            triple_ema: {
+                category: '趨勢', catColor: '#00c853', icon: '🗡️',
+                detail: '三刀流策略使用快、中、慢三條 EMA。當三線呈多頭排列（快>中>慢）進場做多，快線跌破中線出場。比雙均線交叉更嚴格，能過濾部分假信號，但可能錯過行情起始段。'
+            },
+            consecutive_breakout: {
+                category: '動能', catColor: '#ff9800', icon: '🏀',
+                detail: '根據均線劃分多頭區與空頭區，在不同區域使用不同的連續 K 線閾值判斷進出場。多頭區只需較少連漲即做多（順勢），但需較多連跌才做空（逆勢需更強確認）。支援 6 種均線類型，參數靈活。'
+            },
+            turtle_breakout: {
+                category: '趨勢', catColor: '#00c853', icon: '🐢',
+                detail: '偵測樞紐高低點（Pivot High/Low），當價格突破最近一個樞紐高點做多，跌破樞紐低點做空。與唐奇安通道類似但以樞紐點為基準，信號更精確。左右 K 棒數控制樞紐靈敏度。'
+            },
+            granville_pro: {
+                category: '趨勢', catColor: '#00c853', icon: '👨‍🏫',
+                detail: '葛蘭碧法則精華版，使用單一 EMA 的交叉判斷多空方向。價格從下方穿越 EMA 做多（黃金交叉），從上方穿越做空（死亡交叉）。內建停損偏離機制：當價格偏離 EMA 超過設定百分比自動平倉。預設參數為 4H 級別深度優化結果（BTC: EMA-178, ETH: EMA-203, SOL: EMA-156）。'
+            },
+            donchian_supertrend: {
+                category: '複合', catColor: '#ab47bc', icon: '🔱',
+                detail: '唐奇安通道突破 + SuperTrend 趨勢過濾的雙通道策略。進場條件：價格突破唐奇安上軌且 SuperTrend 為上升趨勢（做多），跌破唐奇安下軌且 SuperTrend 為下降趨勢（做空）。出場條件：價格跌破唐奇安出場軌或 SuperTrend 翻轉。雙重確認機制有效過濾假突破，提高勝率與獲利因子。適合波動性大、趨勢明確的標的（如 XAG 白銀、PAXG 黃金）。回測最佳表現：XAG 1H 夏普 3.14 / 報酬 +42%，PAXG 4H 夏普 1.27 / 報酬 +25%。'
+            },
         };
 
         async function loadStrategies() {
@@ -2465,15 +3129,15 @@
                     const meta = _stratMeta[s.name] || { category: '其他', catColor: '#6b7280', icon: '📌', detail: '' };
                     html += '<div class="strat-card">' +
                         '<div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;">' +
-                            '<div style="display:flex;align-items:center;gap:8px;">' +
-                                '<span style="font-size:1.3rem;">' + meta.icon + '</span>' +
-                                '<div><strong style="color:#f7931a;font-size:1.05rem;">' + s.display_name + '</strong>' +
-                                    '<span style="color:#6b7280;font-size:0.78rem;margin-left:8px;">' + s.name + '</span></div>' +
-                            '</div>' +
-                            '<div style="display:flex;gap:6px;align-items:center;">' +
-                                '<span style="background:' + meta.catColor + '22;color:' + meta.catColor + ';padding:2px 8px;border-radius:10px;font-size:0.7rem;font-weight:600;">' + meta.category + '</span>' +
-                                '<span style="color:#6b7280;font-size:0.78rem;">' + s.parameters.length + ' 個參數</span>' +
-                            '</div>' +
+                        '<div style="display:flex;align-items:center;gap:8px;">' +
+                        '<span style="font-size:1.3rem;">' + meta.icon + '</span>' +
+                        '<div><strong style="color:#f7931a;font-size:1.05rem;">' + s.display_name + '</strong>' +
+                        '<span style="color:#6b7280;font-size:0.78rem;margin-left:8px;">' + s.name + '</span></div>' +
+                        '</div>' +
+                        '<div style="display:flex;gap:6px;align-items:center;">' +
+                        '<span style="background:' + meta.catColor + '22;color:' + meta.catColor + ';padding:2px 8px;border-radius:10px;font-size:0.7rem;font-weight:600;">' + meta.category + '</span>' +
+                        '<span style="color:#6b7280;font-size:0.78rem;">' + s.parameters.length + ' 個參數</span>' +
+                        '</div>' +
                         '</div>' +
                         '<p style="color:#9ca3af;margin:10px 0 6px;font-size:0.85rem;line-height:1.6;">' + (meta.detail || s.description) + '</p>';
                     if (s.parameters.length > 0) {
@@ -2531,23 +3195,23 @@
                 const name = u.display_name || '';
                 const shortId = u.clerk_id ? u.clerk_id.slice(-8) : '';
                 html += '<tr>' +
-                    '<td><input type="text" value="' + email.replace(/"/g,'&quot;') + '" placeholder="未設定" style="' + inputStyle + '" ' +
-                        'onchange="updateUserField(\'' + u.clerk_id + '\',\'email\',this.value)"></td>' +
-                    '<td><input type="text" value="' + name.replace(/"/g,'&quot;') + '" placeholder="未設定" style="' + inputStyle + '" ' +
-                        'onchange="updateUserField(\'' + u.clerk_id + '\',\'display_name\',this.value)"></td>' +
+                    '<td><input type="text" value="' + email.replace(/"/g, '&quot;') + '" placeholder="未設定" style="' + inputStyle + '" ' +
+                    'onchange="updateUserField(\'' + u.clerk_id + '\',\'email\',this.value)"></td>' +
+                    '<td><input type="text" value="' + name.replace(/"/g, '&quot;') + '" placeholder="未設定" style="' + inputStyle + '" ' +
+                    'onchange="updateUserField(\'' + u.clerk_id + '\',\'display_name\',this.value)"></td>' +
                     '<td style="font-size:0.75rem;color:#4a5568;font-family:monospace;" title="' + u.clerk_id + '">...' + shortId + '</td>' +
                     '<td><select style="padding:4px;background:#0a0a0f;border:1px solid #1e1e2e;border-radius:4px;color:#e7e9ea;font-size:0.82rem;" ' +
-                        'onchange="updateUserRole(\'' + u.clerk_id + '\',this.value,this)">' +
-                        '<option value="standard"' + ((!u.role || u.role === 'standard' || u.role === 'user') ? ' selected' : '') + '>普通會員</option>' +
-                        '<option value="advanced"' + (u.role === 'advanced' ? ' selected' : '') + '>進階會員</option>' +
-                        '<option value="admin"' + (u.role === 'admin' ? ' selected' : '') + '>管理員</option>' +
+                    'onchange="updateUserRole(\'' + u.clerk_id + '\',this.value,this)">' +
+                    '<option value="standard"' + ((!u.role || u.role === 'standard' || u.role === 'user') ? ' selected' : '') + '>普通會員</option>' +
+                    '<option value="advanced"' + (u.role === 'advanced' ? ' selected' : '') + '>進階會員</option>' +
+                    '<option value="admin"' + (u.role === 'admin' ? ' selected' : '') + '>管理員</option>' +
                     '</select></td>' +
                     '<td><input type="number" value="' + u.max_bots + '" min="0" max="999" style="width:60px;padding:4px;background:#0a0a0f;border:1px solid #1e1e2e;border-radius:4px;color:#e7e9ea;text-align:center;" ' +
-                        'onchange="updateMaxBots(\'' + u.clerk_id + '\',this.value)"></td>' +
+                    'onchange="updateMaxBots(\'' + u.clerk_id + '\',this.value)"></td>' +
                     '<td><span class="badge ' + (isActive ? 'badge-running' : 'badge-error') + '">' + (isActive ? '啟用' : '停用') + '</span></td>' +
                     '<td style="font-size:0.8rem;color:#6b7280;">' + (u.created_at || '').slice(0, 10) + '</td>' +
                     '<td><button class="btn btn-sm ' + (isActive ? 'btn-danger' : 'btn-success') + '" ' +
-                        'onclick="toggleUserActive(\'' + u.clerk_id + '\')">' + (isActive ? '停用' : '啟用') + '</button></td></tr>';
+                    'onclick="toggleUserActive(\'' + u.clerk_id + '\')">' + (isActive ? '停用' : '啟用') + '</button></td></tr>';
             });
             html += '</tbody></table>';
             container.innerHTML = html;
@@ -2561,7 +3225,7 @@
         async function updateUserRole(clerkId, role, selectEl) {
             try {
                 const resp = await authFetch('/api/admin/users/' + clerkId + '/role', {
-                    method: 'POST', headers: {'Content-Type': 'application/json'},
+                    method: 'POST', headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ role: role })
                 });
                 if (resp.ok) {
@@ -2577,14 +3241,14 @@
         }
 
         async function updateMaxBots(clerkId, maxBots) {
-            try { await authFetch('/api/admin/users/' + clerkId + '/max-bots', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ max_bots: parseInt(maxBots) }) }); }
+            try { await authFetch('/api/admin/users/' + clerkId + '/max-bots', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ max_bots: parseInt(maxBots) }) }); }
             catch (err) { alert('操作失敗'); }
         }
 
         async function updateUserField(clerkId, field, value) {
             try {
                 const resp = await authFetch('/api/admin/users/' + clerkId + '/update', {
-                    method: 'POST', headers: {'Content-Type': 'application/json'},
+                    method: 'POST', headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ [field]: value })
                 });
                 if (!resp.ok) alert('更新失敗');
@@ -2657,7 +3321,16 @@
             loadStrategyParams('bt');
             filterCsvByTimeframe('bt');
             filterCsvByTimeframe('opt');
+            lucide.createIcons();
         });
     </script>
+
+    <!-- Visitor Count -->
+    <div
+        style="position: fixed; bottom: 15px; right: 15px; font-size: 0.75rem; color: #8899a6; background: rgba(18, 18, 26, 0.7); backdrop-filter: blur(8px); padding: 6px 14px; border-radius: 20px; border: 1px solid rgba(255,255,255,0.1); z-index: 1000; display: flex; align-items: center; gap: 6px; box-shadow: 0 4px 12px rgba(0,0,0,0.3);">
+        <i data-lucide="eye" style="width:14px; height:14px; color:#f7931a;"></i>
+        <span>瀏覽人數: <strong>{{ visit_count }}</strong></span>
+    </div>
 </body>
+
 </html>

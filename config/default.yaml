@@ -37,3 +37,8 @@ strategies:
   supertrend:
     period: 10
     multiplier: 3.0
+  donchian_supertrend:
+    entry_period: 20
+    exit_period: 10
+    st_period: 10
+    st_multiplier: 3.0

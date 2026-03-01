@@ -47,6 +47,7 @@ def _fetch_clerk_user(user_id: str) -> dict:
         req = UrlRequest(url, headers={
             "Authorization": f"Bearer {secret}",
             "Content-Type": "application/json",
+            "User-Agent": "TradeEngine/1.0",
         })
         with urlopen(req, timeout=5) as resp:
             data = _json.loads(resp.read())
