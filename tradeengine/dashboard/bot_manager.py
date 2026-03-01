@@ -648,10 +648,29 @@ class BotManager:
                 continue
 
             try:
+                # For live (non-paper) bots, fetch user's API keys from DB
+                api_key = ""
+                api_secret = ""
+                if not bot.paper_mode and bot.user_id and self._db_client:
+                    try:
+                        from tradeengine.database.crud import get_user_api_key
+                        creds = await get_user_api_key(self._db_client, bot.user_id)
+                        if creds:
+                            api_key = creds["api_key"]
+                            api_secret = creds["api_secret"]
+                    except Exception as e:
+                        logger.warning(f"Failed to fetch API key for bot {bot_id}: {e}")
+
                 if bot.signal_source == "webhook":
-                    ok = await self.start_webhook_bot(bot_id, app_config=app_config)
+                    ok = await self.start_webhook_bot(
+                        bot_id, app_config=app_config,
+                        api_key=api_key, api_secret=api_secret,
+                    )
                 else:
-                    ok = await self.start_bot(bot_id, app_config=app_config)
+                    ok = await self.start_bot(
+                        bot_id, app_config=app_config,
+                        api_key=api_key, api_secret=api_secret,
+                    )
 
                 if ok:
                     restarted.append(bot_id)
