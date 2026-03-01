@@ -1087,6 +1087,40 @@ def create_app() -> FastAPI:
         finally:
             await session.close()
 
+    @app.post("/api/admin/sync-clerk")
+    async def api_admin_sync_clerk(request: Request):
+        """Batch-fetch email/name from Clerk for users missing email."""
+        user = await _optional_user(request)
+        if not user or user["role"] != "admin":
+            return JSONResponse({"error": "需要管理員權限"}, status_code=403)
+
+        from tradeengine.dashboard.auth import _fetch_clerk_user
+        from tradeengine.database.connection import get_session
+
+        session = await get_session()
+        try:
+            result = session.table("users").select("clerk_id,email").execute()
+            updated = 0
+            for row in result.data or []:
+                if row.get("email"):
+                    continue
+                clerk_id = row.get("clerk_id", "")
+                if not clerk_id:
+                    continue
+                info = _fetch_clerk_user(clerk_id)
+                if not info.get("email"):
+                    continue
+                updates = {"email": info["email"]}
+                if info.get("name"):
+                    updates["display_name"] = info["name"]
+                session.table("users").update(updates).eq("clerk_id", clerk_id).execute()
+                updated += 1
+            return {"status": "ok", "updated": updated}
+        except Exception as e:
+            return JSONResponse({"error": str(e)}, status_code=500)
+        finally:
+            await session.close()
+
     return app
 
 

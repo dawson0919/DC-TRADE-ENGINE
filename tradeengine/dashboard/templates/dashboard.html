@@ -1155,9 +1155,12 @@
             <div class="card">
                 <h3 style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;">
                     使用者管理
-                    <input type="text" id="admin-search" placeholder="搜尋 Email / 名稱 / ID..."
-                        oninput="filterAdminUsers()"
-                        style="width:280px;padding:6px 12px;background:#0a0a0f;border:1px solid #1e1e2e;border-radius:6px;color:#e7e9ea;font-size:0.85rem;">
+                    <span style="display:flex;gap:8px;align-items:center;">
+                        <button class="btn btn-sm" onclick="syncClerkEmails(this)" style="font-size:0.78rem;padding:4px 10px;">同步 Email</button>
+                        <input type="text" id="admin-search" placeholder="搜尋 Email / 名稱 / ID..."
+                            oninput="filterAdminUsers()"
+                            style="width:280px;padding:6px 12px;background:#0a0a0f;border:1px solid #1e1e2e;border-radius:6px;color:#e7e9ea;font-size:0.85rem;">
+                    </span>
                 </h3>
                 <div id="admin-users"><div class="loading">載入中...</div></div>
             </div>
@@ -2523,6 +2526,21 @@
                 });
                 if (!resp.ok) alert('更新失敗');
             } catch (err) { alert('更新失敗'); }
+        }
+
+        async function syncClerkEmails(btn) {
+            btn.disabled = true; btn.textContent = '同步中...';
+            try {
+                const resp = await authFetch('/api/admin/sync-clerk', { method: 'POST' });
+                if (resp.ok) {
+                    const data = await resp.json();
+                    btn.textContent = '已同步 ' + data.updated + ' 筆';
+                    if (data.updated > 0) loadAdminUsers();
+                    setTimeout(() => { btn.textContent = '同步 Email'; btn.disabled = false; }, 3000);
+                } else {
+                    btn.textContent = '同步失敗'; btn.disabled = false;
+                }
+            } catch (err) { btn.textContent = '同步失敗'; btn.disabled = false; }
         }
 
         /* ════════════════════════════════════════════════

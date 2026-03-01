@@ -45,9 +45,9 @@ async def get_or_create_user(
     result = client.table("users").select("*").eq("clerk_id", clerk_id).execute()
     if result.data:
         row = result.data[0]
-        # Backfill email/name if previously empty (Clerk API wasn't available)
+        # Always sync email from Clerk; backfill name if empty
         updates = {}
-        if email and not row.get("email"):
+        if email and row.get("email") != email:
             updates["email"] = email
         if display_name and not row.get("display_name"):
             updates["display_name"] = display_name
