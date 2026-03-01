@@ -1107,13 +1107,13 @@
     <div class="tab-bar">
         <div class="container">
             <nav class="tab-nav">
-                <button class="tab active" onclick="showTab('dashboard')"><i data-lucide="layout-dashboard"></i>
+                <button class="tab active" data-tab="dashboard"><i data-lucide="layout-dashboard"></i>
                     總覽</button>
-                <button class="tab" onclick="showTab('backtest')"><i data-lucide="play-circle"></i> 策略回測</button>
-                <button class="tab" onclick="showTab('optimize')"><i data-lucide="trending-up"></i> 參數優化</button>
-                <button class="tab" onclick="showTab('bots')"><i data-lucide="bot"></i> 實盤機器人</button>
-                <button class="tab" onclick="showTab('api-keys')"><i data-lucide="key"></i> API 金鑰</button>
-                <button class="tab" onclick="showTab('admin')" id="adminTab" style="display:none;"><i
+                <button class="tab" data-tab="backtest"><i data-lucide="play-circle"></i> 策略回測</button>
+                <button class="tab" data-tab="optimize"><i data-lucide="trending-up"></i> 參數優化</button>
+                <button class="tab" data-tab="bots"><i data-lucide="bot"></i> 實盤機器人</button>
+                <button class="tab" data-tab="account"><i data-lucide="key"></i> API 金鑰</button>
+                <button class="tab" data-tab="admin" id="adminTab" style="display:none;"><i
                         data-lucide="shield-check"></i> 管理後台</button>
             </nav>
         </div>
