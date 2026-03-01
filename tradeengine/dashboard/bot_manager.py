@@ -699,10 +699,16 @@ class BotManager:
         to_restart = list(self._pending_restart)
         self._pending_restart.clear()
 
-        for bot_id in to_restart:
+        for i, bot_id in enumerate(to_restart):
             bot = self._bots.get(bot_id)
             if not bot:
                 continue
+
+            # Stagger bot startups to avoid WebSocket rate limiting (429)
+            if i > 0:
+                delay = 3.0 + i * 2.0  # 5s, 7s, 9s, ...
+                logger.info(f"Waiting {delay:.0f}s before starting bot {bot_id} (stagger)")
+                await asyncio.sleep(delay)
 
             try:
                 # For live (non-paper) bots, fetch user's API keys from DB

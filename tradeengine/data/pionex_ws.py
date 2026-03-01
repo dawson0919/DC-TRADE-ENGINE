@@ -5,6 +5,7 @@ from __future__ import annotations
 import asyncio
 import json
 import logging
+import random
 import time
 from typing import Any, Callable
 
@@ -13,6 +14,11 @@ import websockets
 logger = logging.getLogger(__name__)
 
 WS_URL = "wss://ws.pionex.com/wsPub"
+
+# Retry settings for rate-limited connections
+_MAX_RETRIES = 6
+_BASE_DELAY = 2.0   # seconds
+_MAX_DELAY = 60.0    # seconds
 
 
 class PionexWebSocket:
@@ -27,12 +33,31 @@ class PionexWebSocket:
         self._callbacks: dict[str, list[Callable]] = {}
         self._subscriptions: list[dict] = []
         self._last_pong = 0
+        self._retry_count = 0
 
     async def connect(self):
-        """Connect to Pionex WebSocket."""
-        self._ws = await websockets.connect(WS_URL, ping_interval=20)
-        self._running = True
-        logger.info("Connected to Pionex WebSocket")
+        """Connect to Pionex WebSocket with exponential backoff on 429."""
+        for attempt in range(1, _MAX_RETRIES + 1):
+            try:
+                self._ws = await websockets.connect(WS_URL, ping_interval=20)
+                self._running = True
+                self._retry_count = 0
+                logger.info("Connected to Pionex WebSocket")
+                return
+            except Exception as e:
+                is_429 = "429" in str(e)
+                if attempt >= _MAX_RETRIES:
+                    logger.error(f"WebSocket connect failed after {_MAX_RETRIES} attempts: {e}")
+                    raise
+                delay = min(_BASE_DELAY * (2 ** (attempt - 1)), _MAX_DELAY)
+                jitter = random.uniform(0, delay * 0.3)
+                wait = delay + jitter
+                logger.warning(
+                    f"WebSocket connect attempt {attempt}/{_MAX_RETRIES} failed "
+                    f"({'rate limited' if is_429 else str(e)}), "
+                    f"retrying in {wait:.1f}s"
+                )
+                await asyncio.sleep(wait)
 
     async def subscribe_trade(self, symbol: str):
         """Subscribe to trade stream for a symbol."""
@@ -95,10 +120,16 @@ class PionexWebSocket:
                 cb(data)
 
     async def _reconnect(self):
-        """Attempt to reconnect and restore subscriptions."""
-        await asyncio.sleep(5)
+        """Attempt to reconnect with exponential backoff and restore subscriptions."""
+        self._retry_count += 1
+        delay = min(_BASE_DELAY * (2 ** (self._retry_count - 1)), _MAX_DELAY)
+        jitter = random.uniform(0, delay * 0.3)
+        wait = delay + jitter
+        logger.info(f"Reconnecting in {wait:.1f}s (attempt {self._retry_count})...")
+        await asyncio.sleep(wait)
         try:
             await self.connect()
+            self._retry_count = 0  # reset on success
             # Re-subscribe to all previous topics
             if self._ws:
                 for msg in self._subscriptions:
