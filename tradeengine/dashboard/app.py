@@ -900,10 +900,24 @@ def create_app() -> FastAPI:
     async def api_delete_bot(bot_id: str, request: Request):
         user = await _optional_user(request)
         user_id = user["user_id"] if user else None
-        ok = bot_manager.delete_bot(bot_id, user_id=user_id)
+        is_admin = user and user.get("role") == "admin"
+        # Admin can force-stop and delete any bot
+        if is_admin:
+            bot = bot_manager.get_bot(bot_id)
+            if bot and bot.status == "running":
+                await bot_manager.stop_bot(bot_id)
+            ok = bot_manager.delete_bot(bot_id)
+        else:
+            ok = bot_manager.delete_bot(bot_id, user_id=user_id)
         if ok:
             return {"status": "deleted"}
-        return JSONResponse({"error": "Cannot delete running bot"}, status_code=400)
+        # Specific error messages
+        bot = bot_manager.get_bot(bot_id)
+        if not bot:
+            return JSONResponse({"error": "找不到此機器人"}, status_code=404)
+        if bot.status == "running":
+            return JSONResponse({"error": "請先停止機器人再刪除"}, status_code=400)
+        return JSONResponse({"error": "無權限刪除此機器人"}, status_code=403)
 
     @app.get("/api/bots/{bot_id}")
     async def api_bot_detail(bot_id: str, request: Request):
