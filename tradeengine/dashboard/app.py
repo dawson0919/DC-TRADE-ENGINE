@@ -680,7 +680,7 @@ def create_app() -> FastAPI:
         user = await _optional_user(request)
         # Auth mode: require login to see bots
         if _db_available and clerk_pk and not user:
-            return []
+            return JSONResponse([], status_code=401)
         user_id = user["user_id"] if user else ""
         # Auto-claim legacy bots (no owner) for admin
         if user and user["role"] == "admin":

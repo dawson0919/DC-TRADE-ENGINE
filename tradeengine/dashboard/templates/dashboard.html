@@ -1215,6 +1215,7 @@
         async function loadDashboard() {
             try {
                 const resp = await authFetch('/api/bots');
+                if (!resp.ok) return;  // Auth failed — keep existing display
                 const bots = await resp.json();
                 if (!Array.isArray(bots)) return;
 
@@ -1718,6 +1719,7 @@
             const container = document.getElementById('bots-list');
             try {
                 const resp = await authFetch('/api/bots');
+                if (!resp.ok) return;  // Auth failed — keep existing display
                 const bots = await resp.json();
                 if (bots.length === 0) {
                     container.innerHTML = '<div class="loading">尚無機器人，點擊「+ 新增機器人」建立</div>';
