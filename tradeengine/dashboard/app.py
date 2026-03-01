@@ -200,6 +200,25 @@ def create_app() -> FastAPI:
             return JSONResponse({"error": "Not authenticated"}, status_code=401)
         return user
 
+    @app.post("/api/account/update")
+    async def api_account_update(request: Request):
+        user = await _optional_user(request)
+        if not user:
+            return JSONResponse({"error": "Not authenticated"}, status_code=401)
+        data = await request.json()
+        display_name = data.get("display_name", "").strip()
+        if not display_name:
+            return JSONResponse({"error": "顯示名稱不能為空"}, status_code=400)
+        from tradeengine.database.connection import get_session
+        session = await get_session()
+        try:
+            session.table("users").update({"display_name": display_name}).eq("clerk_id", user["user_id"]).execute()
+            currentUser = user.copy()
+            currentUser["display_name"] = display_name
+            return {"status": "ok", "display_name": display_name}
+        finally:
+            await session.close()
+
     @app.get("/api/account/balance")
     async def api_account_balance(request: Request):
         from tradeengine.data.pionex_client import PionexClient

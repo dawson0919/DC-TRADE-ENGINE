@@ -2297,12 +2297,36 @@
                 }
                 return;
             }
-            el.innerHTML = '<div style="display:grid;grid-template-columns:auto 1fr;gap:8px 16px;font-size:0.9rem;">' +
+            const nameVal = (currentUser.display_name || '').replace(/"/g, '&quot;');
+            el.innerHTML = '<div style="display:grid;grid-template-columns:auto 1fr;gap:8px 16px;font-size:0.9rem;align-items:center;">' +
                 '<span style="color:#6b7280;">Email:</span><span>' + currentUser.email + '</span>' +
-                '<span style="color:#6b7280;">顯示名稱:</span><span>' + (currentUser.display_name || '—') + '</span>' +
+                '<span style="color:#6b7280;">顯示名稱:</span>' +
+                '<div style="display:flex;align-items:center;gap:8px;">' +
+                    '<input id="acct-display-name" type="text" value="' + nameVal + '" placeholder="輸入你的名稱" ' +
+                        'style="flex:1;padding:4px 8px;background:#0a0a0f;border:1px solid #1e1e2e;border-radius:4px;color:#e7e9ea;font-size:0.9rem;">' +
+                    '<button class="btn btn-sm" onclick="saveDisplayName()" style="padding:4px 12px;font-size:0.78rem;">儲存</button>' +
+                '</div>' +
                 '<span style="color:#6b7280;">角色:</span><span>' + (roleMap[currentUser.role] || '普通會員') + '</span>' +
                 '<span style="color:#6b7280;">機器人上限:</span><span>' + (currentUser.max_bots >= 999 ? '無限制' : currentUser.max_bots) + '</span>' +
             '</div>';
+        }
+
+        async function saveDisplayName() {
+            const input = document.getElementById('acct-display-name');
+            const name = input.value.trim();
+            if (!name) { alert('名稱不能為空'); return; }
+            try {
+                const resp = await authFetch('/api/account/update', {
+                    method: 'POST', headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({ display_name: name })
+                });
+                const data = await resp.json();
+                if (data.error) { alert(data.error); return; }
+                currentUser.display_name = data.display_name;
+                document.getElementById('userName').textContent = data.display_name;
+                input.style.borderColor = '#00c853';
+                setTimeout(() => { input.style.borderColor = '#1e1e2e'; }, 1500);
+            } catch (err) { alert('儲存失敗: ' + err.message); }
         }
 
         function updatePartnerSection() {
