@@ -423,6 +423,9 @@ def create_app() -> FastAPI:
         from tradeengine.data.pionex_client import PionexClient
         from tradeengine.data.store import DataStore
 
+        # Capture user identity BEFORE long-running operation (JWT may expire)
+        _save_user = await _optional_user(request)
+
         try:
             strat = get_strategy(strategy)
             if params_json:
@@ -488,14 +491,13 @@ def create_app() -> FastAPI:
                     response_data["oos_candles"] = len(ohlcv_oos)
 
             # Auto-save backtest result for logged-in users
-            user = await _optional_user(request)
-            if user and _db_available:
+            if _save_user and _db_available:
                 try:
                     from tradeengine.database.connection import get_session
                     from tradeengine.database.crud import save_backtest_result
                     session = await get_session()
                     try:
-                        saved = await save_backtest_result(session, user["user_id"], response_data)
+                        saved = await save_backtest_result(session, _save_user["user_id"], response_data)
                         if saved:
                             response_data["id"] = saved.get("id")
                     finally:
@@ -593,6 +595,9 @@ def create_app() -> FastAPI:
         from tradeengine.data.pionex_client import PionexClient
         from tradeengine.data.store import DataStore
 
+        # Capture user identity BEFORE long-running operation (JWT may expire)
+        _save_user = await _optional_user(request)
+
         try:
             strat = get_strategy(strategy)
             grid = build_param_grid(strat)
@@ -653,14 +658,13 @@ def create_app() -> FastAPI:
                 response_data["oos_period"] = f"{ohlcv_oos.index[0]} ~ {ohlcv_oos.index[-1]}"
 
             # Auto-save for logged-in users
-            user = await _optional_user(request)
-            if user and _db_available:
+            if _save_user and _db_available:
                 try:
                     from tradeengine.database.connection import get_session
                     from tradeengine.database.crud import save_optimize_result
                     session = await get_session()
                     try:
-                        saved = await save_optimize_result(session, user["user_id"], {
+                        saved = await save_optimize_result(session, _save_user["user_id"], {
                             "strategy": strat.display_name,
                             "symbol": symbol,
                             "timeframe": timeframe,
