@@ -1871,7 +1871,7 @@
             const slVal = document.getElementById('bot-sl').value;
             const tpVal = document.getElementById('bot-tp').value;
             const body = {
-                name: document.getElementById('bot-name').value || (isWebhook ? 'Webhook Bot' : '新機器人'),
+                name: document.getElementById('bot-name').value || (isWebhook ? 'Webhook Bot' : (document.getElementById('bot-strategy').selectedOptions[0]?.text || '策略') + ' ' + document.getElementById('bot-symbol').value.replace('_USDT','').replace('_PERP','')),
                 strategy: isWebhook ? 'webhook' : document.getElementById('bot-strategy').value,
                 symbol: document.getElementById('bot-symbol').value,
                 timeframe: isWebhook ? '' : document.getElementById('bot-timeframe').value,
