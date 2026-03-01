@@ -184,6 +184,18 @@ def create_app() -> FastAPI:
     async def index(request: Request):
         strats = list_strategies()
         csv_files = find_csv_files()
+
+        visit_count = 0
+        if _db_available:
+            from tradeengine.database.connection import get_session
+            from tradeengine.database.crud import increment_site_stat, get_site_stat
+            session = await get_session()
+            try:
+                await increment_site_stat(session, "home_page_hits")
+                visit_count = await get_site_stat(session, "home_page_hits")
+            finally:
+                await session.close()
+
         return templates.TemplateResponse("dashboard.html", {
             "request": request,
             "strategies": strats,
@@ -191,6 +203,7 @@ def create_app() -> FastAPI:
             "csv_files": csv_files,
             "clerk_publishable_key": clerk_pk,
             "auth_enabled": _db_available and bool(clerk_pk),
+            "visit_count": visit_count,
         })
 
     # ─── Account / User API ──────────────────────────────────────────

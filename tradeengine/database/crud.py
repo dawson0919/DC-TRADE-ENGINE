@@ -308,3 +308,24 @@ async def delete_optimize_result(client: Any, result_id: int, user_id: str) -> b
         .execute()
     )
     return len(result.data) > 0 if result.data else False
+
+# ─── Site Stats CRUD ──────────────────────────────────────────────
+
+async def increment_site_stat(client: Any, key: str) -> None:
+    """Atomically increment a site stat value using Postgres RPC."""
+    try:
+        client.rpc("increment_site_stat", {"stat_key": key}).execute()
+    except Exception as e:
+        logger.warning(f"Failed to increment site stat '{key}': {e}")
+
+
+async def get_site_stat(client: Any, key: str) -> int:
+    """Retrieve the current value of a site stat."""
+    try:
+        result = client.table("site_stats").select("value").eq("key", key).execute()
+        if result.data:
+            return result.data[0].get("value", 0)
+        return 0
+    except Exception as e:
+        logger.warning(f"Failed to fetch site stat '{key}': {e}")
+        return 0
