@@ -718,11 +718,12 @@ class BotManager:
                 api_secret = ""
                 if not bot.paper_mode and bot.user_id and self._db_client:
                     try:
-                        from tradeengine.database.crud import get_user_api_key
-                        creds = await get_user_api_key(self._db_client, bot.user_id)
-                        if creds:
-                            api_key = creds["api_key"]
-                            api_secret = creds["api_secret"]
+                        from tradeengine.database.crud import get_api_credential
+                        from tradeengine.database.encryption import decrypt_value
+                        cred = await get_api_credential(self._db_client, bot.user_id)
+                        if cred:
+                            api_key = decrypt_value(cred.api_key_encrypted)
+                            api_secret = decrypt_value(cred.api_secret_encrypted)
                     except Exception as e:
                         logger.warning(f"Failed to fetch API key for bot {bot_id}: {e}")
 
