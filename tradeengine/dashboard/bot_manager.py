@@ -139,6 +139,8 @@ class BotManager:
             from tradeengine.database.connection import get_session
             self._db_client = await get_session()
             await self._load_bots_db()
+            # DB is the source of truth; sync JSON to match
+            self._save_bots_json()
             logger.info("BotManager: using Supabase storage")
         except Exception as e:
             logger.warning(f"BotManager: DB init failed, using JSON fallback: {e}")
