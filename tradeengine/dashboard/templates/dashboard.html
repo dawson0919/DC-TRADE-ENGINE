@@ -678,7 +678,16 @@
                             <option value="api">Pionex API</option>
                         </select>
                     </div>
-                    <div id="bt-api-fields" {% if csv_files %}style="display:none;"{% endif %}
+                    <div class="form-group">
+                        <label>時間框架</label>
+                        <select id="bt-timeframe" onchange="filterCsvByTimeframe('bt')">
+                            <option value="15m">15 分鐘</option>
+                            <option value="1h" selected>1 小時</option>
+                            <option value="4h">4 小時</option>
+                            <option value="1d">1 天</option>
+                        </select>
+                    </div>
+                    <div id="bt-api-fields" {% if csv_files %}style="display:none;"{% endif %}>
                         <div class="form-group">
                             <label>交易對</label>
                             <select id="bt-symbol">
@@ -691,15 +700,6 @@
                             </select>
                         </div>
                         <div class="form-group">
-                            <label>時間框架</label>
-                            <select id="bt-timeframe">
-                                <option value="15m">15 分鐘</option>
-                                <option value="1h" selected>1 小時</option>
-                                <option value="4h">4 小時</option>
-                                <option value="1d">1 天</option>
-                            </select>
-                        </div>
-                        <div class="form-group">
                             <label>K線數量</label>
                             <input type="number" id="bt-limit" value="2000" min="100" max="10000">
                         </div>
@@ -709,7 +709,7 @@
                             <label>CSV 檔案</label>
                             <select id="bt-csv">
                                 {% for c in csv_files %}
-                                <option value="{{ c.path }}">{{ c.label }}</option>
+                                <option value="{{ c.path }}" data-tf="{{ c.timeframe }}">{{ c.label }}</option>
                                 {% endfor %}
                             </select>
                         </div>
@@ -801,7 +801,16 @@
                             <option value="api">Pionex API</option>
                         </select>
                     </div>
-                    <div id="opt-api-fields" {% if csv_files %}style="display:none;"{% endif %}
+                    <div class="form-group">
+                        <label>時間框架</label>
+                        <select id="opt-timeframe" onchange="filterCsvByTimeframe('opt')">
+                            <option value="15m">15 分鐘</option>
+                            <option value="1h" selected>1 小時</option>
+                            <option value="4h">4 小時</option>
+                            <option value="1d">1 天</option>
+                        </select>
+                    </div>
+                    <div id="opt-api-fields" {% if csv_files %}style="display:none;"{% endif %}>
                         <div class="form-group">
                             <label>交易對</label>
                             <select id="opt-symbol">
@@ -814,14 +823,6 @@
                             </select>
                         </div>
                         <div class="form-group">
-                            <label>時間框架</label>
-                            <select id="opt-timeframe">
-                                <option value="1h" selected>1 小時</option>
-                                <option value="4h">4 小時</option>
-                                <option value="1d">1 天</option>
-                            </select>
-                        </div>
-                        <div class="form-group">
                             <label>K線數量</label>
                             <input type="number" id="opt-limit" value="3000" min="500" max="10000">
                         </div>
@@ -831,7 +832,7 @@
                             <label>CSV 檔案</label>
                             <select id="opt-csv">
                                 {% for c in csv_files %}
-                                <option value="{{ c.path }}">{{ c.label }}</option>
+                                <option value="{{ c.path }}" data-tf="{{ c.timeframe }}">{{ c.label }}</option>
                                 {% endfor %}
                             </select>
                         </div>
@@ -1495,13 +1496,33 @@
             const src = document.getElementById(prefix + '-source').value;
             document.getElementById(prefix + '-api-fields').style.display = src === 'api' ? '' : 'none';
             document.getElementById(prefix + '-csv-fields').style.display = src === 'csv' ? '' : 'none';
+            if (src === 'csv') filterCsvByTimeframe(prefix);
+        }
+
+        function filterCsvByTimeframe(prefix) {
+            const tf = document.getElementById(prefix + '-timeframe').value;
+            const sel = document.getElementById(prefix + '-csv');
+            if (!sel) return;
+            const opts = sel.querySelectorAll('option');
+            let firstVisible = null;
+            opts.forEach(o => {
+                const match = !o.dataset.tf || o.dataset.tf === tf || o.dataset.tf === 'unknown';
+                o.style.display = match ? '' : 'none';
+                o.disabled = !match;
+                if (match && !firstVisible) firstVisible = o;
+            });
+            // Auto-select first matching option
+            if (firstVisible && sel.selectedOptions[0] && sel.selectedOptions[0].disabled) {
+                sel.value = firstVisible.value;
+            }
         }
 
         function buildDataUrl(prefix) {
             const source = document.getElementById(prefix + '-source').value;
-            if (source === 'csv') return '&csv_path=' + encodeURIComponent(document.getElementById(prefix + '-csv').value);
+            const tf = document.getElementById(prefix + '-timeframe').value;
+            if (source === 'csv') return '&csv_path=' + encodeURIComponent(document.getElementById(prefix + '-csv').value) + '&timeframe=' + tf;
             return '&symbol=' + document.getElementById(prefix + '-symbol').value +
-                   '&timeframe=' + document.getElementById(prefix + '-timeframe').value +
+                   '&timeframe=' + tf +
                    '&limit=' + document.getElementById(prefix + '-limit').value;
         }
 
@@ -2585,6 +2606,8 @@
             detectInAppBrowser();
             initAuth();
             loadStrategyParams('bt');
+            filterCsvByTimeframe('bt');
+            filterCsvByTimeframe('opt');
         });
     </script>
 </body>
