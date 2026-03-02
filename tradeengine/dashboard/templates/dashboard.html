@@ -1743,7 +1743,7 @@
                 <div class="guide-step">
                     <span class="step-num">?</span>
                     <h3>策略簡介</h3>
-                    <p style="margin-bottom:8px;">共 12 種內建策略，分為四大類：</p>
+                    <p style="margin-bottom:8px;">共 13 種內建策略，分為四大類：</p>
                     <p style="margin:8px 0 4px;"><span style="color:#00c853;font-weight:600;">📈 趨勢追蹤</span> —
                         適合單邊上漲/下跌行情</p>
                     <ul>
@@ -1766,6 +1766,7 @@
                     <ul>
                         <li><strong>combined</strong>：EMA 趨勢 + RSI 過濾 + MACD 確認。</li>
                         <li><strong>donchian_supertrend</strong>：唐奇安通道突破 + SuperTrend 趨勢過濾，雙重確認減少假突破。</li>
+                        <li><strong>ichimoku_cloud</strong>：一目均衡表雲圖突破 + EMA 200 趨勢濾網，多重確認提高信號品質。</li>
                     </ul>
                     <p style="margin:8px 0 4px;"><span style="color:#ff9800;font-weight:600;">🏀 動能突破</span> — 連續 K
                         線動能判斷</p>
@@ -3118,6 +3119,10 @@
             donchian_supertrend: {
                 category: '複合', catColor: '#ab47bc', icon: '🔱',
                 detail: '唐奇安通道突破 + SuperTrend 趨勢過濾的雙通道策略。進場條件：價格突破唐奇安上軌且 SuperTrend 為上升趨勢（做多），跌破唐奇安下軌且 SuperTrend 為下降趨勢（做空）。出場條件：價格跌破唐奇安出場軌或 SuperTrend 翻轉。雙重確認機制有效過濾假突破，提高勝率與獲利因子。適合波動性大、趨勢明確的標的（如 XAG 白銀、PAXG 黃金）。回測最佳表現：XAG 1H 夏普 3.14 / 報酬 +42%，PAXG 4H 夏普 1.27 / 報酬 +25%。'
+            },
+            ichimoku_cloud: {
+                category: '複合', catColor: '#ab47bc', icon: '☁️',
+                detail: '一目均衡表 (Ichimoku Kinko Hyo) 雲圖突破策略，結合 EMA 200 長期趨勢濾網。做多條件：價格在雲層（先行帶 A、B）上方 + 轉換線 (Tenkan) 大於基準線 (Kijun) + 價格高於 EMA 200。做空條件：價格在雲層下方 + 轉換線小於基準線 + 價格低於 EMA 200。三重確認機制（雲圖趨勢、均線交叉、長期趨勢）大幅降低假信號。EMA 週期設為 0 可關閉濾網。適合中長線趨勢交易，1H/4H 時間框架效果較佳。'
             },
         };
 
