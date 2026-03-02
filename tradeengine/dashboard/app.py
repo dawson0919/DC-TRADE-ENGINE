@@ -72,7 +72,7 @@ def create_app() -> FastAPI:
 
         # Auto-restart bots in background (don't block startup / healthcheck)
         async def _deferred_restart():
-            await asyncio.sleep(3)  # let server finish binding first
+            await asyncio.sleep(5)  # let server + DB stabilize after deploy
             restarted = await bot_manager.auto_restart_bots(app_config=config)
             if restarted:
                 logger.info(f"Auto-restarted {len(restarted)} bot(s): {restarted}")

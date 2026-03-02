@@ -412,26 +412,48 @@ class BotManager:
             return False
 
     async def _run_bot(self, bot_id: str, engine, client):
-        """Bot execution wrapper with error handling."""
+        """Bot execution wrapper with retry on transient errors."""
         bot = self._bots.get(bot_id)
-        try:
-            await engine.start()
-        except asyncio.CancelledError:
-            logger.info(f"Bot {bot_id} cancelled")
-        except Exception as e:
-            if bot:
-                bot.status = "error"
-                bot.error_msg = str(e)
-                self._save_one_bot(bot)
-            logger.error(f"Bot {bot_id} error: {e}")
-        finally:
-            if bot and bot.status == "running":
-                bot.status = "stopped"
-                self._save_one_bot(bot)
+        if not bot:
+            return
+        max_retries = 3
+        retry_delays = [10, 30, 60]
+
+        for attempt in range(max_retries + 1):
             try:
-                await client.close()
-            except Exception:
-                pass
+                await engine.start()
+                break  # clean exit (cancelled or stopped)
+            except asyncio.CancelledError:
+                logger.info(f"Bot {bot_id} cancelled")
+                break
+            except Exception as e:
+                err_msg = str(e)
+                is_last = attempt >= max_retries
+                is_perm = self._is_permanent_error(err_msg)
+
+                if is_last or is_perm:
+                    bot.status = "error"
+                    bot.error_msg = err_msg
+                    self._save_one_bot(bot)
+                    logger.error(f"Bot {bot_id} error (final): {e}")
+                    break
+
+                delay = retry_delays[attempt]
+                logger.warning(
+                    f"Bot {bot_id} transient error (attempt {attempt + 1}/{max_retries}), "
+                    f"retrying in {delay}s: {e}"
+                )
+                bot.error_msg = f"重試中 ({attempt + 1}/{max_retries})... {err_msg}"
+                self._save_one_bot(bot)
+                await asyncio.sleep(delay)
+
+        if bot.status == "running":
+            bot.status = "stopped"
+            self._save_one_bot(bot)
+        try:
+            await client.close()
+        except Exception:
+            pass
 
     async def stop_bot(self, bot_id: str, user_id: str = "") -> bool:
         """Stop a running bot."""
@@ -690,63 +712,131 @@ class BotManager:
 
     # ─── Auto-Restart ─────────────────────────────────────────────
 
+    _PERMANENT_ERROR_KEYWORDS = [
+        "not found",            # strategy not registered
+        "not configured",       # API key missing
+        "僅支援模擬交易",       # PERP restriction
+        "your_api_key_here",    # placeholder key
+    ]
+
+    @staticmethod
+    def _is_permanent_error(error_msg: str) -> bool:
+        """Check if an error is permanent (no point retrying)."""
+        msg = error_msg.lower()
+        for kw in BotManager._PERMANENT_ERROR_KEYWORDS:
+            if kw.lower() in msg:
+                return True
+        return False
+
+    async def _try_start_bot(self, bot_id: str, app_config=None) -> bool:
+        """Attempt to start a single bot, resolving credentials first."""
+        bot = self._bots.get(bot_id)
+        if not bot:
+            return False
+
+        api_key = ""
+        api_secret = ""
+        if not bot.paper_mode and bot.user_id and self._db_client:
+            try:
+                from tradeengine.database.crud import get_api_credential
+                from tradeengine.database.encryption import decrypt_value
+                cred = await get_api_credential(self._db_client, bot.user_id)
+                if cred:
+                    api_key = decrypt_value(cred.api_key_encrypted)
+                    api_secret = decrypt_value(cred.api_secret_encrypted)
+            except Exception as e:
+                logger.warning(f"Failed to fetch API key for bot {bot_id}: {e}")
+
+        if bot.signal_source == "webhook":
+            return await self.start_webhook_bot(
+                bot_id, app_config=app_config,
+                api_key=api_key, api_secret=api_secret,
+            )
+        else:
+            return await self.start_bot(
+                bot_id, app_config=app_config,
+                api_key=api_key, api_secret=api_secret,
+            )
+
     async def auto_restart_bots(self, app_config=None) -> list[str]:
-        """Restart bots that were running before server shutdown."""
+        """Restart bots that were running before server shutdown.
+
+        Uses exponential backoff: retries transient failures up to 3 times
+        with delays of 30s, 60s, 120s between rounds.
+        """
         if not self._pending_restart:
             logger.info("No bots to auto-restart")
             return []
 
         restarted = []
-        failed = []
-        to_restart = list(self._pending_restart)
+        remaining = list(self._pending_restart)
         self._pending_restart.clear()
 
-        for i, bot_id in enumerate(to_restart):
-            bot = self._bots.get(bot_id)
-            if not bot:
-                continue
+        max_rounds = 4  # 1 initial + 3 retries
+        retry_delays = [30, 60, 120]  # seconds between retry rounds
 
-            # Stagger bot startups to avoid WebSocket rate limiting (429)
-            if i > 0:
-                delay = 3.0 + i * 2.0  # 5s, 7s, 9s, ...
-                logger.info(f"Waiting {delay:.0f}s before starting bot {bot_id} (stagger)")
+        for round_num in range(max_rounds):
+            if not remaining:
+                break
+
+            if round_num > 0:
+                delay = retry_delays[round_num - 1]
+                logger.info(
+                    f"Auto-restart retry round {round_num}/3: "
+                    f"{len(remaining)} bot(s) remaining, waiting {delay}s"
+                )
                 await asyncio.sleep(delay)
 
-            try:
-                # For live (non-paper) bots, fetch user's API keys from DB
-                api_key = ""
-                api_secret = ""
-                if not bot.paper_mode and bot.user_id and self._db_client:
-                    try:
-                        from tradeengine.database.crud import get_api_credential
-                        from tradeengine.database.encryption import decrypt_value
-                        cred = await get_api_credential(self._db_client, bot.user_id)
-                        if cred:
-                            api_key = decrypt_value(cred.api_key_encrypted)
-                            api_secret = decrypt_value(cred.api_secret_encrypted)
-                    except Exception as e:
-                        logger.warning(f"Failed to fetch API key for bot {bot_id}: {e}")
+            failed_this_round = []
 
-                if bot.signal_source == "webhook":
-                    ok = await self.start_webhook_bot(
-                        bot_id, app_config=app_config,
-                        api_key=api_key, api_secret=api_secret,
-                    )
-                else:
-                    ok = await self.start_bot(
-                        bot_id, app_config=app_config,
-                        api_key=api_key, api_secret=api_secret,
-                    )
+            for i, bot_id in enumerate(remaining):
+                bot = self._bots.get(bot_id)
+                if not bot:
+                    continue
 
-                if ok:
-                    restarted.append(bot_id)
-                    logger.info(f"Auto-restarted bot {bot_id} ({bot.name})")
-                else:
-                    failed.append(bot_id)
-                    logger.warning(f"Failed to auto-restart bot {bot_id}: {bot.error_msg}")
-            except Exception as e:
-                failed.append(bot_id)
-                logger.error(f"Error auto-restarting bot {bot_id}: {e}")
+                # Stagger bot startups to avoid WebSocket rate limiting (429)
+                if i > 0:
+                    stagger = 3.0 + i * 2.0
+                    await asyncio.sleep(stagger)
 
-        logger.info(f"Auto-restart complete: {len(restarted)} restarted, {len(failed)} failed")
+                try:
+                    # Reset error state before retry so start_bot doesn't bail
+                    if bot.status == "error":
+                        bot.status = "stopped"
+                        bot.error_msg = ""
+
+                    ok = await self._try_start_bot(bot_id, app_config)
+
+                    if ok:
+                        restarted.append(bot_id)
+                        logger.info(f"Auto-restarted bot {bot_id} ({bot.name})")
+                    else:
+                        # Check if permanent error — no point retrying
+                        if self._is_permanent_error(bot.error_msg):
+                            logger.warning(
+                                f"Bot {bot_id} permanent error, skipping retries: "
+                                f"{bot.error_msg}"
+                            )
+                        else:
+                            failed_this_round.append(bot_id)
+                            logger.warning(
+                                f"Bot {bot_id} transient failure (round {round_num + 1}): "
+                                f"{bot.error_msg}"
+                            )
+                except Exception as e:
+                    failed_this_round.append(bot_id)
+                    logger.error(f"Error auto-restarting bot {bot_id}: {e}")
+
+            remaining = failed_this_round
+
+        if remaining:
+            logger.error(
+                f"Auto-restart gave up on {len(remaining)} bot(s) after {max_rounds} rounds: "
+                f"{remaining}"
+            )
+
+        logger.info(
+            f"Auto-restart complete: {len(restarted)} restarted, "
+            f"{len(remaining)} failed"
+        )
         return restarted
