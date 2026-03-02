@@ -320,35 +320,12 @@ class BotManager:
         if not bot or bot.status == "running":
             return False
 
-        from tradeengine.data.pionex_client import PionexClient
         from tradeengine.strategies.registry import get_strategy
-        from tradeengine.trading.engine import LiveTradingEngine
-        from tradeengine.trading.paper_executor import PaperExecutor
-        from tradeengine.trading.pionex_executor import PionexExecutor
         from tradeengine.trading.risk_manager import RiskConfig
 
         try:
             strat = get_strategy(bot.strategy)
-
-            # Resolve API credentials
-            key = api_key or (app_config.pionex.api_key if app_config else "")
-            secret = api_secret or (app_config.pionex.api_secret if app_config else "")
-            client = PionexClient(key, secret)
-
-            if bot.paper_mode:
-                executor = PaperExecutor(bot.capital)
-            else:
-                if "_PERP" in bot.symbol:
-                    bot.status = "error"
-                    bot.error_msg = "合約交易對僅支援模擬交易（Pionex API 未開放合約下單）"
-                    self._save_one_bot(bot)
-                    return False
-                if not key or key == "your_api_key_here":
-                    bot.status = "error"
-                    bot.error_msg = "Pionex API Key not configured"
-                    self._save_one_bot(bot)
-                    return False
-                executor = PionexExecutor(client)
+            is_yahoo = "=F" in bot.symbol
 
             risk_config = RiskConfig(
                 max_drawdown_pct=bot.max_drawdown_pct,
@@ -356,16 +333,71 @@ class BotManager:
                 default_tp_pct=bot.tp_pct,
             )
 
-            engine = LiveTradingEngine(
-                strategy=strat,
-                executor=executor,
-                client=client,
-                symbol=bot.symbol,
-                timeframe=bot.timeframe,
-                params=bot.params,
-                risk_config=risk_config,
-                initial_capital=bot.capital,
-            )
+            if is_yahoo:
+                # Yahoo Finance futures — polling-based paper trading only
+                from tradeengine.data.store import DataStore
+                from tradeengine.data.yahoo_client import YahooClient
+                from tradeengine.trading.futures_paper_executor import FuturesPaperExecutor
+                from tradeengine.trading.yahoo_engine import YahooTradingEngine
+
+                if not bot.paper_mode:
+                    bot.status = "error"
+                    bot.error_msg = "Yahoo Finance 期貨僅支援模擬交易"
+                    self._save_one_bot(bot)
+                    return False
+
+                yahoo_client = YahooClient()
+                executor = FuturesPaperExecutor(bot.capital)
+                store = DataStore()
+
+                engine = YahooTradingEngine(
+                    strategy=strat,
+                    executor=executor,
+                    yahoo_client=yahoo_client,
+                    store=store,
+                    symbol=bot.symbol,
+                    timeframe=bot.timeframe,
+                    params=bot.params,
+                    risk_config=risk_config,
+                    initial_capital=bot.capital,
+                )
+                client = None  # No Pionex client needed
+            else:
+                # Pionex crypto — WebSocket-based trading
+                from tradeengine.data.pionex_client import PionexClient
+                from tradeengine.trading.engine import LiveTradingEngine
+                from tradeengine.trading.paper_executor import PaperExecutor
+                from tradeengine.trading.pionex_executor import PionexExecutor
+
+                key = api_key or (app_config.pionex.api_key if app_config else "")
+                secret = api_secret or (app_config.pionex.api_secret if app_config else "")
+                client = PionexClient(key, secret)
+
+                if bot.paper_mode:
+                    executor = PaperExecutor(bot.capital)
+                else:
+                    if "_PERP" in bot.symbol:
+                        bot.status = "error"
+                        bot.error_msg = "合約交易對僅支援模擬交易（Pionex API 未開放合約下單）"
+                        self._save_one_bot(bot)
+                        return False
+                    if not key or key == "your_api_key_here":
+                        bot.status = "error"
+                        bot.error_msg = "Pionex API Key not configured"
+                        self._save_one_bot(bot)
+                        return False
+                    executor = PionexExecutor(client)
+
+                engine = LiveTradingEngine(
+                    strategy=strat,
+                    executor=executor,
+                    client=client,
+                    symbol=bot.symbol,
+                    timeframe=bot.timeframe,
+                    params=bot.params,
+                    risk_config=risk_config,
+                    initial_capital=bot.capital,
+                )
 
             bot.status = "running"
             bot.error_msg = ""
@@ -417,7 +449,7 @@ class BotManager:
         if not bot:
             return
         max_retries = 3
-        retry_delays = [10, 30, 60]
+        retry_delays = [30, 60, 120]
 
         for attempt in range(max_retries + 1):
             try:
@@ -450,10 +482,11 @@ class BotManager:
         if bot.status == "running":
             bot.status = "stopped"
             self._save_one_bot(bot)
-        try:
-            await client.close()
-        except Exception:
-            pass
+        if client is not None:
+            try:
+                await client.close()
+            except Exception:
+                pass
 
     async def stop_bot(self, bot_id: str, user_id: str = "") -> bool:
         """Stop a running bot."""
@@ -796,7 +829,7 @@ class BotManager:
 
                 # Stagger bot startups to avoid WebSocket rate limiting (429)
                 if i > 0:
-                    stagger = 3.0 + i * 2.0
+                    stagger = 10.0 + i * 5.0
                     await asyncio.sleep(stagger)
 
                 try:

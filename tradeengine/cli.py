@@ -38,6 +38,11 @@ def _load_all():
     return config
 
 
+def _is_yahoo_symbol(symbol: str) -> bool:
+    """Return True if the symbol is a Yahoo Finance futures ticker (e.g. NQ=F)."""
+    return "=F" in symbol
+
+
 @app.command()
 def backtest(
     strategy: str = typer.Option("ma_crossover", "--strategy", "-s", help="策略名稱"),
@@ -66,10 +71,18 @@ def backtest(
 
         console.print(f"\n[bold]回測策略:[/bold] {strat.display_name}")
 
-        # Load data from CSV or Pionex
+        # Load data from CSV, Yahoo Finance, or Pionex
         if csv:
             console.print(f"[bold]CSV 檔案:[/bold] {csv}")
             ohlcv = load_csv(csv)
+        elif _is_yahoo_symbol(symbol):
+            from tradeengine.data.yahoo_client import YahooClient
+            from tradeengine.data.yahoo_fetcher import YahooFetcher
+            console.print(f"[bold]交易對:[/bold] {symbol} | [bold]時間框架:[/bold] {timeframe} | [bold]數據源:[/bold] Yahoo Finance")
+            store = DataStore(config.data.cache_dir)
+            fetcher = YahooFetcher(YahooClient(), store)
+            with console.status(f"正在從 Yahoo Finance 取得 {symbol} 資料..."):
+                ohlcv = await fetcher.fetch(symbol, timeframe, limit=limit)
         else:
             console.print(f"[bold]交易對:[/bold] {symbol} | [bold]時間框架:[/bold] {timeframe}")
             client = PionexClient(config.pionex.api_key, config.pionex.api_secret)
@@ -153,9 +166,16 @@ def optimize(
         console.print(f"[bold]參數組合:[/bold] {total:,} | [bold]最大測試:[/bold] {max_combos:,}")
         console.print(f"[bold]排序指標:[/bold] {sort_by}\n")
 
-        # Load data from CSV or Pionex
+        # Load data from CSV, Yahoo Finance, or Pionex
         if csv:
             ohlcv = load_csv(csv)
+        elif _is_yahoo_symbol(symbol):
+            from tradeengine.data.yahoo_client import YahooClient
+            from tradeengine.data.yahoo_fetcher import YahooFetcher
+            store = DataStore(config.data.cache_dir)
+            fetcher = YahooFetcher(YahooClient(), store)
+            with console.status(f"正在從 Yahoo Finance 取得 {symbol} 資料..."):
+                ohlcv = await fetcher.fetch(symbol, timeframe, limit=limit)
         else:
             client = PionexClient(config.pionex.api_key, config.pionex.api_secret)
             store = DataStore(config.data.cache_dir)
@@ -235,7 +255,6 @@ def live(
     async def _run():
         strat = get_strategy(strategy)
         params = config.strategies.get(strategy, {})
-        client = PionexClient(config.pionex.api_key, config.pionex.api_secret)
 
         mode = "模擬交易" if paper else "即時交易"
         console.print(f"\n[bold red]{'='*50}[/bold red]")
@@ -244,38 +263,68 @@ def live(
         console.print(f"交易對: {symbol} | 時間框架: {timeframe}")
         console.print(f"[bold red]{'='*50}[/bold red]\n")
 
-        if paper:
-            executor = PaperExecutor(capital)
-        else:
-            if not config.pionex.api_key:
-                console.print("[red]錯誤: 未設置 Pionex API Key (.env)[/red]")
-                return
-            executor = PionexExecutor(client)
-            console.print("[bold yellow]警告: 即時交易模式 - 真實資金[/bold yellow]")
-
         risk_config = RiskConfig(
             max_drawdown_pct=config.trading.max_drawdown_pct,
             max_position_pct=config.trading.max_position_pct,
         )
 
-        engine = LiveTradingEngine(
-            strategy=strat,
-            executor=executor,
-            client=client,
-            symbol=symbol,
-            timeframe=timeframe,
-            params=params,
-            risk_config=risk_config,
-            initial_capital=capital,
-        )
+        if _is_yahoo_symbol(symbol):
+            if not paper:
+                console.print("[red]錯誤: Yahoo Finance 符號只支援模擬交易 (--paper)[/red]")
+                return
+            from tradeengine.data.store import DataStore
+            from tradeengine.data.yahoo_client import YahooClient
+            from tradeengine.trading.futures_paper_executor import FuturesPaperExecutor
+            from tradeengine.trading.yahoo_engine import YahooTradingEngine
 
-        try:
-            await engine.start()
-        except KeyboardInterrupt:
-            console.print("\n[yellow]正在停止交易引擎...[/yellow]")
-            await engine.stop()
-        finally:
-            await client.close()
+            console.print("[bold]數據源: Yahoo Finance (輪詢模式)[/bold]\n")
+            executor = FuturesPaperExecutor(capital)
+            yahoo_client = YahooClient()
+            store = DataStore(config.data.cache_dir)
+            engine = YahooTradingEngine(
+                strategy=strat,
+                executor=executor,
+                yahoo_client=yahoo_client,
+                store=store,
+                symbol=symbol,
+                timeframe=timeframe,
+                params=params,
+                risk_config=risk_config,
+                initial_capital=capital,
+            )
+            try:
+                await engine.start()
+            except KeyboardInterrupt:
+                console.print("\n[yellow]正在停止交易引擎...[/yellow]")
+                await engine.stop()
+        else:
+            client = PionexClient(config.pionex.api_key, config.pionex.api_secret)
+            if paper:
+                executor = PaperExecutor(capital)
+            else:
+                if not config.pionex.api_key:
+                    console.print("[red]錯誤: 未設置 Pionex API Key (.env)[/red]")
+                    return
+                executor = PionexExecutor(client)
+                console.print("[bold yellow]警告: 即時交易模式 - 真實資金[/bold yellow]")
+
+            engine = LiveTradingEngine(
+                strategy=strat,
+                executor=executor,
+                client=client,
+                symbol=symbol,
+                timeframe=timeframe,
+                params=params,
+                risk_config=risk_config,
+                initial_capital=capital,
+            )
+            try:
+                await engine.start()
+            except KeyboardInterrupt:
+                console.print("\n[yellow]正在停止交易引擎...[/yellow]")
+                await engine.stop()
+            finally:
+                await client.close()
 
     asyncio.run(_run())
 

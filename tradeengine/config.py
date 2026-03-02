@@ -44,12 +44,18 @@ class ClerkConfig(BaseModel):
     secret_key: str = ""
 
 
+class YahooConfig(BaseModel):
+    enabled: bool = True
+    poll_interval_seconds: int = 60
+
+
 class AppConfig(BaseModel):
     pionex: PionexConfig = Field(default_factory=PionexConfig)
     trading: TradingConfig = Field(default_factory=TradingConfig)
     data: DataConfig = Field(default_factory=DataConfig)
     dashboard: DashboardConfig = Field(default_factory=DashboardConfig)
     clerk: ClerkConfig = Field(default_factory=ClerkConfig)
+    yahoo: YahooConfig = Field(default_factory=YahooConfig)
     strategies: dict[str, dict[str, Any]] = Field(default_factory=dict)
 
 

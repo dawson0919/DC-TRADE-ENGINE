@@ -49,7 +49,11 @@ class PionexWebSocket:
                 if attempt >= _MAX_RETRIES:
                     logger.error(f"WebSocket connect failed after {_MAX_RETRIES} attempts: {e}")
                     raise
-                delay = min(_BASE_DELAY * (2 ** (attempt - 1)), _MAX_DELAY)
+                if is_429:
+                    # 429 rate limit: use longer delays (30s base)
+                    delay = min(30.0 * (2 ** (attempt - 1)), 120.0)
+                else:
+                    delay = min(_BASE_DELAY * (2 ** (attempt - 1)), _MAX_DELAY)
                 jitter = random.uniform(0, delay * 0.3)
                 wait = delay + jitter
                 logger.warning(

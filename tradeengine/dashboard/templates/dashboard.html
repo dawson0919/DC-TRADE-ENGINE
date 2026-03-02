@@ -1261,7 +1261,7 @@
                         <label>資料來源</label>
                         <select id="bt-source" onchange="toggleSource('bt')">
                             {% if csv_files %}<option value="csv">CSV 檔案（快速）</option>{% endif %}
-                            <option value="api">Pionex API</option>
+                            <option value="api">線上 API（Pionex / Yahoo）</option>
                         </select>
                     </div>
                     <div class="form-group">
@@ -1277,12 +1277,21 @@
                         <div class="form-group">
                             <label>交易對</label>
                             <select id="bt-symbol">
-                                <option value="BTC_USDT">BTC/USDT</option>
-                                <option value="ETH_USDT">ETH/USDT</option>
-                                <option value="XAG_USDT_PERP">XAG/USDT (白銀合約)</option>
-                                <option value="SOL_USDT">SOL/USDT</option>
-                                <option value="BNB_USDT">BNB/USDT</option>
-                                <option value="PAXG_USDT">PAXG/USDT (黃金)</option>
+                                <optgroup label="加密貨幣 (Pionex)">
+                                    <option value="BTC_USDT">BTC/USDT</option>
+                                    <option value="ETH_USDT">ETH/USDT</option>
+                                    <option value="XAG_USDT_PERP">XAG/USDT (白銀合約)</option>
+                                    <option value="SOL_USDT">SOL/USDT</option>
+                                    <option value="BNB_USDT">BNB/USDT</option>
+                                    <option value="PAXG_USDT">PAXG/USDT (黃金)</option>
+                                </optgroup>
+                                <optgroup label="傳統期貨 (Yahoo Finance)">
+                                    <option value="NQ=F">NQ (納斯達克期貨)</option>
+                                    <option value="ES=F">ES (S&P 500 期貨)</option>
+                                    <option value="GC=F">GC (黃金期貨)</option>
+                                    <option value="SI=F">SI (白銀期貨)</option>
+                                    <option value="CL=F">CL (原油期貨)</option>
+                                </optgroup>
                             </select>
                         </div>
                         <div class="form-group">
@@ -1401,7 +1410,7 @@
                         <label>資料來源</label>
                         <select id="opt-source" onchange="toggleSource('opt')">
                             {% if csv_files %}<option value="csv">CSV 檔案（快速）</option>{% endif %}
-                            <option value="api">Pionex API</option>
+                            <option value="api">線上 API（Pionex / Yahoo）</option>
                         </select>
                     </div>
                     <div class="form-group">
@@ -1417,12 +1426,21 @@
                         <div class="form-group">
                             <label>交易對</label>
                             <select id="opt-symbol">
-                                <option value="BTC_USDT">BTC/USDT</option>
-                                <option value="ETH_USDT">ETH/USDT</option>
-                                <option value="XAG_USDT_PERP">XAG/USDT (白銀合約)</option>
-                                <option value="SOL_USDT">SOL/USDT</option>
-                                <option value="BNB_USDT">BNB/USDT</option>
-                                <option value="PAXG_USDT">PAXG/USDT (黃金)</option>
+                                <optgroup label="加密貨幣 (Pionex)">
+                                    <option value="BTC_USDT">BTC/USDT</option>
+                                    <option value="ETH_USDT">ETH/USDT</option>
+                                    <option value="XAG_USDT_PERP">XAG/USDT (白銀合約)</option>
+                                    <option value="SOL_USDT">SOL/USDT</option>
+                                    <option value="BNB_USDT">BNB/USDT</option>
+                                    <option value="PAXG_USDT">PAXG/USDT (黃金)</option>
+                                </optgroup>
+                                <optgroup label="傳統期貨 (Yahoo Finance)">
+                                    <option value="NQ=F">NQ (納斯達克期貨)</option>
+                                    <option value="ES=F">ES (S&P 500 期貨)</option>
+                                    <option value="GC=F">GC (黃金期貨)</option>
+                                    <option value="SI=F">SI (白銀期貨)</option>
+                                    <option value="CL=F">CL (原油期貨)</option>
+                                </optgroup>
                             </select>
                         </div>
                         <div class="form-group">
@@ -1548,15 +1566,27 @@
                     <div class="form-group">
                         <label>交易對</label>
                         <select id="bot-symbol" onchange="onBotSymbolChange()">
-                            <option value="BTC_USDT">BTC/USDT (現貨)</option>
-                            <option value="ETH_USDT">ETH/USDT (現貨)</option>
-                            <option value="XAG_USDT_PERP">XAG/USDT (白銀合約)</option>
-                            <option value="SOL_USDT">SOL/USDT (現貨)</option>
-                            <option value="BNB_USDT">BNB/USDT (現貨)</option>
-                            <option value="PAXG_USDT">PAXG/USDT (黃金)</option>
+                            <optgroup label="加密貨幣 (Pionex)">
+                                <option value="BTC_USDT">BTC/USDT (現貨)</option>
+                                <option value="ETH_USDT">ETH/USDT (現貨)</option>
+                                <option value="XAG_USDT_PERP">XAG/USDT (白銀合約)</option>
+                                <option value="SOL_USDT">SOL/USDT (現貨)</option>
+                                <option value="BNB_USDT">BNB/USDT (現貨)</option>
+                                <option value="PAXG_USDT">PAXG/USDT (黃金)</option>
+                            </optgroup>
+                            <optgroup label="傳統期貨 (Yahoo Finance)">
+                                <option value="NQ=F">NQ (納斯達克期貨)</option>
+                                <option value="ES=F">ES (S&P 500 期貨)</option>
+                                <option value="GC=F">GC (黃金期貨)</option>
+                                <option value="SI=F">SI (白銀期貨)</option>
+                                <option value="CL=F">CL (原油期貨)</option>
+                            </optgroup>
                         </select>
                         <small id="bot-symbol-hint" style="color:#f7931a;display:none;margin-top:4px;">
                             合約交易對僅支援模擬交易（Pionex API 未開放合約下單）
+                        </small>
+                        <small id="bot-yahoo-hint" style="color:#29b6f6;display:none;margin-top:4px;">
+                            Yahoo Finance 期貨僅支援模擬交易（輪詢模式，每 60 秒更新）
                         </small>
                     </div>
                     <div id="bot-timeframe-field" class="form-group">
@@ -1685,7 +1715,7 @@
             <div class="tab-tip" id="tip-strategies">
                 <span class="tab-tip-icon">&#128218;</span>
                 <div><strong>策略總覽</strong> —
-                    查看所有可用的交易策略及其參數說明。每個策略都有不同的適用行情：<strong>趨勢型</strong>（MA交叉、超級趨勢、唐奇安通道）適合單邊行情，<strong>震盪型</strong>（RSI、布林帶）適合盤整行情，<strong>複合型</strong>（多重確認、三重EMA、唐奇安+SuperTrend、一目均衡表+EMA）降低假信號。點擊策略可查看詳細參數。
+                    查看所有可用的交易策略及其參數說明。每個策略都有不同的適用行情：<strong>趨勢型</strong>（MA交叉、超級趨勢、唐奇安通道、VWAP交叉）適合單邊行情，<strong>震盪型</strong>（RSI、布林帶）適合盤整行情，<strong>複合型</strong>（多重確認、三重EMA、唐奇安+SuperTrend、一目均衡表+EMA）降低假信號。點擊策略可查看詳細參數。
                 </div>
                 <button class="tip-close" onclick="this.parentElement.style.display='none'" title="關閉">&times;</button>
             </div>
@@ -1743,7 +1773,7 @@
                 <div class="guide-step">
                     <span class="step-num">?</span>
                     <h3>策略簡介</h3>
-                    <p style="margin-bottom:8px;">共 13 種內建策略，分為四大類：</p>
+                    <p style="margin-bottom:8px;">共 15 種內建策略，分為四大類：</p>
                     <p style="margin:8px 0 4px;"><span style="color:#00c853;font-weight:600;">📈 趨勢追蹤</span> —
                         適合單邊上漲/下跌行情</p>
                     <ul>
@@ -1751,8 +1781,10 @@
                         <li><strong>macd</strong>：MACD 交叉。MACD 線穿越訊號線進出場。</li>
                         <li><strong>donchian</strong>：唐奇安通道突破。價格創新高/低做多/做空。</li>
                         <li><strong>supertrend</strong>：SuperTrend 趨勢追蹤。基於 ATR 動態止損線翻轉。</li>
+                        <li><strong>vwap_crossover</strong>：VWAP 交叉。價格穿越成交量加權平均價觸發信號，可加標準差帶及 EMA 過濾。</li>
                         <li><strong>triple_ema</strong>：三刀流。三條 EMA 同向排列進場。</li>
                         <li><strong>turtle_breakout</strong>：海龜突破。偵測樞紐高低點突破進場。</li>
+                        <li><strong>dc_turtle</strong>：[DC] 海龜停利停損。樞紐突破進場 + 停利/停損/移動停利三重出場。</li>
                         <li><strong>granville_pro</strong>：葛蘭碧大師。EMA 交叉 + 停損偏離。</li>
                     </ul>
                     <p style="margin:8px 0 4px;"><span style="color:#29b6f6;font-weight:600;">🔄 震盪回歸</span> — 適合盤整行情
@@ -2821,10 +2853,15 @@
         function onBotSymbolChange() {
             const sym = document.getElementById('bot-symbol').value;
             const isPerp = sym.includes('_PERP');
+            const isYahoo = sym.includes('=F');
             document.getElementById('bot-symbol-hint').style.display = isPerp ? 'block' : 'none';
+            document.getElementById('bot-yahoo-hint').style.display = isYahoo ? 'block' : 'none';
             const modeSelect = document.getElementById('bot-mode');
-            if (isPerp) { modeSelect.value = 'true'; modeSelect.disabled = true; }
+            if (isPerp || isYahoo) { modeSelect.value = 'true'; modeSelect.disabled = true; }
             else { modeSelect.disabled = false; }
+            // Yahoo futures: update capital label to USD
+            const capLabel = document.getElementById('bot-capital').previousElementSibling;
+            if (capLabel) capLabel.textContent = isYahoo ? '資金 (USD)' : '資金 (USDT)';
         }
 
         async function createBot() {
@@ -3129,6 +3166,10 @@
                 category: '趨勢', catColor: '#00c853', icon: '🐢',
                 detail: '偵測樞紐高低點（Pivot High/Low），當價格突破最近一個樞紐高點做多，跌破樞紐低點做空。與唐奇安通道類似但以樞紐點為基準，信號更精確。左右 K 棒數控制樞紐靈敏度。'
             },
+            dc_turtle: {
+                category: '趨勢', catColor: '#00c853', icon: '🐢',
+                detail: '[DC] 海龜停利停損策略。樞紐突破進場 + 三重出場機制：(1) 固定停利 — 獲利達設定百分比平倉；(2) 固定停損 — 虧損達設定百分比止損；(3) 移動停利 — 當獲利超過啟動門檻後，回撤達設定比例平倉保護獲利。結合趨勢突破與嚴格風控，適合波動較大的標的。'
+            },
             granville_pro: {
                 category: '趨勢', catColor: '#00c853', icon: '👨‍🏫',
                 detail: '葛蘭碧法則精華版，使用單一 EMA 的交叉判斷多空方向。價格從下方穿越 EMA 做多（黃金交叉），從上方穿越做空（死亡交叉）。內建停損偏離機制：當價格偏離 EMA 超過設定百分比自動平倉。預設參數為 4H 級別深度優化結果（BTC: EMA-178, ETH: EMA-203, SOL: EMA-156）。'
@@ -3140,6 +3181,10 @@
             ichimoku_cloud: {
                 category: '複合', catColor: '#ab47bc', icon: '☁️',
                 detail: '一目均衡表 (Ichimoku Kinko Hyo) 雲圖突破策略，結合 EMA 200 長期趨勢濾網。做多條件：價格在雲層（先行帶 A、B）上方 + 轉換線 (Tenkan) 大於基準線 (Kijun) + 價格高於 EMA 200。做空條件：價格在雲層下方 + 轉換線小於基準線 + 價格低於 EMA 200。三重確認機制（雲圖趨勢、均線交叉、長期趨勢）大幅降低假信號。EMA 週期設為 0 可關閉濾網。適合中長線趨勢交易，1H/4H 時間框架效果較佳。'
+            },
+            vwap_crossover: {
+                category: '趨勢', catColor: '#00c853', icon: '📊',
+                detail: 'VWAP 標準差帶交叉策略（基於 TradingView VWAP Stdev Bands v2）。Session VWAP 每日 00:00 UTC 重置，使用 HL2 作為典型價格。做多條件：價格突破 VWAP + N 倍標準差上軌；做空條件：價格跌破下軌。預設 1.28 倍標準差（對應常態分佈 80% 信賴區間）。可加 EMA 趨勢濾網（週期 > 0 啟用）只順勢交易。適合日內及短線交易，15M/1H 時間框架效果較佳。'
             },
         };
 

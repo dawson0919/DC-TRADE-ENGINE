@@ -257,8 +257,9 @@ def create_app() -> FastAPI:
             except Exception:
                 pass
 
-        # Fall back to server config ONLY in local mode (no auth)
-        if not api_key and not (_db_available and clerk_pk):
+        # Admin fallback: server config (.env) — only for admin or local mode
+        is_admin = user and user.get("role") == "admin"
+        if not api_key and (is_admin or not (_db_available and clerk_pk)):
             api_key = config.pionex.api_key
             api_secret = config.pionex.api_secret
 
@@ -288,7 +289,7 @@ def create_app() -> FastAPI:
     @app.get("/api/api-keys")
     async def api_get_keys(request: Request):
         user = await _optional_user(request)
-        # Auth mode: check user's DB credential
+        # Auth mode: check user's DB credential first
         if user and _db_available:
             try:
                 from tradeengine.database.connection import get_session
@@ -301,13 +302,13 @@ def create_app() -> FastAPI:
                         raw_key = decrypt_value(cred.api_key_encrypted)
                         preview = raw_key[:6] + "..." + raw_key[-4:] if len(raw_key) > 10 else "***"
                         return {"has_key": True, "key_preview": preview, "label": cred.label}
-                    return {"has_key": False}
                 finally:
                     await session.close()
             except Exception:
-                return {"has_key": False}
-        # Local mode (no auth): check server config
-        if not (_db_available and clerk_pk):
+                pass
+        # Admin fallback: server config (.env) — only for admin or local mode
+        is_admin = user and user.get("role") == "admin"
+        if is_admin or not (_db_available and clerk_pk):
             key = config.pionex.api_key
             if key and key != "your_api_key_here":
                 preview = key[:6] + "..." + key[-4:] if len(key) > 10 else "***"
@@ -453,6 +454,12 @@ def create_app() -> FastAPI:
 
             if csv_path:
                 ohlcv = load_csv(csv_path)
+            elif "=F" in symbol:
+                from tradeengine.data.yahoo_client import YahooClient
+                from tradeengine.data.yahoo_fetcher import YahooFetcher
+                store = DataStore(config.data.cache_dir)
+                fetcher = YahooFetcher(YahooClient(), store)
+                ohlcv = await fetcher.fetch(symbol, timeframe, limit=limit)
             else:
                 client = PionexClient(config.pionex.api_key, config.pionex.api_secret)
                 store = DataStore(config.data.cache_dir)
@@ -620,6 +627,12 @@ def create_app() -> FastAPI:
 
             if csv_path:
                 ohlcv = load_csv(csv_path)
+            elif "=F" in symbol:
+                from tradeengine.data.yahoo_client import YahooClient
+                from tradeengine.data.yahoo_fetcher import YahooFetcher
+                store = DataStore(config.data.cache_dir)
+                fetcher = YahooFetcher(YahooClient(), store)
+                ohlcv = await fetcher.fetch(symbol, timeframe, limit=limit)
             else:
                 client = PionexClient(config.pionex.api_key, config.pionex.api_secret)
                 store = DataStore(config.data.cache_dir)

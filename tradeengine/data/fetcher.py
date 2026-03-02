@@ -148,6 +148,7 @@ class DataFetcher:
     def _prepare_df(df: pd.DataFrame) -> pd.DataFrame:
         """Convert raw OHLCV DataFrame to indexed format for vectorBT."""
         df = df.copy()
+        df = df.drop_duplicates(subset=["timestamp"]).sort_values("timestamp").reset_index(drop=True)
         df["datetime"] = pd.to_datetime(df["timestamp"], unit="ms", utc=True)
         df = df.set_index("datetime")
         df = df.sort_index()
