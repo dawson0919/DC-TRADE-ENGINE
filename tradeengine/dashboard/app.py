@@ -1122,14 +1122,22 @@ def create_app() -> FastAPI:
 
     @app.post("/api/admin/reload-bots")
     async def api_admin_reload_bots(request: Request):
-        """Force reload bots from DB, clearing stale in-memory/JSON cache."""
+        """Force reload bots from DB, clearing stale in-memory/JSON cache, then auto-restart."""
         user = await _optional_user(request)
         if not user or user["role"] != "admin":
             return JSONResponse({"error": "Forbidden"}, status_code=403)
         if bot_manager._db_client:
             await bot_manager._load_bots_db()
             bot_manager._save_bots_json()
-            return {"status": "reloaded", "count": len(bot_manager.list_bots())}
+            count = len(bot_manager.list_bots())
+            # Auto-restart bots with auto_start=True in background
+            async def _deferred_restart():
+                await asyncio.sleep(2)
+                restarted = await bot_manager.auto_restart_bots(app_config=config)
+                if restarted:
+                    logger.info(f"Admin reload: auto-restarted {len(restarted)} bot(s)")
+            asyncio.create_task(_deferred_restart())
+            return {"status": "reloaded", "count": count, "restarting": True}
         return JSONResponse({"error": "DB not connected"}, status_code=500)
 
     @app.post("/api/admin/sync-clerk")
