@@ -45,10 +45,11 @@ class RiskManager:
         return self._halted
 
     def calculate_position_size(
-        self, capital: float, price: float
+        self, capital: float, price: float, leverage: float = 1.0
     ) -> float:
-        """Calculate max position size in base currency."""
-        max_capital = capital * (self.config.max_position_pct / 100)
+        """Calculate max position size in base currency with leverage (max 5x)."""
+        effective_leverage = min(leverage, 5.0)
+        max_capital = capital * (self.config.max_position_pct / 100) * effective_leverage
         return max_capital / price
 
     def check_stop_loss(

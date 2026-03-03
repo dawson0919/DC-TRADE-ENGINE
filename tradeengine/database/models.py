@@ -69,6 +69,8 @@ class Bot(Base):
     sl_pct = Column(Float, nullable=True)
     tp_pct = Column(Float, nullable=True)
     max_drawdown_pct = Column(Float, default=20.0)
+    leverage = Column(Float, default=1.0)
+    margin_mode = Column(String(20), default="isolated")  # "isolated" or "cross"
     status = Column(String(20), default="stopped")
     total_pnl = Column(Float, default=0.0)
     total_trades = Column(Integer, default=0)

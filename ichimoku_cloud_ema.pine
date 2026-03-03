@@ -1,0 +1,64 @@
+//@version=5
+strategy("一目均衡表 Cloud Breakout + EMA 200", overlay=true, default_qty_type=strategy.percent_of_equity, default_qty_value=100)
+
+// ─── 參數 ───
+tenkan_period  = input.int(9,   "轉換線週期 (Tenkan)",    minval=2,  maxval=100)
+kijun_period   = input.int(26,  "基準線週期 (Kijun)",     minval=5,  maxval=200)
+senkou_b_period = input.int(52, "先行帶B週期 (Senkou B)", minval=10, maxval=500)
+ema_period     = input.int(200, "EMA 濾網週期 (0=關閉)",  minval=0,  maxval=500)
+
+// ─── 一目均衡表 ───
+tenkan = (ta.highest(high, tenkan_period) + ta.lowest(low, tenkan_period)) / 2
+kijun  = (ta.highest(high, kijun_period)  + ta.lowest(low, kijun_period))  / 2
+
+senkou_a = (tenkan + kijun) / 2
+senkou_b = (ta.highest(high, senkou_b_period) + ta.lowest(low, senkou_b_period)) / 2
+
+// 雲層邊界（位移 kijun_period）
+cloud_top    = math.max(senkou_a[kijun_period], senkou_b[kijun_period])
+cloud_bottom = math.min(senkou_a[kijun_period], senkou_b[kijun_period])
+
+// ─── EMA 趨勢濾網 ───
+ema = ema_period > 0 ? ta.ema(close, ema_period) : na
+ema_long_ok  = ema_period > 0 ? close > ema : true
+ema_short_ok = ema_period > 0 ? close < ema : true
+
+// ─── 信號邏輯 ───
+// 做多：價格 > 雲層上方 + 轉換線 > 基準線 + 價格 > EMA
+long_cond  = close > cloud_top and tenkan > kijun and ema_long_ok
+
+// 做空：價格 < 雲層下方 + 轉換線 < 基準線 + 價格 < EMA
+short_cond = close < cloud_bottom and tenkan < kijun and ema_short_ok
+
+// 進場（狀態變化觸發）
+long_entry  = long_cond and not long_cond[1]
+long_exit   = not long_cond and long_cond[1]
+short_entry = short_cond and not short_cond[1]
+short_exit  = not short_cond and short_cond[1]
+
+// ─── 策略執行 ───
+if long_entry
+    strategy.entry("Long", strategy.long)
+if long_exit
+    strategy.close("Long")
+if short_entry
+    strategy.entry("Short", strategy.short)
+if short_exit
+    strategy.close("Short")
+
+// ─── 繪圖 ───
+// 轉換線 & 基準線
+plot(tenkan, "轉換線 (Tenkan)", color=color.new(#2962FF, 0), linewidth=1)
+plot(kijun,  "基準線 (Kijun)",  color=color.new(#E91E63, 0), linewidth=1)
+
+// 雲層（前移顯示）
+p_sa = plot(senkou_a, "先行帶A", offset=kijun_period, color=color.new(#00C853, 60))
+p_sb = plot(senkou_b, "先行帶B", offset=kijun_period, color=color.new(#FF1744, 60))
+fill(p_sa, p_sb, color=senkou_a > senkou_b ? color.new(#00C853, 85) : color.new(#FF1744, 85), title="雲層")
+
+// EMA
+plot(ema, "EMA 200", color=color.new(#FF9800, 0), linewidth=2, style=plot.style_line)
+
+// 信號標記
+plotshape(long_entry,  "做多", shape.triangleup,   location.belowbar, color.new(#00C853, 0), size=size.small)
+plotshape(short_entry, "做空", shape.triangledown,  location.abovebar, color.new(#FF1744, 0), size=size.small)

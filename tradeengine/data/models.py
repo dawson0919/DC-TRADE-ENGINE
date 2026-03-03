@@ -73,6 +73,8 @@ class Position(BaseModel):
     entry_price: float
     size: float
     unrealized_pnl: float = 0.0
+    leverage: float = 1.0
+    liquidation_price: float | None = None
     stop_loss: float | None = None
     take_profit: float | None = None
     trailing_stop_pct: float | None = None

@@ -29,7 +29,9 @@ class PaperExecutor(OrderExecutor):
         """Update current market price for a symbol (called by trading engine)."""
         self._current_prices[symbol] = price
 
-    async def place_market_order(self, symbol: str, side: str, size: float) -> dict:
+    async def place_market_order(
+        self, symbol: str, side: str, size: float, leverage: float = 1.0
+    ) -> dict:
         price = self._current_prices.get(symbol, 0.0)
         if price <= 0:
             raise ValueError(f"No price available for {symbol}")
@@ -70,16 +72,16 @@ class PaperExecutor(OrderExecutor):
         logger.info(f"PAPER {side} {size:.8f} {symbol} @ {price:.2f} (fee: {fee:.4f})")
 
         # Update position tracking
-        self._update_position(symbol, side, size, price)
+        self._update_position(symbol, side, size, price, leverage=leverage)
 
         return order
 
     async def place_limit_order(
-        self, symbol: str, side: str, size: float, price: float
+        self, symbol: str, side: str, size: float, price: float, leverage: float = 1.0
     ) -> dict:
         # Paper trading: immediately fill limit orders at specified price
         self._current_prices[symbol] = price
-        return await self.place_market_order(symbol, side, size)
+        return await self.place_market_order(symbol, side, size, leverage=leverage)
 
     async def cancel_order(self, symbol: str, order_id: Any) -> dict:
         return {"orderId": order_id, "status": "CANCELLED"}
@@ -93,14 +95,24 @@ class PaperExecutor(OrderExecutor):
     async def get_position(self, symbol: str) -> dict | None:
         return self._positions.get(symbol)
 
-    def _update_position(self, symbol: str, side: str, size: float, price: float):
+    def _update_position(self, symbol: str, side: str, size: float, price: float, leverage: float = 1.0):
         """Track position state."""
         pos = self._positions.get(symbol)
         if pos is None:
             if side == "BUY":
-                self._positions[symbol] = {"side": "long", "size": size, "entry_price": price}
+                self._positions[symbol] = {
+                    "side": "long", 
+                    "size": size, 
+                    "entry_price": price,
+                    "leverage": leverage
+                }
             else:
-                self._positions[symbol] = {"side": "short", "size": size, "entry_price": price}
+                self._positions[symbol] = {
+                    "side": "short", 
+                    "size": size, 
+                    "entry_price": price,
+                    "leverage": leverage
+                }
         else:
             if (pos["side"] == "long" and side == "SELL") or (pos["side"] == "short" and side == "BUY"):
                 # Closing position

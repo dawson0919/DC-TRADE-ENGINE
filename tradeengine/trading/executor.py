@@ -10,13 +10,15 @@ class OrderExecutor(ABC):
     """Interface for order execution (live or paper)."""
 
     @abstractmethod
-    async def place_market_order(self, symbol: str, side: str, size: float) -> dict:
+    async def place_market_order(
+        self, symbol: str, side: str, size: float, leverage: float = 1.0
+    ) -> dict:
         """Place a market order. Returns order info dict."""
         ...
 
     @abstractmethod
     async def place_limit_order(
-        self, symbol: str, side: str, size: float, price: float
+        self, symbol: str, side: str, size: float, price: float, leverage: float = 1.0
     ) -> dict:
         """Place a limit order. Returns order info dict."""
         ...

@@ -1,0 +1,81 @@
+        <div class="tab-content" id="tab-account">
+            <div class="tab-tip" id="tip-account">
+                <span class="tab-tip-icon">&#128273;</span>
+                <div><strong>帳戶設定</strong> — 在此管理你的 Pionex API 金鑰。步驟：1. 登入 <a
+                        href="https://www.pionex.com/en/apiManagement" target="_blank">Pionex API 管理頁面</a> → 2. 建立
+                    API，勾選 <strong>Reading + Trading</strong> → 3. 將 API Key 和 Secret 貼到下方儲存。金鑰以加密方式儲存，其他用戶無法存取。</div>
+                <button class="tip-close" onclick="this.parentElement.style.display='none'" title="關閉">&times;</button>
+            </div>
+            <div class="card">
+                <h3>Pionex API 金鑰管理</h3>
+                <div id="apikey-section">
+                    <div id="apikey-status" class="api-key-status">
+                        <div class="api-key-dot disconnected" id="apiKeyDot"></div>
+                        <span id="apiKeyStatusText">檢查中...</span>
+                    </div>
+                    <div id="apikey-form">
+                        <div class="form-group">
+                            <label>API Key</label>
+                            <input type="text" id="apikey-key" placeholder="輸入你的 Pionex API Key">
+                        </div>
+                        <div class="form-group">
+                            <label>API Secret</label>
+                            <input type="password" id="apikey-secret" placeholder="輸入你的 Pionex API Secret">
+                        </div>
+                        <div style="display:flex;gap:8px;">
+                            <button class="btn btn-sm" onclick="saveApiKey()">儲存 API 金鑰</button>
+                            <button class="btn btn-sm btn-danger" id="apikey-deleteBtn" onclick="deleteApiKey()"
+                                style="display:none;">刪除</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="card" style="margin-top:16px;">
+                <h3>帳戶餘額</h3>
+                <div id="acct-balances">
+                    <div class="loading">載入中...</div>
+                </div>
+            </div>
+            <div class="card" style="margin-top:16px;">
+                <h3>帳戶資訊</h3>
+                <div id="acct-info">
+                    <div class="loading">載入中...</div>
+                </div>
+            </div>
+            <!-- Partner upgrade section (standard users only) -->
+            <div id="partnerSection" class="card" style="display:none;margin-top:16px;">
+                <h3 style="text-align:center;color:#ffd700;font-size:0.9rem;letter-spacing:2px;margin-bottom:12px;">
+                    官方合作夥伴 — 註冊獲得進階權限
+                </h3>
+                <p style="text-align:center;color:#9ca3af;font-size:0.8rem;margin-bottom:16px;">
+                    普通會員可建立 <strong>1</strong> 個機器人，升級為進階會員可使用 <strong>5</strong> 個機器人
+                </p>
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px;">
+                    <a href="https://reurl.cc/oKAgxg" target="_blank"
+                        style="background:#0a0a0f;border:1px solid #1e1e2e;border-radius:12px;padding:20px 12px;display:flex;flex-direction:column;align-items:center;gap:8px;text-decoration:none;transition:border-color 0.2s;"
+                        onmouseover="this.style.borderColor='#f7931a66'" onmouseout="this.style.borderColor='#1e1e2e'">
+                        <img src="https://www.pionex.com/static/img/logo_white.png" alt="Pionex"
+                            style="height:28px;object-fit:contain;opacity:0.8;"
+                            onerror="this.style.display='none';this.nextElementSibling.style.display='inline'">
+                        <span style="display:none;color:#e7e9ea;font-weight:700;font-size:0.9rem;">Pionex</span>
+                        <span style="font-size:0.7rem;color:#f7931a;font-weight:600;">註冊帳號 &rarr;</span>
+                    </a>
+                    <a href="https://mytd.cc/py0h" target="_blank"
+                        style="background:#0a0a0f;border:1px solid #1e1e2e;border-radius:12px;padding:20px 12px;display:flex;flex-direction:column;align-items:center;gap:8px;text-decoration:none;transition:border-color 0.2s;"
+                        onmouseover="this.style.borderColor='#29b6f666'" onmouseout="this.style.borderColor='#1e1e2e'">
+                        <img src="https://www.mitrade.com/assets/public/images/logo/logo-white.svg" alt="MiTRADE"
+                            style="height:28px;object-fit:contain;opacity:0.8;"
+                            onerror="this.style.display='none';this.nextElementSibling.style.display='inline'">
+                        <span style="display:none;color:#e7e9ea;font-weight:700;font-size:0.9rem;">MiTRADE</span>
+                        <span style="font-size:0.7rem;color:#29b6f6;font-weight:600;">註冊帳號 &rarr;</span>
+                    </a>
+                </div>
+                <div style="text-align:center;padding:12px;background:#1a1a2e;border-radius:8px;">
+                    <p style="color:#9ca3af;font-size:0.78rem;margin-bottom:8px;">完成註冊與 KYC 後，聯繫管理員升級帳號</p>
+                    <a href="https://lin.ee/WuRqowF" target="_blank"
+                        style="display:inline-flex;align-items:center;gap:6px;background:#06c75533;color:#06c755;padding:6px 16px;border-radius:8px;font-size:0.8rem;font-weight:600;text-decoration:none;border:1px solid #06c75544;">
+                        &#128172; 聯繫 LINE 小編
+                    </a>
+                </div>
+            </div>
+        </div>

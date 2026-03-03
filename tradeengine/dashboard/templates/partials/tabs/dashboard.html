@@ -1,0 +1,109 @@
+        <div class="tab-content active" id="tab-dashboard">
+            <div class="tab-tip" id="tip-dashboard">
+                <span class="tab-tip-icon">&#128161;</span>
+                <div><strong>儀表板</strong> — 查看所有機器人的即時狀態與綜合損益。點「建立」可快速新增機器人。新手請先前往 <a href="#"
+                        onclick="switchTab('account');return false;">帳戶</a> 設定 API 金鑰，再到 <a href="#"
+                        onclick="switchTab('backtest');return false;">回測</a> 驗證策略。</div>
+                <button class="tip-close" onclick="this.parentElement.style.display='none'" title="關閉">&times;</button>
+            </div>
+            <!-- Stats Row -->
+            <div class="stats-row">
+                <div class="stat-card">
+                    <div style="display:flex; justify-content:space-between; align-items:center;">
+                        <div class="stat-label">機器人資金配置</div>
+                        <i data-lucide="wallet" style="color:#6b7280; width:18px;"></i>
+                    </div>
+                    <div class="stat-value" id="dash-allocation">$0</div>
+                    <div class="stat-tags">
+                        <span class="stat-tag active">即時</span>
+                        <span class="stat-tag live">Live data</span>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div style="display:flex; justify-content:space-between; align-items:center;">
+                        <div class="stat-label">損益 P&L</div>
+                        <i data-lucide="trending-up" style="color:#00c853; width:18px;"></i>
+                    </div>
+                    <div class="stat-value" id="dash-pnl" style="color:#00c853;">+0.00%</div>
+                    <div class="stat-tags">
+                        <span class="stat-tag active">今日</span>
+                        <span class="stat-tag live">Live data</span>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div style="display:flex; justify-content:space-between; align-items:center;">
+                        <div class="stat-label">運行中機器人</div>
+                        <i data-lucide="bot" style="color:#f7931a; width:18px;"></i>
+                    </div>
+                    <div class="stat-value" id="dash-active-bots">0</div>
+                    <div class="stat-tags">
+                        <span class="stat-tag active">Running</span>
+                        <span class="stat-tag live">Live data</span>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div style="display:flex; justify-content:space-between; align-items:center;">
+                        <div class="stat-label">總勝率</div>
+                        <i data-lucide="bar-chart-3" style="color:#29b6f6; width:18px;"></i>
+                    </div>
+                    <div class="stat-value" id="dash-winrate">0.0%</div>
+                    <div class="stat-tags">
+                        <span class="stat-tag active">今日</span>
+                        <span class="stat-tag live">Live data</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Bottom Grid: Profit Chart + Bot List -->
+            <div class="dash-grid">
+                <!-- Left: Combined Profit Chart -->
+                <div class="dash-card">
+                    <div class="dash-card-header">
+                        <div>
+                            <h2>所有機器人損益</h2>
+                            <p>所有機器人的綜合資金表現</p>
+                        </div>
+                    </div>
+                    <div class="dash-pnl-summary">
+                        <div><span>交易數:</span><strong id="dash-total-trades">0</strong></div>
+                        <div><span>勝率:</span><strong id="dash-total-winrate">0.0%</strong></div>
+                        <div><span>損益:</span><strong id="dash-total-pnl" style="color:#00c853;">+$0.00</strong></div>
+                    </div>
+                    <div class="chart-container-sm">
+                        <canvas id="dashPnlChart"></canvas>
+                    </div>
+                </div>
+
+                <!-- Right: Trading Bots Quick View -->
+                <div class="dash-card">
+                    <div class="dash-card-header">
+                        <div>
+                            <h2>交易機器人</h2>
+                            <p>管理你的自動交易機器人</p>
+                        </div>
+                        <div style="display:flex;gap:8px;">
+                            <button class="btn btn-sm btn-outline" onclick="loadDashboard()"><i data-lucide="refresh-cw"
+                                    style="width:14px; height:14px;"></i> 刷新</button>
+                            <button class="btn btn-sm btn-accent" onclick="switchTab('bots');showCreateBotModal();"><i
+                                    data-lucide="plus" style="width:14px; height:14px;"></i> 建立</button>
+                        </div>
+                    </div>
+                    <div class="dash-bot-tabs">
+                        <button class="dash-bot-tab active" onclick="filterDashBots('running')">運行中</button>
+                        <button class="dash-bot-tab" onclick="filterDashBots('all')">全部</button>
+                    </div>
+                    <div id="dash-bot-list">
+                        <div class="dash-empty">
+                            <p style="font-size:1.1rem;font-weight:600;">尚無機器人</p>
+                            <p>建立你的第一個自動交易機器人</p>
+                            <button class="btn btn-sm btn-accent"
+                                style="margin-top:12px; display:flex; align-items:center; gap:6px;"
+                                onclick="switchTab('bots');showCreateBotModal();">
+                                <i data-lucide="plus-circle" style="width:16px; height:16px;"></i>
+                                建立機器人
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>

@@ -23,7 +23,7 @@ _BOT_FIELDS = [
     "max_drawdown_pct", "created_at", "status", "signal_source",
     "webhook_token", "total_pnl", "total_trades", "win_rate",
     "last_signal", "last_signal_time", "trade_history", "error_msg",
-    "auto_start",
+    "auto_start", "leverage", "margin_mode",
 ]
 
 
@@ -49,6 +49,8 @@ class BotConfig:
     sl_pct: float | None = None
     tp_pct: float | None = None
     max_drawdown_pct: float = 20.0
+    leverage: float = 1.0
+    margin_mode: str = "isolated"
     created_at: str = ""
     status: str = "stopped"
     # Webhook support
@@ -63,6 +65,8 @@ class BotConfig:
     trade_history: list[dict] = field(default_factory=list)
     error_msg: str = ""
     auto_start: bool = False
+    leverage: float = 1.0
+    margin_mode: str = "isolated"
 
 
 def _bot_to_row(bot: BotConfig) -> dict:
@@ -91,6 +95,8 @@ def _bot_to_row(bot: BotConfig) -> dict:
         "trade_history": bot.trade_history[-50:],
         "error_msg": "",
         "auto_start": bot.auto_start,
+        "leverage": bot.leverage,
+        "margin_mode": bot.margin_mode,
     }
 
 
@@ -98,6 +104,8 @@ def _row_to_bot(row: dict) -> BotConfig:
     """Convert a DB row / JSON dict to BotConfig."""
     # Ensure defaults for missing fields
     row.setdefault("user_id", "")
+    row.setdefault("leverage", 1.0)
+    row.setdefault("margin_mode", "isolated")
     row.setdefault("signal_source", "strategy")
     row.setdefault("webhook_token", "")
     row.setdefault("trade_history", [])
@@ -242,6 +250,7 @@ class BotManager:
         tp_pct: float | None = None,
         user_id: str = "",
         signal_source: str = "strategy",
+        leverage: float = 1.0,
     ) -> BotConfig:
         """Create a new trading bot."""
         bot_id = str(uuid.uuid4())[:8]
@@ -260,6 +269,7 @@ class BotManager:
             tp_pct=tp_pct,
             signal_source=signal_source,
             webhook_token=webhook_token,
+            leverage=leverage,
             created_at=datetime.now(timezone.utc).isoformat(),
         )
         self._bots[bot_id] = bot
@@ -399,6 +409,7 @@ class BotManager:
             else:
                 # Pionex crypto — WebSocket-based trading
                 from tradeengine.data.pionex_client import PionexClient
+                from tradeengine.data.pionex_futures_client import PionexFuturesClient
                 from tradeengine.trading.engine import LiveTradingEngine
                 from tradeengine.trading.paper_executor import PaperExecutor
                 from tradeengine.trading.pionex_executor import PionexExecutor
@@ -406,21 +417,20 @@ class BotManager:
                 key = api_key or (app_config.pionex.api_key if app_config else "")
                 secret = api_secret or (app_config.pionex.api_secret if app_config else "")
                 client = PionexClient(key, secret)
+                futures_client = None
+                
+                if bot.leverage > 1.0 or "_PERP" in bot.symbol:
+                    futures_client = PionexFuturesClient(key, secret)
 
                 if bot.paper_mode:
                     executor = PaperExecutor(bot.capital)
                 else:
-                    if "_PERP" in bot.symbol:
-                        bot.status = "error"
-                        bot.error_msg = "合約交易對僅支援模擬交易（Pionex API 未開放合約下單）"
-                        self._save_one_bot(bot)
-                        return False
                     if not key or key == "your_api_key_here":
                         bot.status = "error"
                         bot.error_msg = "Pionex API Key not configured"
                         self._save_one_bot(bot)
                         return False
-                    executor = PionexExecutor(client)
+                    executor = PionexExecutor(client, futures_client=futures_client)
 
                 shared_ws = await self._get_shared_ws()
 
@@ -433,6 +443,7 @@ class BotManager:
                     params=bot.params,
                     risk_config=risk_config,
                     initial_capital=bot.capital,
+                    leverage=bot.leverage,
                     shared_ws=shared_ws,
                 )
 

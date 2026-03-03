@@ -18,19 +18,25 @@ def calc_supertrend(high: pd.Series, low: pd.Series, close: pd.Series,
     Returns (supertrend_line, direction) where direction is 1 for uptrend, -1 for downtrend.
     """
     hl2 = (high + low) / 2
-    # ATR
+    # ATR (Wilder's Moving Average / RMA)
     tr = pd.concat([
         high - low,
         (high - close.shift(1)).abs(),
         (low - close.shift(1)).abs(),
     ], axis=1).max(axis=1)
-    atr = tr.rolling(window=period).mean()
+    atr = tr.ewm(alpha=1 / period, adjust=False).mean()
 
     upper_band = hl2 + multiplier * atr
     lower_band = hl2 - multiplier * atr
 
     supertrend = pd.Series(np.nan, index=close.index)
     direction = pd.Series(1, index=close.index, dtype=int)
+
+    # Initialize first valid index
+    first_idx = period - 1
+    if first_idx < len(close):
+        direction.iloc[:first_idx] = 1
+        supertrend.iloc[:first_idx] = lower_band.iloc[:first_idx]
 
     for i in range(period, len(close)):
         if close.iloc[i] > upper_band.iloc[i - 1]:

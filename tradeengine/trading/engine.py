@@ -41,6 +41,7 @@ class LiveTradingEngine:
         params: dict[str, Any],
         risk_config: RiskConfig | None = None,
         initial_capital: float = 10000.0,
+        leverage: float = 1.0,
         lookback: int = 200,
         shared_ws: PionexWebSocket | None = None,
     ):
@@ -52,6 +53,7 @@ class LiveTradingEngine:
         self.tf = Timeframe(timeframe)
         self.params = params
         self.initial_capital = initial_capital
+        self.leverage = min(leverage, 5.0)  # Constraint
         self.lookback = lookback
 
         self.position_manager = PositionManager()
@@ -249,7 +251,10 @@ class LiveTradingEngine:
     async def _open_position(self, side: Side, price: float):
         """Open a new position."""
         balance = await self.executor.get_balance("USDT")
-        size = self.risk_manager.calculate_position_size(balance, price)
+        # Calculate position size with leverage
+        size = self.risk_manager.calculate_position_size(
+            self.symbol, price, leverage=self.leverage
+        )
 
         if size <= 0:
             logger.warning("Calculated position size is 0, skipping")

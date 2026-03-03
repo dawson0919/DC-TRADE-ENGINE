@@ -1,0 +1,84 @@
+        <div class="tab-content" id="tab-guide">
+            <div style="max-width:800px;">
+                <h2 style="color:#f7931a;margin-bottom:20px;">快速上手教學</h2>
+
+                <div class="guide-step">
+                    <span class="step-num">1</span>
+                    <h3>設定 Pionex API Key</h3>
+                    <p>前往「帳戶」分頁，輸入你的 Pionex API 金鑰。</p>
+                    <ul>
+                        <li>登入 <a href="https://www.pionex.com/en/apiManagement" target="_blank"
+                                style="color:#29b6f6;">Pionex API 管理頁面</a></li>
+                        <li>建立 API，勾選 <code>Reading</code> + <code>Trading</code></li>
+                        <li>到「帳戶」分頁貼入金鑰</li>
+                    </ul>
+                    <div class="warn">API Secret 只會在建立時顯示一次，請務必妥善保存。</div>
+                </div>
+
+                <div class="guide-step">
+                    <span class="step-num">2</span>
+                    <h3>回測驗證策略</h3>
+                    <p>先用回測確認策略表現。重點指標：<strong>夏普比率 > 1</strong>、<strong>最大回撤 < 20%</strong>、<strong>獲利因子 > 1.5</strong>
+                    </p>
+                </div>
+
+                <div class="guide-step">
+                    <span class="step-num">3</span>
+                    <h3>建立交易機器人</h3>
+                    <p>建議先用「模擬交易」模式測試，確認穩定後再切換「即時交易」。</p>
+                    <div class="warn">即時交易使用真實資金，請務必設定停損（建議 2-5%）。</div>
+                </div>
+
+                <div class="guide-step">
+                    <span class="step-num">4</span>
+                    <h3>TradingView Webhook 整合</h3>
+                    <p>你可以用 TradingView 的策略信號來觸發交易，不需要使用內建策略。</p>
+                    <ul>
+                        <li>建立機器人時選擇「TradingView Webhook」作為信號來源</li>
+                        <li>建立後會取得 Webhook URL 和 Alert Message 模板</li>
+                        <li>在 TradingView 建立 Alert，將 Webhook URL 貼入，Message 貼入模板</li>
+                        <li>啟動機器人後，TradingView 觸發 Alert 時會自動執行交易</li>
+                    </ul>
+                    <p style="margin-top:8px;">支援的
+                        action：<code>buy</code>（做多）、<code>sell</code>（做空）、<code>close</code>（平倉）</p>
+                </div>
+
+                <div class="guide-step">
+                    <span class="step-num">?</span>
+                    <h3>策略簡介</h3>
+                    <p style="margin-bottom:8px;">共 15 種內建策略，分為四大類：</p>
+                    <p style="margin:8px 0 4px;"><span style="color:#00c853;font-weight:600;">📈 趨勢追蹤</span> —
+                        適合單邊上漲/下跌行情</p>
+                    <ul>
+                        <li><strong>ma_crossover</strong>：均線交叉。快線穿越慢線判斷趨勢方向。</li>
+                        <li><strong>macd</strong>：MACD 交叉。MACD 線穿越訊號線進出場。</li>
+                        <li><strong>donchian</strong>：唐奇安通道突破。價格創新高/低做多/做空。</li>
+                        <li><strong>supertrend</strong>：SuperTrend 趨勢追蹤。基於 ATR 動態止損線翻轉。</li>
+                        <li><strong>vwap_crossover</strong>：VWAP 交叉。價格穿越成交量加權平均價觸發信號，可加標準差帶及 EMA 過濾。</li>
+                        <li><strong>triple_ema</strong>：三刀流。三條 EMA 同向排列進場。</li>
+                        <li><strong>turtle_breakout</strong>：海龜突破。偵測樞紐高低點突破進場。</li>
+                        <li><strong>dc_turtle</strong>：[DC] 海龜停利停損。樞紐突破進場 + 停利/停損/移動停利三重出場。</li>
+                        <li><strong>granville_pro</strong>：葛蘭碧大師。EMA 交叉 + 停損偏離。</li>
+                    </ul>
+                    <p style="margin:8px 0 4px;"><span style="color:#29b6f6;font-weight:600;">🔄 震盪回歸</span> — 適合盤整行情
+                    </p>
+                    <ul>
+                        <li><strong>rsi</strong>：RSI 超買超賣。超賣做多、超買做空。</li>
+                        <li><strong>bollinger</strong>：布林通道。價格觸及通道邊界反向操作。</li>
+                    </ul>
+                    <p style="margin:8px 0 4px;"><span style="color:#ab47bc;font-weight:600;">🔗 複合指標</span> — 多重確認降低假信號
+                    </p>
+                    <ul>
+                        <li><strong>combined</strong>：EMA 趨勢 + RSI 過濾 + MACD 確認。</li>
+                        <li><strong>donchian_supertrend</strong>：唐奇安通道突破 + SuperTrend 趨勢過濾，雙重確認減少假突破。</li>
+                        <li><strong>ichimoku_cloud</strong>：一目均衡表雲圖突破 + EMA 200 趨勢濾網，多重確認提高信號品質。</li>
+                    </ul>
+                    <p style="margin:8px 0 4px;"><span style="color:#ff9800;font-weight:600;">🏀 動能突破</span> — 連續 K
+                        線動能判斷</p>
+                    <ul>
+                        <li><strong>consecutive_breakout</strong>：多空區域連續 K 線突破。</li>
+                    </ul>
+                    <p style="margin-top:8px;color:#6b7280;font-size:0.85rem;">詳細參數與說明請前往「策略」分頁查看。</p>
+                </div>
+            </div>
+        </div>

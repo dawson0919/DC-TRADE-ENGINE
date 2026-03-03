@@ -1,0 +1,129 @@
+        <div class="tab-content" id="tab-optimize">
+            <div class="tab-tip" id="tip-optimize">
+                <span class="tab-tip-icon">&#9881;</span>
+                <div><strong>參數優化</strong> — 自動測試策略的不同參數組合，找出最佳設定。選擇策略後點「開始優化」，系統會窮舉所有參數組合並排名。結果按夏普比率排序，直接點「套用」可帶入回測。建議用
+                    <strong>1000+ 根K線</strong>的數據量以確保結果穩定。
+                </div>
+                <button class="tip-close" onclick="this.parentElement.style.display='none'" title="關閉">&times;</button>
+            </div>
+            <div class="grid">
+                <div class="sidebar">
+                    <h2 style="display:flex; align-items:center; gap:8px;">
+                        <i data-lucide="activity" style="width:20px; height:20px;"></i>
+                        參數優化設定
+                    </h2>
+                    <div class="form-group">
+                        <label>策略</label>
+                        <select id="opt-strategy">
+                            {% for s in strategies %}
+                            <option value="{{ s.name }}">{{ s.display_name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>資料來源</label>
+                        <select id="opt-source" onchange="toggleSource('opt')">
+                            {% if csv_files %}<option value="csv">CSV 檔案（快速）</option>{% endif %}
+                            <option value="api">線上 API（Pionex / Yahoo）</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>時間框架</label>
+                        <select id="opt-timeframe" onchange="filterCsvByTimeframe('opt')">
+                            <option value="15m">15 分鐘</option>
+                            <option value="1h" selected>1 小時</option>
+                            <option value="4h">4 小時</option>
+                            <option value="1d">1 天</option>
+                        </select>
+                    </div>
+                    <div id="opt-api-fields" {% if csv_files %}style="display:none;" {% endif %}>
+                        <div class="form-group">
+                            <label>交易對</label>
+                            <select id="opt-symbol">
+                                <optgroup label="加密貨幣 (Pionex)">
+                                    <option value="BTC_USDT">BTC/USDT</option>
+                                    <option value="ETH_USDT">ETH/USDT</option>
+                                    <option value="XAG_USDT_PERP">XAG/USDT (白銀合約)</option>
+                                    <option value="SOL_USDT">SOL/USDT</option>
+                                    <option value="BNB_USDT">BNB/USDT</option>
+                                    <option value="PAXG_USDT">PAXG/USDT (黃金)</option>
+                                </optgroup>
+                                <optgroup label="傳統期貨 (Yahoo Finance)">
+                                    <option value="NQ=F">NQ (納斯達克期貨)</option>
+                                    <option value="ES=F">ES (S&P 500 期貨)</option>
+                                    <option value="GC=F">GC (黃金期貨)</option>
+                                    <option value="SI=F">SI (白銀期貨)</option>
+                                    <option value="CL=F">CL (原油期貨)</option>
+                                </optgroup>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>K線數量</label>
+                            <input type="number" id="opt-limit" value="3000" min="500" max="10000">
+                        </div>
+                    </div>
+                    <div id="opt-csv-fields" {% if csv_files %}{% else %}style="display:none;" {% endif %}>
+                        <div class="form-group">
+                            <label>CSV 檔案</label>
+                            <select id="opt-csv">
+                                {% for c in csv_files %}
+                                <option value="{{ c.path }}" data-tf="{{ c.timeframe }}" data-symbol="{{ c.api_symbol or c.symbol }}">{{ c.label }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>排序指標</label>
+                        <select id="opt-sort">
+                            <option value="sharpe_ratio">夏普比率</option>
+                            <option value="total_return_pct">總報酬率</option>
+                            <option value="profit_factor">獲利因子</option>
+                            <option value="sortino_ratio">索提諾比率</option>
+                            <option value="calmar_ratio">卡爾馬比率</option>
+                        </select>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Top N 結果</label>
+                            <input type="number" id="opt-topn" value="10" min="1" max="50">
+                        </div>
+                        <div class="form-group">
+                            <label>最大組合數</label>
+                            <input type="number" id="opt-maxcombos" value="2000" min="100" max="10000">
+                        </div>
+                    </div>
+                    <div class="form-group" style="margin-top:12px;padding-top:12px;border-top:1px solid #1e1e2e;">
+                        <label>樣本外驗證 (OOS %)</label>
+                        <div style="display:flex;align-items:center;gap:8px;">
+                            <input type="range" id="opt-oos" min="0" max="50" value="30" step="5"
+                                oninput="document.getElementById('opt-oos-val').textContent=this.value+'%'"
+                                style="flex:1;">
+                            <span id="opt-oos-val" style="min-width:36px;font-weight:600;color:#f7931a;">30%</span>
+                        </div>
+                        <small style="color:#6b7280;">IS 上優化，OOS 上驗證</small>
+                    </div>
+                    <button type="button" class="btn" id="opt-runBtn" onclick="runOptimize()">
+                        <i data-lucide="zap" style="width:18px; height:18px;"></i>
+                        開始優化
+                    </button>
+                </div>
+                <div class="main">
+                    <div class="card">
+                        <h3>優化結果</h3>
+                        <div id="opt-content">
+                            <div class="loading">設定參數後按「開始優化」</div>
+                        </div>
+                    </div>
+                    <div class="card" id="opt-historyCard">
+                        <h3 style="display:flex;align-items:center;justify-content:space-between;">
+                            優化歷史
+                            <button type="button" class="btn" onclick="loadOptimizeHistory()"
+                                style="font-size:0.75rem;padding:4px 12px;">重新整理</button>
+                        </h3>
+                        <div id="opt-historyContent">
+                            <div class="loading">載入中...</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>

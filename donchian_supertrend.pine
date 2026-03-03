@@ -1,0 +1,47 @@
+//@version=5
+strategy("Donchian Momentum + SuperTrend", overlay=true, initial_capital=10000, default_qty_type=strategy.percent_of_equity, default_qty_value=100)
+
+// --- Inputs ---
+donchianEntry = input.int(20, "Donchian Entry Period")
+donchianExit = input.int(10, "Donchian Exit Period")
+stPeriod = input.int(10, "SuperTrend ATR Period")
+stMult = input.float(3.0, "SuperTrend Multiplier")
+
+// --- Indicators ---
+// Donchian Channels
+upper = ta.highest(high, donchianEntry)[1]
+lower = ta.lowest(low, donchianEntry)[1]
+exitLower = ta.lowest(low, donchianExit)[1]
+exitUpper = ta.highest(high, donchianExit)[1]
+
+// SuperTrend
+[supertrend, direction] = ta.supertrend(stMult, stPeriod)
+
+// --- Conditions ---
+stUp = direction < 0
+stDown = direction > 0
+
+longCondition = ta.crossover(close, upper) and stUp
+shortCondition = ta.crossunder(close, lower) and stDown
+
+longExit = ta.crossunder(close, exitLower) or ta.crossover(direction, 0)
+shortExit = ta.crossover(close, exitUpper) or ta.crossunder(direction, 0)
+
+// --- Execution ---
+if (longCondition)
+    strategy.entry("Long", strategy.long)
+
+if (shortCondition)
+    strategy.entry("Short", strategy.short)
+
+if (longExit)
+    strategy.close("Long")
+
+if (shortExit)
+    strategy.close("Short")
+
+// --- Plotting ---
+plot(upper, "Donchian Upper", color=color.new(color.green, 50))
+plot(lower, "Donchian Lower", color=color.new(color.red, 50))
+plot(stUp ? supertrend : na, "ST Up", color=color.green, style=plot.style_linebr)
+plot(stDown ? supertrend : na, "ST Down", color=color.red, style=plot.style_linebr)

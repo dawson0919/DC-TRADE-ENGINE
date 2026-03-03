@@ -1,0 +1,147 @@
+        <div class="tab-content" id="tab-backtest">
+            <div class="tab-tip" id="tip-backtest">
+                <span class="tab-tip-icon">&#128200;</span>
+                <div><strong>回測</strong> — 用歷史數據驗證策略表現。選擇策略和交易對，點「執行回測」即可。關鍵指標：<strong>夏普比率 >
+                        1</strong>（風險調整報酬好）、<strong>最大回撤 < 20%</strong>（風險可控）、<strong>獲利因子 >
+                                1.5</strong>（盈虧比佳）。回測結果會自動儲存到下方歷史。</div>
+                <button class="tip-close" onclick="this.parentElement.style.display='none'" title="關閉">&times;</button>
+            </div>
+            <div class="grid">
+                <div class="sidebar">
+                    <h2 style="display:flex; align-items:center; gap:8px;">
+                        <i data-lucide="settings-2" style="width:20px; height:20px;"></i>
+                        回測設定
+                    </h2>
+                    <div class="form-group">
+                        <label>策略</label>
+                        <select id="bt-strategy" onchange="loadStrategyParams('bt')">
+                            {% for s in strategies %}
+                            <option value="{{ s.name }}">{{ s.display_name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>資料來源</label>
+                        <select id="bt-source" onchange="toggleSource('bt')">
+                            {% if csv_files %}<option value="csv">CSV 檔案（快速）</option>{% endif %}
+                            <option value="api">線上 API（Pionex / Yahoo）</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>時間框架</label>
+                        <select id="bt-timeframe" onchange="filterCsvByTimeframe('bt')">
+                            <option value="15m">15 分鐘</option>
+                            <option value="1h" selected>1 小時</option>
+                            <option value="4h">4 小時</option>
+                            <option value="1d">1 天</option>
+                        </select>
+                    </div>
+                    <div id="bt-api-fields" {% if csv_files %}style="display:none;" {% endif %}>
+                        <div class="form-group">
+                            <label>交易對</label>
+                            <select id="bt-symbol">
+                                <optgroup label="加密貨幣 (Pionex)">
+                                    <option value="BTC_USDT">BTC/USDT</option>
+                                    <option value="ETH_USDT">ETH/USDT</option>
+                                    <option value="XAG_USDT_PERP">XAG/USDT (白銀合約)</option>
+                                    <option value="SOL_USDT">SOL/USDT</option>
+                                    <option value="BNB_USDT">BNB/USDT</option>
+                                    <option value="PAXG_USDT">PAXG/USDT (黃金)</option>
+                                </optgroup>
+                                <optgroup label="傳統期貨 (Yahoo Finance)">
+                                    <option value="NQ=F">NQ (納斯達克期貨)</option>
+                                    <option value="ES=F">ES (S&P 500 期貨)</option>
+                                    <option value="GC=F">GC (黃金期貨)</option>
+                                    <option value="SI=F">SI (白銀期貨)</option>
+                                    <option value="CL=F">CL (原油期貨)</option>
+                                </optgroup>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>K線數量</label>
+                            <input type="number" id="bt-limit" value="2000" min="100" max="10000">
+                        </div>
+                    </div>
+                    <div id="bt-csv-fields" {% if csv_files %}{% else %}style="display:none;" {% endif %}>
+                        <div class="form-group">
+                            <label>CSV 檔案</label>
+                            <select id="bt-csv">
+                                {% for c in csv_files %}
+                                <option value="{{ c.path }}" data-tf="{{ c.timeframe }}" data-symbol="{{ c.api_symbol or c.symbol }}">{{ c.label }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>初始資金 (USDT)</label>
+                        <input type="number" id="bt-capital" value="10000" min="100">
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>停損 %</label>
+                            <input type="number" id="bt-sl" placeholder="例: 2.0" step="0.1" min="0">
+                        </div>
+                        <div class="form-group">
+                            <label>停利 %</label>
+                            <input type="number" id="bt-tp" placeholder="例: 5.0" step="0.1" min="0">
+                        </div>
+                    </div>
+                    <div id="bt-params" class="param-inputs"></div>
+                    <div class="form-group" style="margin-top:12px;padding-top:12px;border-top:1px solid #1e1e2e;">
+                        <label>樣本外驗證 (OOS %)</label>
+                        <div style="display:flex;align-items:center;gap:8px;">
+                            <input type="range" id="bt-oos" min="0" max="50" value="30" step="5"
+                                oninput="document.getElementById('bt-oos-val').textContent=this.value+'%'"
+                                style="flex:1;">
+                            <span id="bt-oos-val" style="min-width:36px;font-weight:600;color:#f7931a;">30%</span>
+                        </div>
+                        <small style="color:#6b7280;">0% = 不分割，建議 20-30%</small>
+                    </div>
+                    <button type="button" class="btn" id="bt-runBtn" onclick="runBacktest()">
+                        <i data-lucide="play" style="width:18px; height:18px;"></i>
+                        執行回測
+                    </button>
+                </div>
+                <div class="main">
+                    <div class="card">
+                        <h3>回測指標</h3>
+                        <div id="bt-metricsContent">
+                            <div class="loading">選擇策略並執行回測</div>
+                        </div>
+                    </div>
+                    <div class="card">
+                        <h3>資金曲線</h3>
+                        <div class="chart-container"><canvas id="equityChart"></canvas></div>
+                    </div>
+                    <div class="card" id="bt-tradesCard" style="display:none;">
+                        <h3>交易記錄 <span id="bt-tradeCount" style="color:#6b7280;font-size:0.85rem;"></span></h3>
+                        <div style="overflow-x:auto;">
+                            <table class="data-table">
+                                <thead>
+                                    <tr>
+                                        <th>進場時間</th>
+                                        <th>出場時間</th>
+                                        <th>方向</th>
+                                        <th>進場價</th>
+                                        <th>出場價</th>
+                                        <th>損益</th>
+                                        <th>報酬率</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="bt-tradesBody"></tbody>
+                            </table>
+                        </div>
+                    </div>
+                    <div class="card" id="bt-historyCard">
+                        <h3 style="display:flex;align-items:center;justify-content:space-between;">
+                            回測歷史
+                            <button type="button" class="btn" onclick="loadBacktestHistory()"
+                                style="font-size:0.75rem;padding:4px 12px;">重新整理</button>
+                        </h3>
+                        <div id="bt-historyContent">
+                            <div class="loading">載入中...</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>

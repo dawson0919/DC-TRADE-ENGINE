@@ -1,0 +1,25 @@
+        <div class="tab-content" id="tab-admin">
+            <div class="tab-tip" id="tip-admin">
+                <span class="tab-tip-icon">&#128736;</span>
+                <div><strong>管理員</strong> — 管理所有註冊使用者。可直接編輯 Email 和名稱（點擊欄位修改，離開自動儲存）。調整機器人上限控制每位使用者可建立的 Bot
+                    數量。「停用」可暫時禁止用戶登入操作。</div>
+                <button class="tip-close" onclick="this.parentElement.style.display='none'" title="關閉">&times;</button>
+            </div>
+            <div class="card">
+                <h3 style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;">
+                    使用者管理
+                    <span style="display:flex;gap:8px;align-items:center;">
+                        <button class="btn btn-sm" onclick="reloadBotsFromDB(this)"
+                            style="font-size:0.78rem;padding:4px 10px;">重載 Bots</button>
+                        <button class="btn btn-sm" onclick="syncClerkEmails(this)"
+                            style="font-size:0.78rem;padding:4px 10px;">同步 Email</button>
+                        <input type="text" id="admin-search" placeholder="搜尋 Email / 名稱 / ID..."
+                            oninput="filterAdminUsers()"
+                            style="width:280px;padding:6px 12px;background:#0a0a0f;border:1px solid #1e1e2e;border-radius:6px;color:#e7e9ea;font-size:0.85rem;">
+                    </span>
+                </h3>
+                <div id="admin-users">
+                    <div class="loading">載入中...</div>
+                </div>
+            </div>
+        </div>

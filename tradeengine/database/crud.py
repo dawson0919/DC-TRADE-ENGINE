@@ -108,13 +108,18 @@ async def toggle_user_active(client: Any, clerk_id: str) -> bool:
 
 
 async def update_user_role(client: Any, clerk_id: str, role: str) -> bool:
-    """Update user role and automatically adjust max_bots."""
+    """Update user role and adjust max_bots (preserve manual boosts)."""
     if role not in ROLE_BOT_LIMITS:
         return False
     user = await get_user(client, clerk_id)
     if not user:
         return False
-    max_bots = ROLE_BOT_LIMITS[role]
+    
+    # If the new role's limit is higher than current, upgrade it.
+    # If current is higher (manual boost), keep the higher value.
+    new_limit = ROLE_BOT_LIMITS[role]
+    max_bots = max(new_limit, user.max_bots or 0)
+    
     client.table("users").update({"role": role, "max_bots": max_bots}).eq("clerk_id", clerk_id).execute()
     return True
 
