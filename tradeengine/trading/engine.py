@@ -42,6 +42,7 @@ class LiveTradingEngine:
         risk_config: RiskConfig | None = None,
         initial_capital: float = 10000.0,
         lookback: int = 200,
+        shared_ws: PionexWebSocket | None = None,
     ):
         self.strategy = strategy
         self.executor = executor
@@ -61,7 +62,10 @@ class LiveTradingEngine:
         self._running = False
         self._candle_buffer: deque[dict] = deque(maxlen=lookback)
         self._current_candle: dict | None = None
+        self._shared_ws = shared_ws
         self._ws: PionexWebSocket | None = None
+        self._owns_ws = False
+        self._stop_event: asyncio.Event | None = None
         self._last_signal_time: float = 0
         self._on_trade_callback: Callable | None = None
 
@@ -76,28 +80,56 @@ class LiveTradingEngine:
             f"{self.symbol} | {self.timeframe}"
         )
         self._running = True
+        self._stop_event = asyncio.Event()
 
         # 1. Load historical candles for lookback
         await self._load_history()
 
         # 2. Connect WebSocket
-        self._ws = PionexWebSocket()
-        await self._ws.connect()
-        await self._ws.subscribe_trade(self.symbol)
+        if self._shared_ws:
+            # Shared mode: reuse existing connection
+            self._ws = self._shared_ws
+            self._owns_ws = False
+            if not self._ws.is_connected:
+                await self._ws.connect()
+            await self._ws.subscribe_trade(self.symbol)
+            self._ws.on_symbol("trade", self.symbol, self._on_trade)
+            await self._ws.ensure_listening()
 
-        self._ws.on("trade", self._on_trade)
+            # 3. Start candle aggregation loop
+            asyncio.create_task(self._candle_loop())
 
-        # 3. Start candle aggregation loop
-        asyncio.create_task(self._candle_loop())
+            # 4. Block until stopped
+            await self._stop_event.wait()
+        else:
+            # Solo mode: create own WebSocket (backward compatible)
+            self._ws = PionexWebSocket()
+            self._owns_ws = True
+            await self._ws.connect()
+            await self._ws.subscribe_trade(self.symbol)
+            self._ws.on("trade", self._on_trade)
 
-        # 4. Main listen loop
-        await self._ws.listen()
+            # 3. Start candle aggregation loop
+            asyncio.create_task(self._candle_loop())
+
+            # 4. Main listen loop (blocks)
+            await self._ws.listen()
 
     async def stop(self):
         """Stop the trading loop."""
         self._running = False
-        if self._ws:
+        if self._ws and self._owns_ws:
+            # Solo mode: close our own WebSocket
             await self._ws.close()
+        elif self._ws and not self._owns_ws:
+            # Shared mode: just unsubscribe, don't close
+            try:
+                await self._ws.unsubscribe_trade(self.symbol)
+            except Exception:
+                pass
+        # Unblock start() if waiting on stop_event
+        if self._stop_event:
+            self._stop_event.set()
         logger.info("Trading engine stopped")
 
     async def _load_history(self):

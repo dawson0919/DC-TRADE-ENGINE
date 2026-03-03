@@ -131,6 +131,7 @@ class BotManager:
         self._webhook_positions: dict[str, dict] = {}
         self._pending_restart: set[str] = set()
         self._db_client: Any = None  # Supabase client
+        self._shared_ws: Any = None  # Shared PionexWebSocket for all Pionex bots
         self._load_bots_json()  # Load from JSON first as fallback
 
     async def init_db(self):
@@ -309,6 +310,39 @@ class BotManager:
             return [b for b in self._bots.values() if b.user_id == user_id]
         return list(self._bots.values())
 
+    # ─── Shared WebSocket ────────────────────────────────────────
+
+    async def _get_shared_ws(self):
+        """Get or create the shared Pionex WebSocket (one connection for all bots)."""
+        from tradeengine.data.pionex_ws import PionexWebSocket
+
+        if self._shared_ws is not None and self._shared_ws.is_connected:
+            return self._shared_ws
+
+        ws = PionexWebSocket()
+        await ws.connect()
+        await ws.ensure_listening()
+        self._shared_ws = ws
+        logger.info("Created shared Pionex WebSocket connection")
+        return ws
+
+    async def _maybe_close_shared_ws(self):
+        """Close the shared WS if no Pionex bots are running."""
+        if self._shared_ws is None:
+            return
+        # Check if any running Pionex bot still needs the WS
+        for bot_id, engine in self._running_engines.items():
+            bot = self._bots.get(bot_id)
+            if bot and bot.status == "running" and "=F" not in bot.symbol:
+                return  # Still have a Pionex bot running
+        # No Pionex bots running — close the shared WS
+        try:
+            await self._shared_ws.close()
+        except Exception:
+            pass
+        self._shared_ws = None
+        logger.info("Closed shared Pionex WebSocket (no active Pionex bots)")
+
     # ─── Start / Stop ─────────────────────────────────────────────
 
     async def start_bot(self, bot_id: str, app_config=None, api_key: str = "", api_secret: str = "") -> bool:
@@ -388,6 +422,8 @@ class BotManager:
                         return False
                     executor = PionexExecutor(client)
 
+                shared_ws = await self._get_shared_ws()
+
                 engine = LiveTradingEngine(
                     strategy=strat,
                     executor=executor,
@@ -397,6 +433,7 @@ class BotManager:
                     params=bot.params,
                     risk_config=risk_config,
                     initial_capital=bot.capital,
+                    shared_ws=shared_ws,
                 )
 
             bot.status = "running"
@@ -479,6 +516,8 @@ class BotManager:
                 self._save_one_bot(bot)
                 await asyncio.sleep(delay)
 
+        # Clean up
+        self._running_engines.pop(bot_id, None)
         if bot.status == "running":
             bot.status = "stopped"
             self._save_one_bot(bot)
@@ -487,6 +526,7 @@ class BotManager:
                 await client.close()
             except Exception:
                 pass
+        await self._maybe_close_shared_ws()
 
     async def stop_bot(self, bot_id: str, user_id: str = "") -> bool:
         """Stop a running bot."""
@@ -515,6 +555,10 @@ class BotManager:
         bot.error_msg = ""
         bot.auto_start = False
         self._save_one_bot(bot)
+
+        # Close shared WS if no more Pionex bots are running
+        await self._maybe_close_shared_ws()
+
         return True
 
     # ─── Webhook Support ─────────────────────────────────────────────
@@ -827,10 +871,9 @@ class BotManager:
                 if not bot:
                     continue
 
-                # Stagger bot startups to avoid WebSocket rate limiting (429)
+                # Stagger bot startups slightly to avoid overloading
                 if i > 0:
-                    stagger = 10.0 + i * 5.0
-                    await asyncio.sleep(stagger)
+                    await asyncio.sleep(2.0)
 
                 try:
                     # Reset error state before retry so start_bot doesn't bail
