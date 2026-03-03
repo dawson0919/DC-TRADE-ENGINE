@@ -65,8 +65,6 @@ class BotConfig:
     trade_history: list[dict] = field(default_factory=list)
     error_msg: str = ""
     auto_start: bool = False
-    leverage: float = 1.0
-    margin_mode: str = "isolated"
 
 
 def _bot_to_row(bot: BotConfig) -> dict:
@@ -301,7 +299,7 @@ class BotManager:
         if bot.status == "running":
             return None
         allowed = {"name", "strategy", "symbol", "timeframe", "capital", "params",
-                   "paper_mode", "sl_pct", "tp_pct"}
+                   "paper_mode", "sl_pct", "tp_pct", "leverage"}
         for key, val in updates.items():
             if key in allowed:
                 setattr(bot, key, val)

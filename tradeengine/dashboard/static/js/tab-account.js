@@ -29,8 +29,12 @@ async function loadApiKeyStatus() {
                 text.innerHTML = '<span style="color:#ff1744;">尚未設定 API 金鑰</span>';
                 delBtn.style.display = 'none';
             }
+        } else {
+            dot.className = 'api-key-dot disconnected';
+            text.innerHTML = '<span style="color:#ff1744;">尚未設定 API 金鑰</span>';
+            delBtn.style.display = 'none';
         }
-    } catch (err) { text.innerHTML = '<span style="color:#6b7280;">無法檢查</span>'; }
+    } catch (err) { dot.className = 'api-key-dot disconnected'; text.innerHTML = '<span style="color:#6b7280;">無法檢查</span>'; }
 }
 
 async function saveApiKey() {

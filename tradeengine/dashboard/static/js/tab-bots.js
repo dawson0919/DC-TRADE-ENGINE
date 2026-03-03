@@ -10,7 +10,7 @@ async function loadBots(force) {
         const bots = await resp.json();
         // Skip re-render if data unchanged (prevents flicker on auto-refresh)
         if (!force) {
-            const bHash = JSON.stringify(bots.map(b => [b.bot_id, b.status, b.total_pnl, b.total_trades, b.win_rate, b.position]));
+            const bHash = JSON.stringify(bots.map(b => [b.bot_id, b.status, b.total_pnl, b.total_trades, b.win_rate, b.position, b.leverage]));
             if (bHash === _botsLastHash) return;
             _botsLastHash = bHash;
         }
@@ -27,8 +27,8 @@ async function loadBots(force) {
             const pnlColor = bot.total_pnl > 0 ? '#00e676' : bot.total_pnl < 0 ? '#ff1744' : '#e7e9ea';
             const pnlSign = bot.total_pnl > 0 ? '+' : '';
             const infoLine = isWebhook
-                ? 'Webhook | ' + bot.symbol + ' | $' + bot.capital.toLocaleString()
-                : bot.strategy + ' | ' + bot.symbol + ' | ' + bot.timeframe + ' | $' + bot.capital.toLocaleString();
+                ? 'Webhook | ' + bot.symbol + ' | $' + bot.capital.toLocaleString() + (bot.leverage > 1 ? ' | ' + bot.leverage + 'x' : '')
+                : bot.strategy + ' | ' + bot.symbol + ' | ' + bot.timeframe + ' | $' + bot.capital.toLocaleString() + (bot.leverage > 1 ? ' | ' + bot.leverage + 'x' : '');
             // Position info
             const pos = bot.position;
             let posHtml = '';

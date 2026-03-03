@@ -869,7 +869,7 @@ def create_app() -> FastAPI:
                 tp_pct=float(data["tp_pct"]) if data.get("tp_pct") else None,
                 user_id=user_id,
                 signal_source=signal_source,
-                leverage=float(data.get("leverage", 1.0)),
+                leverage=max(1.0, min(float(data.get("leverage", 1.0)), 5.0)),
             )
             return _bot_to_dict(bot, bot_manager)
         except Exception as e:
@@ -901,7 +901,7 @@ def create_app() -> FastAPI:
         if "tp_pct" in data:
             updates["tp_pct"] = float(data["tp_pct"]) if data["tp_pct"] else None
         if "leverage" in data:
-            updates["leverage"] = float(data["leverage"])
+            updates["leverage"] = max(1.0, min(float(data["leverage"]), 5.0))
         try:
             bot = bot_manager.update_bot(bot_id, user_id=user_id or "", **updates)
             if not bot:
@@ -1283,6 +1283,7 @@ def _bot_to_dict(bot, mgr=None) -> dict:
         "max_drawdown_pct": bot.max_drawdown_pct,
         "created_at": bot.created_at,
         "status": bot.status,
+        "leverage": bot.leverage,
         "signal_source": bot.signal_source,
         "webhook_token": bot.webhook_token,
         "total_pnl": bot.total_pnl,

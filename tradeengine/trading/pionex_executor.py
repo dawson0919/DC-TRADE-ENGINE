@@ -25,7 +25,7 @@ class PionexExecutor(OrderExecutor):
     ) -> dict:
         logger.info(f"LIVE ORDER: {side} {size} {symbol} @ MARKET (Leverage: {leverage}x)")
         
-        if leverage > 1.0:
+        if leverage > 1.0 or "_PERP" in symbol:
             if not self.futures_client:
                 raise RuntimeError("PionexFuturesClient required for leveraged orders")
             
@@ -53,7 +53,7 @@ class PionexExecutor(OrderExecutor):
     ) -> dict:
         logger.info(f"LIVE ORDER: {side} {size} {symbol} @ {price} (Leverage: {leverage}x)")
         
-        if leverage > 1.0:
+        if leverage > 1.0 or "_PERP" in symbol:
             if not self.futures_client:
                 raise RuntimeError("PionexFuturesClient required for leveraged orders")
                 

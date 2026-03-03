@@ -253,7 +253,7 @@ class LiveTradingEngine:
         balance = await self.executor.get_balance("USDT")
         # Calculate position size with leverage
         size = self.risk_manager.calculate_position_size(
-            self.symbol, price, leverage=self.leverage
+            balance, price, leverage=self.leverage
         )
 
         if size <= 0:
@@ -262,7 +262,9 @@ class LiveTradingEngine:
 
         order_side = "BUY" if side == Side.LONG else "SELL"
         logger.info(f"Opening {side.value} position: {order_side} {size:.8f} {self.symbol} @ {price:.2f}")
-        order = await self.executor.place_market_order(self.symbol, order_side, size)
+        order = await self.executor.place_market_order(
+            self.symbol, order_side, size, leverage=self.leverage
+        )
 
         fill_price = float(order.get("price", price))
         self.position_manager.open_position(self.symbol, side, fill_price, size)
@@ -282,7 +284,9 @@ class LiveTradingEngine:
         pnl = (price - pos.entry_price) * pos.size if pos.side == Side.LONG else (pos.entry_price - price) * pos.size
         order_side = "SELL" if pos.side == Side.LONG else "BUY"
         logger.info(f"Closing {pos.side.value} position: {order_side} {pos.size:.8f} {self.symbol} @ {price:.2f} PnL={pnl:+.2f}")
-        await self.executor.place_market_order(self.symbol, order_side, pos.size)
+        await self.executor.place_market_order(
+            self.symbol, order_side, pos.size, leverage=self.leverage
+        )
         self.position_manager.close_position(self.symbol, price)
 
         if self._on_trade_callback:
