@@ -13,3 +13,6 @@ venv/
 *.parquet
 *.db
 .pytest_cache/
+
+# Claude Code local settings
+.claude/
