@@ -162,11 +162,12 @@ def create_app() -> FastAPI:
                 tf, tf_label = "1d", "1D"
             # Resolve API symbol for auto-supplement
             api_sym = _resolve_csv_symbol(str(f), sym)
+            display_sym = api_sym if api_sym else sym
             csvs.append({
                 "path": str(f), "filename": f.name,
                 "symbol": sym, "timeframe": tf,
                 "api_symbol": api_sym,
-                "label": f"{sym} {tf_label}" if tf_label else sym,
+                "label": f"{display_sym} {tf_label}" if tf_label else display_sym,
             })
         csvs.sort(key=lambda c: (c["symbol"], c["timeframe"]))
         return csvs
