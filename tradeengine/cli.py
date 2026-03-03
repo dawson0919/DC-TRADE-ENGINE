@@ -60,7 +60,7 @@ def backtest(
     config = _load_all()
 
     from tradeengine.backtest.engine import BacktestEngine
-    from tradeengine.data.fetcher import DataFetcher, load_csv
+    from tradeengine.data.fetcher import DataFetcher, load_csv, _resolve_csv_symbol, supplement_csv
     from tradeengine.data.pionex_client import PionexClient
     from tradeengine.data.store import DataStore
     from tradeengine.strategies.registry import get_strategy
@@ -75,6 +75,10 @@ def backtest(
         if csv:
             console.print(f"[bold]CSV 檔案:[/bold] {csv}")
             ohlcv = load_csv(csv)
+            api_sym = _resolve_csv_symbol(csv, symbol)
+            if api_sym:
+                with console.status(f"正在從線上 API 補齊 {api_sym} 最新數據..."):
+                    ohlcv = await supplement_csv(ohlcv, api_sym, timeframe)
         elif _is_yahoo_symbol(symbol):
             from tradeengine.data.yahoo_client import YahooClient
             from tradeengine.data.yahoo_fetcher import YahooFetcher
@@ -152,7 +156,7 @@ def optimize(
 
     from tradeengine.backtest.engine import BacktestEngine
     from tradeengine.backtest.optimizer import OptimizationConfig, build_param_grid, estimate_combinations, optimize as run_optimize
-    from tradeengine.data.fetcher import DataFetcher, load_csv
+    from tradeengine.data.fetcher import DataFetcher, load_csv, _resolve_csv_symbol, supplement_csv
     from tradeengine.data.pionex_client import PionexClient
     from tradeengine.data.store import DataStore
     from tradeengine.strategies.registry import get_strategy
@@ -169,6 +173,10 @@ def optimize(
         # Load data from CSV, Yahoo Finance, or Pionex
         if csv:
             ohlcv = load_csv(csv)
+            api_sym = _resolve_csv_symbol(csv, symbol)
+            if api_sym:
+                with console.status(f"正在從線上 API 補齊 {api_sym} 最新數據..."):
+                    ohlcv = await supplement_csv(ohlcv, api_sym, timeframe)
         elif _is_yahoo_symbol(symbol):
             from tradeengine.data.yahoo_client import YahooClient
             from tradeengine.data.yahoo_fetcher import YahooFetcher

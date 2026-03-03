@@ -3,6 +3,8 @@
 from __future__ import annotations
 
 import logging
+import re
+from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -12,6 +14,94 @@ from tradeengine.data.pionex_client import PionexClient
 from tradeengine.data.store import DataStore
 
 logger = logging.getLogger(__name__)
+
+# Mapping from TradingView CSV symbol fragments → Yahoo/API symbols
+_CSV_SYMBOL_MAP = {
+    "MINI_NQ1!": "NQ=F",
+    "MINI_ES1!": "ES=F",
+    "NQ1!": "NQ=F",
+    "ES1!": "ES=F",
+    "GC1!": "GC=F",
+    "SI1!": "SI=F",
+    "CL1!": "CL=F",
+    "SI_F": "SI=F",
+    "GC_F": "GC=F",
+    "NQ_F": "NQ=F",
+    "ES_F": "ES=F",
+    "CL_F": "CL=F",
+}
+
+_supplement_executor = ThreadPoolExecutor(max_workers=1, thread_name_prefix="csv-supplement")
+
+
+def _resolve_csv_symbol(csv_path: str, fallback_symbol: str = "") -> str:
+    """Infer API symbol from CSV filename or fallback to explicit symbol."""
+    name = Path(csv_path).stem.upper()
+    # Check each mapping key against the filename
+    for fragment, api_sym in _CSV_SYMBOL_MAP.items():
+        if fragment.upper() in name:
+            return api_sym
+    # Fallback to explicit symbol if it looks like a valid API symbol
+    if fallback_symbol and ("=F" in fallback_symbol or "_" in fallback_symbol):
+        return fallback_symbol
+    return ""
+
+
+async def supplement_csv(
+    df: pd.DataFrame,
+    symbol: str,
+    timeframe: str,
+) -> pd.DataFrame:
+    """Supplement CSV data with latest candles from online API.
+
+    Fetches candles newer than the CSV's last timestamp from
+    Yahoo Finance (for futures) or Pionex (for crypto), then merges.
+    """
+    import asyncio
+
+    if df.empty:
+        return df
+
+    last_ts = int(df["timestamp"].iloc[-1])
+    last_dt = df.index[-1]
+    logger.info(f"CSV ends at {last_dt}, fetching newer data for {symbol} {timeframe}...")
+
+    try:
+        if "=F" in symbol:
+            from tradeengine.data.yahoo_client import YahooClient
+            client = YahooClient()
+            loop = asyncio.get_event_loop()
+            klines = await loop.run_in_executor(
+                _supplement_executor,
+                lambda: client.get_klines_full(symbol, timeframe, limit=5000),
+            )
+        else:
+            client = PionexClient("", "")
+            klines = await client.get_klines_full(symbol, timeframe, limit=500)
+            await client.close()
+    except Exception as e:
+        logger.warning(f"Failed to fetch supplement data for {symbol}: {e}")
+        return df
+
+    if not klines:
+        logger.info("No supplement data available")
+        return df
+
+    # Filter: only keep candles AFTER the CSV's last timestamp
+    new_klines = [k for k in klines if k["timestamp"] > last_ts]
+    if not new_klines:
+        logger.info(f"CSV is already up to date (no new candles after {last_dt})")
+        return df
+
+    new_df = DataFetcher._prepare_df(pd.DataFrame(new_klines))
+    combined = pd.concat([df, new_df])
+    combined = combined[~combined.index.duplicated(keep="last")].sort_index()
+
+    logger.info(
+        f"Supplemented {len(new_klines)} new candles: "
+        f"{df.index[0]} ~ {combined.index[-1]} (total {len(combined)})"
+    )
+    return combined
 
 
 def load_csv(path: str | Path) -> pd.DataFrame:
@@ -63,10 +153,10 @@ def load_csv(path: str | Path) -> pd.DataFrame:
     # Detect timestamp unit: if max < 1e12 it is seconds; otherwise ms
     if df["time"].max() < 1e12:
         df["datetime"] = pd.to_datetime(df["time"], unit="s", utc=True)
-        df["timestamp"] = (df["time"] * 1000).astype(int)
+        df["timestamp"] = (df["time"] * 1000).astype("int64")
     else:
         df["datetime"] = pd.to_datetime(df["time"], unit="ms", utc=True)
-        df["timestamp"] = df["time"].astype(int)
+        df["timestamp"] = df["time"].astype("int64")
 
     df = df.set_index("datetime").sort_index()
 

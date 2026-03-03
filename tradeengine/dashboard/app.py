@@ -137,6 +137,7 @@ def create_app() -> FastAPI:
 
     def find_csv_files() -> list[dict]:
         import re
+        from tradeengine.data.fetcher import _resolve_csv_symbol
         tf_map = {"240": "4H", "60": "1H", "15": "15M", "1D": "1D"}
         csvs = []
         for f in CSV_DIR.glob("*.csv"):
@@ -159,9 +160,12 @@ def create_app() -> FastAPI:
                 tf = tf_label.lower()
             elif "1D" in name or "1d" in name:
                 tf, tf_label = "1d", "1D"
+            # Resolve API symbol for auto-supplement
+            api_sym = _resolve_csv_symbol(str(f), sym)
             csvs.append({
                 "path": str(f), "filename": f.name,
                 "symbol": sym, "timeframe": tf,
+                "api_symbol": api_sym,
                 "label": f"{sym} {tf_label}" if tf_label else sym,
             })
         csvs.sort(key=lambda c: (c["symbol"], c["timeframe"]))
@@ -435,7 +439,7 @@ def create_app() -> FastAPI:
         oos_pct: int = 0,
     ):
         from tradeengine.backtest.engine import BacktestEngine
-        from tradeengine.data.fetcher import DataFetcher, load_csv
+        from tradeengine.data.fetcher import DataFetcher, load_csv, _resolve_csv_symbol, supplement_csv
         from tradeengine.data.pionex_client import PionexClient
         from tradeengine.data.store import DataStore
 
@@ -454,6 +458,9 @@ def create_app() -> FastAPI:
 
             if csv_path:
                 ohlcv = load_csv(csv_path)
+                api_sym = _resolve_csv_symbol(csv_path, symbol)
+                if api_sym:
+                    ohlcv = await supplement_csv(ohlcv, api_sym, timeframe)
             elif "=F" in symbol:
                 from tradeengine.data.yahoo_client import YahooClient
                 from tradeengine.data.yahoo_fetcher import YahooFetcher
@@ -627,6 +634,10 @@ def create_app() -> FastAPI:
 
             if csv_path:
                 ohlcv = load_csv(csv_path)
+                from tradeengine.data.fetcher import _resolve_csv_symbol, supplement_csv
+                api_sym = _resolve_csv_symbol(csv_path, symbol)
+                if api_sym:
+                    ohlcv = await supplement_csv(ohlcv, api_sym, timeframe)
             elif "=F" in symbol:
                 from tradeengine.data.yahoo_client import YahooClient
                 from tradeengine.data.yahoo_fetcher import YahooFetcher
