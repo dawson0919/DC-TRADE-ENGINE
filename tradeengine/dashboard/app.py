@@ -814,18 +814,9 @@ def create_app() -> FastAPI:
         user = await _optional_user(request)
         # Auth mode: require login to see bots
         if _db_available and clerk_pk and not user:
-            return JSONResponse([], status_code=401)
+            return JSONResponse({"error": "Unauthorized"}, status_code=401)
         user_id = user["user_id"] if user else ""
         try:
-            # Auto-claim legacy bots (no owner) for admin
-            if user and user["role"] == "admin":
-                claimed = False
-                for b in bot_manager.list_bots():  # all bots
-                    if not b.user_id:
-                        b.user_id = user["user_id"]
-                        claimed = True
-                if claimed:
-                    bot_manager._save_bots()
             return [_bot_to_dict(b, bot_manager) for b in bot_manager.list_bots(user_id=user_id)]
         except Exception as e:
             logger.exception("Failed to list bots")

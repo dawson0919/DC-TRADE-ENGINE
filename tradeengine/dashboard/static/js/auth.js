@@ -83,7 +83,19 @@ async function authFetch(url, options = {}) {
         options.headers = options.headers || {};
         options.headers['Authorization'] = 'Bearer ' + clerkToken;
     }
-    return fetch(url, options);
+    const resp = await fetch(url, options);
+    // On 401, try refreshing token once and retry
+    if (resp.status === 401 && AUTH_ENABLED && window.Clerk && window.Clerk.session) {
+        try {
+            clerkToken = await window.Clerk.session.getToken({ skipCache: true });
+            if (clerkToken) {
+                options.headers = options.headers || {};
+                options.headers['Authorization'] = 'Bearer ' + clerkToken;
+                return fetch(url, options);
+            }
+        } catch (e) { }
+    }
+    return resp;
 }
 
 async function safeFetch(url, options = {}) {
