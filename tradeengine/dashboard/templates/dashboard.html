@@ -1304,7 +1304,7 @@
                             <label>CSV 檔案</label>
                             <select id="bt-csv">
                                 {% for c in csv_files %}
-                                <option value="{{ c.path }}" data-tf="{{ c.timeframe }}">{{ c.label }}</option>
+                                <option value="{{ c.path }}" data-tf="{{ c.timeframe }}" data-symbol="{{ c.api_symbol or c.symbol }}">{{ c.label }}</option>
                                 {% endfor %}
                             </select>
                         </div>
@@ -1453,7 +1453,7 @@
                             <label>CSV 檔案</label>
                             <select id="opt-csv">
                                 {% for c in csv_files %}
-                                <option value="{{ c.path }}" data-tf="{{ c.timeframe }}">{{ c.label }}</option>
+                                <option value="{{ c.path }}" data-tf="{{ c.timeframe }}" data-symbol="{{ c.api_symbol or c.symbol }}">{{ c.label }}</option>
                                 {% endfor %}
                             </select>
                         </div>
@@ -2211,7 +2211,11 @@
         function buildDataUrl(prefix) {
             const source = document.getElementById(prefix + '-source').value;
             const tf = document.getElementById(prefix + '-timeframe').value;
-            if (source === 'csv') return '&csv_path=' + encodeURIComponent(document.getElementById(prefix + '-csv').value) + '&timeframe=' + tf;
+            if (source === 'csv') {
+                const csvSel = document.getElementById(prefix + '-csv');
+                const csvSym = csvSel.options[csvSel.selectedIndex].dataset.symbol || '';
+                return '&csv_path=' + encodeURIComponent(csvSel.value) + '&timeframe=' + tf + (csvSym ? '&symbol=' + encodeURIComponent(csvSym) : '');
+            }
             return '&symbol=' + document.getElementById(prefix + '-symbol').value +
                 '&timeframe=' + tf +
                 '&limit=' + document.getElementById(prefix + '-limit').value;
@@ -2241,6 +2245,10 @@
 
             try {
                 const resp = await authFetch(url);
+                if (!resp.ok) {
+                    const errData = await resp.json().catch(() => ({}));
+                    throw new Error(errData.error || errData.detail || '伺服器錯誤 (' + resp.status + ')');
+                }
                 const data = await resp.json();
                 if (data.error) throw new Error(data.error);
                 if (data.is_metrics) {
@@ -2500,6 +2508,10 @@
 
             try {
                 const resp = await authFetch(url);
+                if (!resp.ok) {
+                    const errData = await resp.json().catch(() => ({}));
+                    throw new Error(errData.error || errData.detail || '伺服器錯誤 (' + resp.status + ')');
+                }
                 const data = await resp.json();
                 if (data.error) throw new Error(data.error);
                 renderOptResults(data);
