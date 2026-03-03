@@ -229,15 +229,17 @@ def create_app() -> FastAPI:
         display_name = data.get("display_name", "").strip()
         if not display_name:
             return JSONResponse({"error": "顯示名稱不能為空"}, status_code=400)
-        from tradeengine.database.connection import get_session
-        session = await get_session()
         try:
-            session.table("users").update({"display_name": display_name}).eq("clerk_id", user["user_id"]).execute()
-            currentUser = user.copy()
-            currentUser["display_name"] = display_name
-            return {"status": "ok", "display_name": display_name}
-        finally:
-            await session.close()
+            from tradeengine.database.connection import get_session
+            session = await get_session()
+            try:
+                session.table("users").update({"display_name": display_name}).eq("clerk_id", user["user_id"]).execute()
+                return {"status": "ok", "display_name": display_name}
+            finally:
+                await session.close()
+        except Exception as e:
+            logger.exception("Failed to update display name")
+            return JSONResponse({"error": str(e)}, status_code=500)
 
     @app.get("/api/account/balance")
     async def api_account_balance(request: Request):
@@ -362,15 +364,19 @@ def create_app() -> FastAPI:
         if not _db_available:
             return JSONResponse({"error": "Database not available"}, status_code=503)
 
-        from tradeengine.database.connection import get_session
-        from tradeengine.database.crud import delete_api_credential
-
-        session = await get_session()
         try:
-            await delete_api_credential(session, user["user_id"])
-            return {"status": "deleted"}
-        finally:
-            await session.close()
+            from tradeengine.database.connection import get_session
+            from tradeengine.database.crud import delete_api_credential
+
+            session = await get_session()
+            try:
+                await delete_api_credential(session, user["user_id"])
+                return {"status": "deleted"}
+            finally:
+                await session.close()
+        except Exception as e:
+            logger.exception("Failed to delete API key")
+            return JSONResponse({"error": str(e)}, status_code=500)
 
     # ─── Strategy API ────────────────────────────────────────────────
 
@@ -799,16 +805,20 @@ def create_app() -> FastAPI:
         if _db_available and clerk_pk and not user:
             return JSONResponse([], status_code=401)
         user_id = user["user_id"] if user else ""
-        # Auto-claim legacy bots (no owner) for admin
-        if user and user["role"] == "admin":
-            claimed = False
-            for b in bot_manager.list_bots():  # all bots
-                if not b.user_id:
-                    b.user_id = user["user_id"]
-                    claimed = True
-            if claimed:
-                bot_manager._save_bots()
-        return [_bot_to_dict(b, bot_manager) for b in bot_manager.list_bots(user_id=user_id)]
+        try:
+            # Auto-claim legacy bots (no owner) for admin
+            if user and user["role"] == "admin":
+                claimed = False
+                for b in bot_manager.list_bots():  # all bots
+                    if not b.user_id:
+                        b.user_id = user["user_id"]
+                        claimed = True
+                if claimed:
+                    bot_manager._save_bots()
+            return [_bot_to_dict(b, bot_manager) for b in bot_manager.list_bots(user_id=user_id)]
+        except Exception as e:
+            logger.exception("Failed to list bots")
+            return JSONResponse({"error": str(e)}, status_code=500)
 
     @app.post("/api/bots")
     async def api_create_bot(request: Request):
@@ -824,22 +834,26 @@ def create_app() -> FastAPI:
                     status_code=403,
                 )
 
-        data = await request.json()
-        signal_source = data.get("signal_source", "strategy")
-        bot = bot_manager.create_bot(
-            name=data.get("name", "New Bot"),
-            strategy=data.get("strategy", "webhook") if signal_source == "webhook" else data["strategy"],
-            symbol=data["symbol"],
-            timeframe=data.get("timeframe", "") if signal_source == "webhook" else data["timeframe"],
-            capital=float(data.get("capital", 10000)),
-            params=data.get("params", {}),
-            paper_mode=data.get("paper_mode", True),
-            sl_pct=float(data["sl_pct"]) if data.get("sl_pct") else None,
-            tp_pct=float(data["tp_pct"]) if data.get("tp_pct") else None,
-            user_id=user_id,
-            signal_source=signal_source,
-        )
-        return _bot_to_dict(bot, bot_manager)
+        try:
+            data = await request.json()
+            signal_source = data.get("signal_source", "strategy")
+            bot = bot_manager.create_bot(
+                name=data.get("name", "New Bot"),
+                strategy=data.get("strategy", "webhook") if signal_source == "webhook" else data["strategy"],
+                symbol=data["symbol"],
+                timeframe=data.get("timeframe", "") if signal_source == "webhook" else data["timeframe"],
+                capital=float(data.get("capital", 10000)),
+                params=data.get("params", {}),
+                paper_mode=data.get("paper_mode", True),
+                sl_pct=float(data["sl_pct"]) if data.get("sl_pct") else None,
+                tp_pct=float(data["tp_pct"]) if data.get("tp_pct") else None,
+                user_id=user_id,
+                signal_source=signal_source,
+            )
+            return _bot_to_dict(bot, bot_manager)
+        except Exception as e:
+            logger.exception("Failed to create bot")
+            return JSONResponse({"error": str(e)}, status_code=500)
 
     @app.put("/api/bots/{bot_id}")
     async def api_update_bot(bot_id: str, request: Request):
@@ -865,10 +879,14 @@ def create_app() -> FastAPI:
             updates["sl_pct"] = float(data["sl_pct"]) if data["sl_pct"] else None
         if "tp_pct" in data:
             updates["tp_pct"] = float(data["tp_pct"]) if data["tp_pct"] else None
-        bot = bot_manager.update_bot(bot_id, user_id=user_id or "", **updates)
-        if not bot:
-            return JSONResponse({"error": "機器人不存在、運行中或無權限"}, status_code=400)
-        return _bot_to_dict(bot, bot_manager)
+        try:
+            bot = bot_manager.update_bot(bot_id, user_id=user_id or "", **updates)
+            if not bot:
+                return JSONResponse({"error": "機器人不存在、運行中或無權限"}, status_code=400)
+            return _bot_to_dict(bot, bot_manager)
+        except Exception as e:
+            logger.exception("Failed to update bot")
+            return JSONResponse({"error": str(e)}, status_code=500)
 
     @app.post("/api/bots/{bot_id}/start")
     async def api_start_bot(bot_id: str, request: Request):
@@ -916,53 +934,65 @@ def create_app() -> FastAPI:
                 if not api_key or api_key == "your_api_key_here":
                     return JSONResponse({"error": "API 金鑰未設定"}, status_code=400)
 
-        if bot.signal_source == "webhook":
-            ok = await bot_manager.start_webhook_bot(
-                bot_id, app_config=None if api_key else config,
-                api_key=api_key, api_secret=api_secret, user_id=user_id or "",
-            )
-        elif api_key:
-            ok = await bot_manager.start_bot(bot_id, app_config=None, api_key=api_key, api_secret=api_secret)
-        else:
-            ok = await bot_manager.start_bot(bot_id, config)
+        try:
+            if bot.signal_source == "webhook":
+                ok = await bot_manager.start_webhook_bot(
+                    bot_id, app_config=None if api_key else config,
+                    api_key=api_key, api_secret=api_secret, user_id=user_id or "",
+                )
+            elif api_key:
+                ok = await bot_manager.start_bot(bot_id, app_config=None, api_key=api_key, api_secret=api_secret)
+            else:
+                ok = await bot_manager.start_bot(bot_id, config)
 
-        if ok:
-            return {"status": "started", "bot_id": bot_id}
-        bot = bot_manager.get_bot(bot_id, user_id=user_id)
-        err = bot.error_msg if bot else "Bot not found"
-        return JSONResponse({"error": err}, status_code=400)
+            if ok:
+                return {"status": "started", "bot_id": bot_id}
+            bot = bot_manager.get_bot(bot_id, user_id=user_id)
+            err = bot.error_msg if bot else "Bot not found"
+            return JSONResponse({"error": err}, status_code=400)
+        except Exception as e:
+            logger.exception("Failed to start bot")
+            return JSONResponse({"error": str(e)}, status_code=500)
 
     @app.post("/api/bots/{bot_id}/stop")
     async def api_stop_bot(bot_id: str, request: Request):
         user = await _optional_user(request)
         user_id = user["user_id"] if user else None
-        ok = await bot_manager.stop_bot(bot_id, user_id=user_id)
-        if ok:
-            return {"status": "stopped", "bot_id": bot_id}
-        return JSONResponse({"error": "Failed to stop"}, status_code=400)
+        try:
+            ok = await bot_manager.stop_bot(bot_id, user_id=user_id)
+            if ok:
+                return {"status": "stopped", "bot_id": bot_id}
+            return JSONResponse({"error": "Failed to stop"}, status_code=400)
+        except Exception as e:
+            logger.exception("Failed to stop bot")
+            return JSONResponse({"error": str(e)}, status_code=500)
 
     @app.delete("/api/bots/{bot_id}")
     async def api_delete_bot(bot_id: str, request: Request):
         user = await _optional_user(request)
         user_id = user["user_id"] if user else None
         is_admin = user and user.get("role") == "admin"
-        # Admin can force-stop and delete any bot
-        if is_admin:
+        try:
+            # Admin can force-stop and delete any bot
+            if is_admin:
+                bot = bot_manager.get_bot(bot_id)
+                if bot and bot.status == "running":
+                    await bot_manager.stop_bot(bot_id)
+                ok = bot_manager.delete_bot(bot_id)
+            else:
+                ok = bot_manager.delete_bot(bot_id, user_id=user_id)
+            if ok:
+                return {"status": "deleted"}
+            # Specific error messages
             bot = bot_manager.get_bot(bot_id)
-            if bot and bot.status == "running":
-                await bot_manager.stop_bot(bot_id)
-            ok = bot_manager.delete_bot(bot_id)
-        else:
-            ok = bot_manager.delete_bot(bot_id, user_id=user_id)
-        if ok:
-            return {"status": "deleted"}
-        # Specific error messages
-        bot = bot_manager.get_bot(bot_id)
-        if not bot:
-            return JSONResponse({"error": "找不到此機器人"}, status_code=404)
-        if bot.status == "running":
-            return JSONResponse({"error": "請先停止機器人再刪除"}, status_code=400)
-        return JSONResponse({"error": "無權限刪除此機器人"}, status_code=403)
+            if not bot:
+                return JSONResponse({"error": "找不到此機器人"}, status_code=404)
+            if bot.status == "running":
+                return JSONResponse({"error": "請先停止機器人再刪除"}, status_code=400)
+            return JSONResponse({"error": "無權限刪除此機器人"}, status_code=403)
+        except Exception as e:
+            logger.exception("Failed to delete bot")
+            return JSONResponse({"error": str(e)}, status_code=500)
 
     @app.get("/api/bots/{bot_id}")
     async def api_bot_detail(bot_id: str, request: Request):
@@ -994,12 +1024,16 @@ def create_app() -> FastAPI:
             except (ValueError, TypeError):
                 pass
 
-        result = await bot_manager.execute_webhook_signal(token, action, price)
-        if result.get("status") == "rejected":
-            return JSONResponse(result, status_code=400)
-        if result.get("status") == "error":
-            return JSONResponse(result, status_code=500)
-        return result
+        try:
+            result = await bot_manager.execute_webhook_signal(token, action, price)
+            if result.get("status") == "rejected":
+                return JSONResponse(result, status_code=400)
+            if result.get("status") == "error":
+                return JSONResponse(result, status_code=500)
+            return result
+        except Exception as e:
+            logger.exception("Webhook execution failed")
+            return JSONResponse({"error": str(e)}, status_code=500)
 
     @app.get("/api/bots/{bot_id}/webhook-info")
     async def api_webhook_info(bot_id: str, request: Request):
@@ -1155,19 +1189,23 @@ def create_app() -> FastAPI:
         user = await _optional_user(request)
         if not user or user["role"] != "admin":
             return JSONResponse({"error": "Forbidden"}, status_code=403)
-        if bot_manager._db_client:
-            await bot_manager._load_bots_db()
-            bot_manager._save_bots_json()
-            count = len(bot_manager.list_bots())
-            # Auto-restart bots with auto_start=True in background
-            async def _deferred_restart():
-                await asyncio.sleep(2)
-                restarted = await bot_manager.auto_restart_bots(app_config=config)
-                if restarted:
-                    logger.info(f"Admin reload: auto-restarted {len(restarted)} bot(s)")
-            asyncio.create_task(_deferred_restart())
-            return {"status": "reloaded", "count": count, "restarting": True}
-        return JSONResponse({"error": "DB not connected"}, status_code=500)
+        try:
+            if bot_manager._db_client:
+                await bot_manager._load_bots_db()
+                bot_manager._save_bots_json()
+                count = len(bot_manager.list_bots())
+                # Auto-restart bots with auto_start=True in background
+                async def _deferred_restart():
+                    await asyncio.sleep(2)
+                    restarted = await bot_manager.auto_restart_bots(app_config=config)
+                    if restarted:
+                        logger.info(f"Admin reload: auto-restarted {len(restarted)} bot(s)")
+                asyncio.create_task(_deferred_restart())
+                return {"status": "reloaded", "count": count, "restarting": True}
+            return JSONResponse({"error": "DB not connected"}, status_code=500)
+        except Exception as e:
+            logger.exception("Failed to reload bots")
+            return JSONResponse({"error": str(e)}, status_code=500)
 
     @app.post("/api/admin/sync-clerk")
     async def api_admin_sync_clerk(request: Request):

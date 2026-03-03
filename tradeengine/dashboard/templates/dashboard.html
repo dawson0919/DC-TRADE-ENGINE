@@ -1960,6 +1960,15 @@
             return fetch(url, options);
         }
 
+        async function safeFetch(url, options = {}) {
+            const resp = await authFetch(url, options);
+            if (!resp.ok) {
+                const errData = await resp.json().catch(() => ({}));
+                throw new Error(errData.error || errData.detail || '伺服器錯誤 (' + resp.status + ')');
+            }
+            return resp.json();
+        }
+
         /* ════════════════════════════════════════════════
            Tab Navigation
         ════════════════════════════════════════════════ */
@@ -2151,8 +2160,8 @@
         ════════════════════════════════════════════════ */
         async function loadStrategyParams(prefix) {
             const stratName = document.getElementById(prefix + '-strategy').value;
-            const resp = await authFetch('/api/strategy/' + stratName);
-            const data = await resp.json();
+            let data;
+            try { data = await safeFetch('/api/strategy/' + stratName); } catch (e) { return; }
             const container = document.getElementById(prefix + '-params');
             container.innerHTML = '';
             if (!data.parameters || data.parameters.length === 0) return;
@@ -2432,8 +2441,8 @@
             try {
                 const resp = await authFetch('/api/backtest/history');
                 if (resp.status === 401) { el.innerHTML = '<div class="loading" style="color:#6b7280;">登入後可查看回測歷史</div>'; return; }
+                if (!resp.ok) throw new Error('載入失敗');
                 const data = await resp.json();
-                if (data.error) { el.innerHTML = '<div class="loading" style="color:#6b7280;">' + data.error + '</div>'; return; }
                 const results = data.results || [];
                 if (results.length === 0) { el.innerHTML = '<div class="loading" style="color:#6b7280;">尚無回測紀錄</div>'; return; }
                 el.innerHTML = '<div style="overflow-x:auto;"><table class="data-table"><thead><tr>' +
@@ -2468,9 +2477,7 @@
             const content = document.getElementById('bt-metricsContent');
             content.innerHTML = '<div class="loading"><div class="spinner"></div><br>載入回測結果...</div>';
             try {
-                const resp = await authFetch('/api/backtest/history/' + id);
-                const data = await resp.json();
-                if (data.error) throw new Error(data.error);
+                const data = await safeFetch('/api/backtest/history/' + id);
                 if (data.metrics) renderMetrics(data.metrics);
                 if (data.equity_curve && data.equity_curve.length > 0) renderChart(data.equity_curve);
                 if (data.trades && data.trades.length > 0) { renderTrades(data.trades); }
@@ -2485,7 +2492,7 @@
         async function deleteBacktestResult(id) {
             if (!confirm('確定刪除此回測結果？')) return;
             try {
-                await authFetch('/api/backtest/history/' + id, { method: 'DELETE' });
+                await safeFetch('/api/backtest/history/' + id, { method: 'DELETE' });
                 loadBacktestHistory();
             } catch (e) { alert('刪除失敗: ' + e.message); }
         }
@@ -2623,8 +2630,8 @@
             try {
                 const resp = await authFetch('/api/optimize/history');
                 if (resp.status === 401) { el.innerHTML = '<div class="loading" style="color:#6b7280;">登入後可查看優化歷史</div>'; return; }
+                if (!resp.ok) throw new Error('載入失敗');
                 const data = await resp.json();
-                if (data.error) { el.innerHTML = '<div class="loading" style="color:#6b7280;">' + data.error + '</div>'; return; }
                 const results = data.results || [];
                 if (results.length === 0) { el.innerHTML = '<div class="loading" style="color:#6b7280;">尚無優化紀錄</div>'; return; }
                 el.innerHTML = '<div style="overflow-x:auto;"><table class="data-table"><thead><tr>' +
@@ -2654,9 +2661,7 @@
             const content = document.getElementById('opt-content');
             content.innerHTML = '<div class="loading"><div class="spinner"></div><br>載入優化結果...</div>';
             try {
-                const resp = await authFetch('/api/optimize/history/' + id);
-                const data = await resp.json();
-                if (data.error) throw new Error(data.error);
+                const data = await safeFetch('/api/optimize/history/' + id);
                 renderOptResults(data);
                 document.getElementById('opt-content').scrollIntoView({ behavior: 'smooth' });
             } catch (e) {
@@ -2667,7 +2672,7 @@
         async function deleteOptimizeResult(id) {
             if (!confirm('確定刪除此優化結果？')) return;
             try {
-                await authFetch('/api/optimize/history/' + id, { method: 'DELETE' });
+                await safeFetch('/api/optimize/history/' + id, { method: 'DELETE' });
                 loadOptimizeHistory();
             } catch (e) { alert('刪除失敗: ' + e.message); }
         }
@@ -2838,13 +2843,11 @@
                 params: params,
             };
             try {
-                const resp = await authFetch('/api/bots/' + _editingBotId, {
+                const data = await safeFetch('/api/bots/' + _editingBotId, {
                     method: 'PUT',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(body),
                 });
-                const data = await resp.json();
-                if (data.error) throw new Error(data.error);
                 closeCreateBotModal();
                 loadBots(true);
             } catch (err) { alert('更新失敗: ' + err.message); }
@@ -2899,8 +2902,8 @@
             };
             try {
                 const resp = await authFetch('/api/bots', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
-                const data = await resp.json();
-                if (data.error) {
+                if (!resp.ok) {
+                    const errData = await resp.json().catch(() => ({}));
                     if (resp.status === 403 && currentUser && currentUser.role !== 'advanced' && currentUser.role !== 'admin') {
                         if (confirm('已達機器人上限（' + currentUser.max_bots + '個）。\n\n透過合作夥伴註冊可升級為進階會員（5個機器人）。\n\n前往查看升級方式？')) {
                             closeCreateBotModal();
@@ -2909,8 +2912,9 @@
                         }
                         return;
                     }
-                    throw new Error(data.error);
+                    throw new Error(errData.error || errData.detail || '伺服器錯誤 (' + resp.status + ')');
                 }
+                const data = await resp.json();
                 closeCreateBotModal();
                 loadBots(true);
             } catch (err) { alert('建立失敗: ' + err.message); }
@@ -2919,18 +2923,14 @@
 
         async function startBot(botId) {
             try {
-                const resp = await authFetch('/api/bots/' + botId + '/start', { method: 'POST' });
-                const data = await resp.json();
-                if (data.error) throw new Error(data.error);
+                await safeFetch('/api/bots/' + botId + '/start', { method: 'POST' });
                 loadBots(true);
             } catch (err) { alert('啟動失敗: ' + err.message); }
         }
 
         async function stopBot(botId) {
             try {
-                const resp = await authFetch('/api/bots/' + botId + '/stop', { method: 'POST' });
-                const data = await resp.json();
-                if (data.error) throw new Error(data.error);
+                await safeFetch('/api/bots/' + botId + '/stop', { method: 'POST' });
                 loadBots(true);
             } catch (err) { alert('停止失敗: ' + err.message); }
         }
@@ -2938,9 +2938,7 @@
         async function deleteBot(botId, name) {
             if (!confirm('確定要刪除機器人「' + name + '」嗎?')) return;
             try {
-                const resp = await authFetch('/api/bots/' + botId, { method: 'DELETE' });
-                const data = await resp.json();
-                if (data.error) throw new Error(data.error);
+                await safeFetch('/api/bots/' + botId, { method: 'DELETE' });
                 loadBots(true);
             } catch (err) { alert('刪除失敗: ' + err.message); }
         }
@@ -3050,7 +3048,7 @@
         async function deleteApiKey() {
             if (!confirm('確定要刪除 API 金鑰嗎？')) return;
             try {
-                const resp = await authFetch('/api/api-keys', { method: 'DELETE' });
+                await safeFetch('/api/api-keys', { method: 'DELETE' });
                 loadApiKeyStatus(); loadBalances();
             } catch (err) { alert('刪除失敗: ' + err.message); }
         }
@@ -3106,12 +3104,10 @@
             const name = input.value.trim();
             if (!name) { alert('名稱不能為空'); return; }
             try {
-                const resp = await authFetch('/api/account/update', {
+                const data = await safeFetch('/api/account/update', {
                     method: 'POST', headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ display_name: name })
                 });
-                const data = await resp.json();
-                if (data.error) { alert(data.error); return; }
                 currentUser.display_name = data.display_name;
                 document.getElementById('userName').textContent = data.display_name;
                 input.style.borderColor = '#00c853';
@@ -3206,8 +3202,7 @@
         async function loadStrategies() {
             const container = document.getElementById('strat-list');
             try {
-                const resp = await authFetch('/api/strategies');
-                const strats = await resp.json();
+                const strats = await safeFetch('/api/strategies');
                 let html = '';
                 strats.forEach(s => {
                     const meta = _stratMeta[s.name] || { category: '其他', catColor: '#6b7280', icon: '📌', detail: '' };
@@ -3325,8 +3320,8 @@
         }
 
         async function updateMaxBots(clerkId, maxBots) {
-            try { await authFetch('/api/admin/users/' + clerkId + '/max-bots', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ max_bots: parseInt(maxBots) }) }); }
-            catch (err) { alert('操作失敗'); }
+            try { await safeFetch('/api/admin/users/' + clerkId + '/max-bots', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ max_bots: parseInt(maxBots) }) }); }
+            catch (err) { alert('操作失敗: ' + err.message); }
         }
 
         async function updateUserField(clerkId, field, value) {
