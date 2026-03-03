@@ -816,8 +816,15 @@ def create_app() -> FastAPI:
         if _db_available and clerk_pk and not user:
             return JSONResponse({"error": "Unauthorized"}, status_code=401)
         user_id = user["user_id"] if user else ""
+        is_admin = user and user.get("role") == "admin"
         try:
-            return [_bot_to_dict(b, bot_manager) for b in bot_manager.list_bots(user_id=user_id)]
+            if is_admin:
+                # Admin sees own bots + unowned bots (created locally / without auth)
+                bots = [b for b in bot_manager.list_bots()
+                        if b.user_id == user_id or not b.user_id]
+            else:
+                bots = bot_manager.list_bots(user_id=user_id)
+            return [_bot_to_dict(b, bot_manager) for b in bots]
         except Exception as e:
             logger.exception("Failed to list bots")
             return JSONResponse({"error": str(e)}, status_code=500)
