@@ -137,6 +137,10 @@ class PionexWebSocket:
                 cb for cb in self._symbol_callbacks[event][symbol] if cb != callback
             ]
 
+    def symbol_callback_count(self, event: str, symbol: str) -> int:
+        """Return number of callbacks registered for a specific symbol/event."""
+        return len(self._symbol_callbacks.get(event, {}).get(symbol, []))
+
     async def ensure_listening(self):
         """Start the listen loop as a background task if not already running."""
         if self._listen_task is None or self._listen_task.done():

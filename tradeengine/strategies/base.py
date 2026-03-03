@@ -89,12 +89,20 @@ class BaseStrategy(ABC):
         validated = {}
         for p in self.parameters():
             val = params.get(p.name, p.default)
-            if p.type == "int":
-                validated[p.name] = int(val)
-            elif p.type == "float":
-                validated[p.name] = float(val)
-            else:
-                validated[p.name] = val
+            try:
+                if p.type == "int":
+                    val = int(val)
+                elif p.type == "float":
+                    val = float(val)
+            except (ValueError, TypeError):
+                val = p.default
+            # Clamp to min/max bounds
+            if isinstance(val, (int, float)):
+                if p.min_val is not None and val < p.min_val:
+                    val = p.min_val if p.type == "float" else int(p.min_val)
+                if p.max_val is not None and val > p.max_val:
+                    val = p.max_val if p.type == "float" else int(p.max_val)
+            validated[p.name] = val
         return validated
 
     def _empty_signals(self, index: pd.Index) -> SignalOutput:

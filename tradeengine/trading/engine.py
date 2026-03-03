@@ -122,9 +122,13 @@ class LiveTradingEngine:
             # Solo mode: close our own WebSocket
             await self._ws.close()
         elif self._ws and not self._owns_ws:
-            # Shared mode: just unsubscribe, don't close
+            # Shared mode: remove only this engine's callback
             try:
-                await self._ws.unsubscribe_trade(self.symbol)
+                self._ws.off_symbol("trade", self.symbol, self._on_trade)
+                # Only unsubscribe from WS if no other engines need this symbol
+                remaining = self._ws.symbol_callback_count("trade", self.symbol)
+                if remaining == 0:
+                    await self._ws.unsubscribe_trade(self.symbol)
             except Exception:
                 pass
         # Unblock start() if waiting on stop_event

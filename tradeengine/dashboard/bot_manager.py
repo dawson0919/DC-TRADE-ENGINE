@@ -463,6 +463,8 @@ class BotManager:
                         "price": price, "size": size,
                         "pnl": round(pnl, 4), "time": now_str,
                     })
+                    if len(b.trade_history) > 50:
+                        b.trade_history = b.trade_history[-50:]
                 b.last_signal = f"{action} {side}"
                 b.last_signal_time = now_str
                 self._save_one_bot(b)

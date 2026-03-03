@@ -635,6 +635,17 @@ def create_app() -> FastAPI:
         from tradeengine.data.pionex_client import PionexClient
         from tradeengine.data.store import DataStore
 
+        # Validate sort_by against known metrics
+        _VALID_SORT = {
+            "total_return_pct", "annualized_return_pct", "max_drawdown_pct",
+            "sharpe_ratio", "sortino_ratio", "calmar_ratio", "win_rate",
+            "total_trades", "profit_factor", "avg_trade_pct",
+        }
+        if sort_by not in _VALID_SORT:
+            sort_by = "sharpe_ratio"
+        top_n = max(1, min(top_n, 50))
+        max_combos = max(1, min(max_combos, 50000))
+
         # Capture user identity BEFORE long-running operation (JWT may expire)
         _save_user = await _optional_user(request)
 
@@ -837,6 +848,15 @@ def create_app() -> FastAPI:
         try:
             data = await request.json()
             signal_source = data.get("signal_source", "strategy")
+            # Validate required fields
+            if signal_source != "webhook":
+                for req_field in ("strategy", "symbol", "timeframe"):
+                    if not data.get(req_field):
+                        return JSONResponse(
+                            {"error": f"缺少必要欄位: {req_field}"}, status_code=400
+                        )
+            elif not data.get("symbol"):
+                return JSONResponse({"error": "缺少必要欄位: symbol"}, status_code=400)
             bot = bot_manager.create_bot(
                 name=data.get("name", "New Bot"),
                 strategy=data.get("strategy", "webhook") if signal_source == "webhook" else data["strategy"],
