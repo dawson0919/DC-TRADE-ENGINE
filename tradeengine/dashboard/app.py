@@ -334,21 +334,25 @@ def create_app() -> FastAPI:
         if not api_key or not api_secret:
             return JSONResponse({"error": "API Key and Secret are required"}, status_code=400)
 
-        from tradeengine.database.connection import get_session
-        from tradeengine.database.crud import save_api_credential
-        from tradeengine.database.encryption import encrypt_value
-
-        session = await get_session()
         try:
-            await save_api_credential(
-                session,
-                user_id=user["user_id"],
-                api_key_enc=encrypt_value(api_key),
-                api_secret_enc=encrypt_value(api_secret),
-            )
-            return {"status": "saved"}
-        finally:
-            await session.close()
+            from tradeengine.database.connection import get_session
+            from tradeengine.database.crud import save_api_credential
+            from tradeengine.database.encryption import encrypt_value
+
+            session = await get_session()
+            try:
+                await save_api_credential(
+                    session,
+                    user_id=user["user_id"],
+                    api_key_enc=encrypt_value(api_key),
+                    api_secret_enc=encrypt_value(api_secret),
+                )
+                return {"status": "saved"}
+            finally:
+                await session.close()
+        except Exception as e:
+            logger.exception("Failed to save API key")
+            return JSONResponse({"error": str(e)}, status_code=500)
 
     @app.delete("/api/api-keys")
     async def api_delete_keys(request: Request):

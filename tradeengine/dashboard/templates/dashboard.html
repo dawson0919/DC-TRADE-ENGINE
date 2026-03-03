@@ -3035,8 +3035,11 @@
             if (!key || !secret) { alert('請輸入 API Key 和 API Secret'); return; }
             try {
                 const resp = await authFetch('/api/api-keys', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ api_key: key, api_secret: secret }) });
+                if (!resp.ok) {
+                    const errData = await resp.json().catch(() => ({}));
+                    throw new Error(errData.error || errData.detail || '伺服器錯誤 (' + resp.status + ')');
+                }
                 const data = await resp.json();
-                if (data.error) throw new Error(data.error);
                 document.getElementById('apikey-key').value = '';
                 document.getElementById('apikey-secret').value = '';
                 alert('API 金鑰已儲存');
