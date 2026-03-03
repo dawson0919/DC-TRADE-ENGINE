@@ -41,9 +41,14 @@ def _resolve_csv_symbol(csv_path: str, fallback_symbol: str = "") -> str:
     for fragment, api_sym in _CSV_SYMBOL_MAP.items():
         if fragment.upper() in name:
             return api_sym
-    # Fallback to explicit symbol if it looks like a valid API symbol
-    if fallback_symbol and ("=F" in fallback_symbol or "_" in fallback_symbol):
-        return fallback_symbol
+    # Fallback: only use if it's a futures symbol or the base matches the filename
+    if fallback_symbol:
+        if "=F" in fallback_symbol:
+            return fallback_symbol
+        if "_" in fallback_symbol:
+            base = fallback_symbol.split("_")[0].upper()
+            if base in name:
+                return fallback_symbol
     return ""
 
 
