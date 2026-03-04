@@ -8,6 +8,15 @@ async function loadBots(force) {
         const resp = await authFetch('/api/bots');
         if (!resp.ok) return;  // Auth failed — keep existing display
         const bots = await resp.json();
+        // Sort: live bots first, then paper; within each group: running first
+        bots.sort((a, b) => {
+            if (a.paper_mode !== b.paper_mode) return a.paper_mode ? 1 : -1;
+            if (a.status !== b.status) {
+                if (a.status === 'running') return -1;
+                if (b.status === 'running') return 1;
+            }
+            return 0;
+        });
         // Skip re-render if data unchanged (prevents flicker on auto-refresh)
         if (!force) {
             const bHash = JSON.stringify(bots.map(b => [b.bot_id, b.status, b.total_pnl, b.total_trades, b.win_rate, b.position, b.leverage, b.missed_signal]));
