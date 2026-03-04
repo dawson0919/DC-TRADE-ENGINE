@@ -6,6 +6,7 @@ import asyncio
 import json
 import logging
 import os
+import time
 from pathlib import Path
 from typing import Any, Optional
 
@@ -40,6 +41,9 @@ def create_app() -> FastAPI:
 
     STATIC_DIR.mkdir(parents=True, exist_ok=True)
     app.mount("/static", StaticFiles(directory=str(STATIC_DIR)), name="static")
+
+    # Cache-busting version (changes on every deploy/restart)
+    _asset_version = str(int(time.time()))
 
     auto_discover()
     config = load_config()
@@ -209,6 +213,7 @@ def create_app() -> FastAPI:
             "clerk_publishable_key": clerk_pk,
             "auth_enabled": _db_available and bool(clerk_pk),
             "visit_count": visit_count,
+            "v": _asset_version,
         })
 
     # ─── Account / User API ──────────────────────────────────────────
