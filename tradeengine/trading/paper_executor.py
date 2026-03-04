@@ -46,16 +46,29 @@ class PaperExecutor(OrderExecutor):
         cost = size * price
         fee = cost * 0.0005  # 0.05% fee simulation
 
+        existing_pos = self._positions.get(symbol)
+
         if side == "BUY":
-            if self._balances.get(quote, 0) < cost + fee:
-                raise ValueError(f"Insufficient {quote} balance: {self._balances.get(quote, 0):.2f} < {cost + fee:.2f}")
-            self._balances[quote] = self._balances.get(quote, 0) - cost - fee
-            self._balances[base] = self._balances.get(base, 0) + size
+            if existing_pos and existing_pos["side"] == "short":
+                # Closing short: recover margin + PnL
+                entry_cost = existing_pos["entry_price"] * size
+                self._balances[quote] = self._balances.get(quote, 0) + entry_cost - cost - fee
+            else:
+                # Opening long: spend quote
+                if self._balances.get(quote, 0) < cost + fee:
+                    raise ValueError(f"Insufficient {quote} balance: {self._balances.get(quote, 0):.2f} < {cost + fee:.2f}")
+                self._balances[quote] = self._balances.get(quote, 0) - cost - fee
+                self._balances[base] = self._balances.get(base, 0) + size
         else:
-            if self._balances.get(base, 0) < size:
-                raise ValueError(f"Insufficient {base} balance: {self._balances.get(base, 0):.8f} < {size:.8f}")
-            self._balances[base] = self._balances.get(base, 0) - size
-            self._balances[quote] = self._balances.get(quote, 0) + cost - fee
+            if self._balances.get(base, 0) >= size:
+                # Closing long: sell base asset
+                self._balances[base] = self._balances.get(base, 0) - size
+                self._balances[quote] = self._balances.get(quote, 0) + cost - fee
+            else:
+                # Opening short: use quote as margin
+                if self._balances.get(quote, 0) < cost + fee:
+                    raise ValueError(f"Insufficient {quote} margin: {self._balances.get(quote, 0):.2f} < {cost + fee:.2f}")
+                self._balances[quote] = self._balances.get(quote, 0) - cost - fee
 
         order = {
             "orderId": order_id,
