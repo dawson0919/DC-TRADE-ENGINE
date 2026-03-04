@@ -6,6 +6,7 @@ let dashChart = null;
 let strategiesLoaded = false;
 let currentUser = null;
 let clerkToken = null;
+let _tokenTime = 0;  // timestamp when token was last fetched
 const roleMap = { admin: '管理員', advanced: '進階會員', standard: '普通會員', user: '普通會員' };
 const roleClassMap = { admin: 'role-admin', advanced: 'role-advanced', standard: 'role-standard', user: 'role-standard' };
 
@@ -32,12 +33,16 @@ async function initAuth() {
         }
         const session = window.Clerk.session;
         clerkToken = await session.getToken();
+        _tokenTime = Date.now();
         setInterval(async () => {
             try {
                 const s = window.Clerk.session;
-                if (s) clerkToken = await s.getToken();
+                if (s) {
+                    clerkToken = await s.getToken({ skipCache: true });
+                    _tokenTime = Date.now();
+                }
             } catch (e) { }
-        }, 50000);
+        }, 40000);
         const resp = await authFetch('/api/account/me');
         if (resp.ok) {
             currentUser = await resp.json();
@@ -79,6 +84,13 @@ async function doLogout() {
 }
 
 async function authFetch(url, options = {}) {
+    // Proactively refresh token if older than 50s (expires at ~60s)
+    if (AUTH_ENABLED && window.Clerk && window.Clerk.session && Date.now() - _tokenTime > 50000) {
+        try {
+            clerkToken = await window.Clerk.session.getToken({ skipCache: true });
+            _tokenTime = Date.now();
+        } catch (e) { }
+    }
     if (clerkToken) {
         options.headers = options.headers || {};
         options.headers['Authorization'] = 'Bearer ' + clerkToken;
@@ -88,6 +100,7 @@ async function authFetch(url, options = {}) {
     if (resp.status === 401 && AUTH_ENABLED && window.Clerk && window.Clerk.session) {
         try {
             clerkToken = await window.Clerk.session.getToken({ skipCache: true });
+            _tokenTime = Date.now();
             if (clerkToken) {
                 options.headers = options.headers || {};
                 options.headers['Authorization'] = 'Bearer ' + clerkToken;
