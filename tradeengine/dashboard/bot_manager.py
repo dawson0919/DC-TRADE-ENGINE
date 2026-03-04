@@ -849,7 +849,15 @@ class BotManager:
             return {"status": "executed", "bot_id": bot_id, "side": side}
         except Exception as e:
             logger.error(f"Force entry failed for bot {bot_id}: {e}")
-            return {"error": str(e)}
+            msg = str(e)
+            if "SIZE_FILTER" in msg or "size filter" in msg.lower():
+                cap = bot.capital if bot else 0
+                msg = f"下單數量低於交易所最低限制，請增加資金（目前 ${cap}）"
+            elif "Insufficient" in msg or "insufficient" in msg.lower():
+                msg = "餘額不足，無法下單"
+            elif "Already has" in msg:
+                msg = "機器人已有持倉，無需手動進場"
+            return {"error": msg}
 
     # ─── Auto-Restart ─────────────────────────────────────────────
 
