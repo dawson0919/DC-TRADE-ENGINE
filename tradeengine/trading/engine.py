@@ -208,12 +208,13 @@ class LiveTradingEngine:
         # Generate signals
         signals = self.strategy.generate_signals(df, self.params)
 
-        # Check latest signal
+        # Check signal on the last COMPLETED candle (iloc[-2])
+        # iloc[-1] is the current in-progress candle — signals aren't final yet
         has_position = self.position_manager.has_position(self.symbol)
-        latest_entry_long = bool(signals.entries_long.iloc[-1])
-        latest_exit_long = bool(signals.exits_long.iloc[-1])
-        latest_entry_short = bool(signals.entries_short.iloc[-1])
-        latest_exit_short = bool(signals.exits_short.iloc[-1])
+        latest_entry_long = bool(signals.entries_long.iloc[-2])
+        latest_exit_long = bool(signals.exits_long.iloc[-2])
+        latest_entry_short = bool(signals.entries_short.iloc[-2])
+        latest_exit_short = bool(signals.exits_short.iloc[-2])
 
         current_price = float(df["close"].iloc[-1])
         # Ensure paper executor has current price before any order
