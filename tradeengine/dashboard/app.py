@@ -1299,6 +1299,56 @@ def create_app() -> FastAPI:
         finally:
             await session.close()
 
+    @app.post("/api/admin/test-order")
+    async def api_admin_test_order(request: Request):
+        """Place a test market order using admin's API credentials."""
+        user = await _optional_user(request)
+        if not user or user["role"] != "admin":
+            return JSONResponse({"error": "需要管理員權限"}, status_code=403)
+        if not _db_available:
+            return JSONResponse({"error": "Database not available"}, status_code=503)
+
+        try:
+            data = await request.json()
+        except Exception:
+            data = {}
+        symbol = data.get("symbol", "BTC_USDT")
+        side = data.get("side", "BUY").upper()
+        amount = str(data.get("amount", "10"))  # quote amount for market buy
+
+        from tradeengine.database.connection import get_session
+        from tradeengine.database.crud import get_api_credential
+        from tradeengine.database.encryption import decrypt_value
+        from tradeengine.data.pionex_client import PionexClient
+
+        session = await get_session()
+        try:
+            cred = await get_api_credential(session, user["user_id"])
+            if not cred:
+                return JSONResponse({"error": "未設定 API 金鑰"}, status_code=400)
+            api_key = decrypt_value(cred.api_key_encrypted)
+            api_secret = decrypt_value(cred.api_secret_encrypted)
+            client = PionexClient(api_key, api_secret)
+            try:
+                if side == "BUY":
+                    result = await client.new_order(
+                        symbol=symbol, side="BUY", order_type="MARKET",
+                        amount=amount,
+                    )
+                else:
+                    result = await client.new_order(
+                        symbol=symbol, side="SELL", order_type="MARKET",
+                        size=amount,
+                    )
+                return {"status": "ok", "order": result}
+            finally:
+                await client.close()
+        except Exception as e:
+            logger.error(f"Test order failed: {e}")
+            return JSONResponse({"error": str(e)}, status_code=500)
+        finally:
+            await session.close()
+
     return app
 
 
