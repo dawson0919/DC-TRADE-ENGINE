@@ -68,8 +68,12 @@ async function loadDashboard() {
         uPnlEl.textContent = (totalUnrealizedPnl >= 0 ? '+' : '') + '$' + totalUnrealizedPnl.toFixed(2);
         uPnlEl.style.color = totalUnrealizedPnl >= 0 ? '#00c853' : totalUnrealizedPnl < 0 ? '#ff1744' : '#6b7280';
 
-        // Render PnL chart (flat line if no data)
-        renderDashPnlChart(combinedPnl, totalAllocation);
+        // Render PnL chart (throttle: once per hour)
+        const now = Date.now();
+        if (!_dashChartLastRender || now - _dashChartLastRender > 3600000) {
+            renderDashPnlChart(combinedPnl, totalAllocation);
+            _dashChartLastRender = now;
+        }
 
         // Render bot list (default: show all)
         _dashAllBots = bots;
@@ -122,6 +126,7 @@ function renderDashPnlChart(totalPnl, totalAllocation) {
 
 let _dashAllBots = [];
 let _dashLastHash = '';
+let _dashChartLastRender = 0;
 function filterDashBots(filter) {
     document.querySelectorAll('.dash-bot-tab').forEach(btn => btn.classList.remove('active'));
     const tabs = document.querySelectorAll('.dash-bot-tab');
