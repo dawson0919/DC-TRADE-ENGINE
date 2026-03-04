@@ -398,5 +398,7 @@ function dismissMissedSignal(botId) {
 
 setInterval(() => {
     if (document.getElementById('tab-bots').classList.contains('active')) loadBots();
-    if (document.getElementById('tab-dashboard').classList.contains('active')) loadDashboard();
 }, 10000);
+setInterval(() => {
+    if (document.getElementById('tab-dashboard').classList.contains('active')) loadDashboard();
+}, 3600000);
