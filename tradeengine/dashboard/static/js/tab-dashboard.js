@@ -16,6 +16,7 @@ async function loadDashboard() {
         // Calculate stats
         let totalAllocation = 0;
         let totalPnl = 0;
+        let totalUnrealizedPnl = 0;
         let activeBots = 0;
         let totalTrades = 0;
         let totalWins = 0;
@@ -24,6 +25,9 @@ async function loadDashboard() {
         bots.forEach(b => {
             totalAllocation += b.capital;
             totalPnl += b.total_pnl;
+            if (b.position && b.position.unrealized_pnl_usd != null) {
+                totalUnrealizedPnl += b.position.unrealized_pnl_usd;
+            }
             if (b.status === 'running') activeBots++;
             totalTrades += b.total_trades;
             if (b.total_trades > 0) {
@@ -33,13 +37,24 @@ async function loadDashboard() {
         });
 
         const avgWinRate = totalTradesForWR > 0 ? (totalWins / totalTradesForWR * 100) : 0;
-        const pnlPct = totalAllocation > 0 ? (totalPnl / totalAllocation * 100) : 0;
+        const combinedPnl = totalPnl + totalUnrealizedPnl;
+        const pnlPct = totalAllocation > 0 ? (combinedPnl / totalAllocation * 100) : 0;
 
         // Update stat cards
         document.getElementById('dash-allocation').textContent = '$' + totalAllocation.toLocaleString();
         const pnlEl = document.getElementById('dash-pnl');
-        pnlEl.textContent = (pnlPct >= 0 ? '+' : '') + pnlPct.toFixed(2) + '%';
-        pnlEl.style.color = pnlPct >= 0 ? '#00c853' : '#ff1744';
+        pnlEl.textContent = (combinedPnl >= 0 ? '+' : '') + '$' + combinedPnl.toFixed(2);
+        pnlEl.style.color = combinedPnl >= 0 ? '#00c853' : '#ff1744';
+
+        // Breakdown: realized + unrealized
+        const bkEl = document.getElementById('dash-pnl-breakdown');
+        const rSign = totalPnl >= 0 ? '+' : '';
+        const uSign = totalUnrealizedPnl >= 0 ? '+' : '';
+        const rColor = totalPnl >= 0 ? '#00c853' : '#ff1744';
+        const uColor = totalUnrealizedPnl >= 0 ? '#00c853' : totalUnrealizedPnl < 0 ? '#ff1744' : '#6b7280';
+        bkEl.innerHTML = '<span style="color:' + rColor + ';">已實現 ' + rSign + '$' + totalPnl.toFixed(2) + '</span>' +
+            ' | <span style="color:' + uColor + ';">未實現 ' + uSign + '$' + totalUnrealizedPnl.toFixed(2) + '</span>';
+
         document.getElementById('dash-active-bots').textContent = activeBots;
         document.getElementById('dash-winrate').textContent = avgWinRate.toFixed(1) + '%';
 
@@ -49,9 +64,12 @@ async function loadDashboard() {
         const totalPnlEl = document.getElementById('dash-total-pnl');
         totalPnlEl.textContent = (totalPnl >= 0 ? '+' : '') + '$' + totalPnl.toFixed(2);
         totalPnlEl.style.color = totalPnl >= 0 ? '#00c853' : '#ff1744';
+        const uPnlEl = document.getElementById('dash-unrealized-pnl');
+        uPnlEl.textContent = (totalUnrealizedPnl >= 0 ? '+' : '') + '$' + totalUnrealizedPnl.toFixed(2);
+        uPnlEl.style.color = totalUnrealizedPnl >= 0 ? '#00c853' : totalUnrealizedPnl < 0 ? '#ff1744' : '#6b7280';
 
         // Render PnL chart (flat line if no data)
-        renderDashPnlChart(totalPnl, totalAllocation);
+        renderDashPnlChart(combinedPnl, totalAllocation);
 
         // Render bot list (default: show all)
         _dashAllBots = bots;

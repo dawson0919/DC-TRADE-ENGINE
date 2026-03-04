@@ -21,14 +21,11 @@
                 </div>
                 <div class="stat-card">
                     <div style="display:flex; justify-content:space-between; align-items:center;">
-                        <div class="stat-label">損益 P&L</div>
+                        <div class="stat-label">總損益 P&L</div>
                         <i data-lucide="trending-up" style="color:#00c853; width:18px;"></i>
                     </div>
                     <div class="stat-value" id="dash-pnl" style="color:#00c853;">+0.00%</div>
-                    <div class="stat-tags">
-                        <span class="stat-tag active">今日</span>
-                        <span class="stat-tag live">Live data</span>
-                    </div>
+                    <div id="dash-pnl-breakdown" style="font-size:0.75rem;color:#6b7280;margin-top:2px;"></div>
                 </div>
                 <div class="stat-card">
                     <div style="display:flex; justify-content:space-between; align-items:center;">
@@ -67,7 +64,8 @@
                     <div class="dash-pnl-summary">
                         <div><span>交易數:</span><strong id="dash-total-trades">0</strong></div>
                         <div><span>勝率:</span><strong id="dash-total-winrate">0.0%</strong></div>
-                        <div><span>損益:</span><strong id="dash-total-pnl" style="color:#00c853;">+$0.00</strong></div>
+                        <div><span>已實現:</span><strong id="dash-total-pnl" style="color:#00c853;">+$0.00</strong></div>
+                        <div><span>未實現:</span><strong id="dash-unrealized-pnl" style="color:#6b7280;">$0.00</strong></div>
                     </div>
                     <div class="chart-container-sm">
                         <canvas id="dashPnlChart"></canvas>
