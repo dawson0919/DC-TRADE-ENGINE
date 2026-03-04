@@ -246,6 +246,15 @@ function onBotSymbolChange() {
     // Yahoo futures: update capital label to USD
     const capLabel = document.getElementById('bot-capital').previousElementSibling;
     if (capLabel) capLabel.textContent = isYahoo ? '資金 (USD)' : '資金 (USDT)';
+    onBotLeverageChange();
+}
+
+function onBotLeverageChange() {
+    const lev = parseFloat(document.getElementById('bot-leverage').value);
+    const sym = document.getElementById('bot-symbol').value;
+    const hint = document.getElementById('bot-leverage-hint');
+    const isSpot = sym.includes('_USDT') && !sym.includes('_PERP') && !sym.includes('=F');
+    hint.style.display = (lev > 1 && isSpot) ? 'block' : 'none';
 }
 
 async function createBot() {

@@ -252,6 +252,10 @@ class BotManager:
         leverage: float = 1.0,
     ) -> BotConfig:
         """Create a new trading bot."""
+        # Auto-switch spot to PERP when leverage > 1
+        if leverage > 1.0 and "_PERP" not in symbol and "=F" not in symbol and "_USDT" in symbol:
+            symbol = symbol + "_PERP"
+            logger.info(f"Auto-switched to perpetual contract: {symbol} (leverage {leverage}x)")
         bot_id = str(uuid.uuid4())[:8]
         webhook_token = str(uuid.uuid4()) if signal_source == "webhook" else ""
         bot = BotConfig(
@@ -362,6 +366,12 @@ class BotManager:
         bot = self._bots.get(bot_id)
         if not bot or bot.status == "running":
             return False
+
+        # Auto-fix: spot symbol with leverage > 1 → switch to PERP
+        if bot.leverage > 1.0 and "_PERP" not in bot.symbol and "=F" not in bot.symbol and "_USDT" in bot.symbol:
+            bot.symbol = bot.symbol + "_PERP"
+            self._save_one_bot(bot)
+            logger.info(f"Auto-switched bot {bot_id} to PERP: {bot.symbol}")
 
         from tradeengine.strategies.registry import get_strategy
         from tradeengine.trading.risk_manager import RiskConfig

@@ -87,13 +87,16 @@
                 </div>
                 <div class="form-group">
                     <label>槓桿 (Leverage)</label>
-                    <select id="bot-leverage">
+                    <select id="bot-leverage" onchange="onBotLeverageChange()">
                         <option value="1">1x (現貨/無槓桿)</option>
                         <option value="2">2x</option>
                         <option value="3">3x</option>
                         <option value="4">4x</option>
                         <option value="5">5x (Max)</option>
                     </select>
+                    <small id="bot-leverage-hint" style="color:#f7931a;display:none;margin-top:4px;">
+                        槓桿 > 1x 將自動切換為合約交易對 (PERP)
+                    </small>
                 </div>
             </div>
             <div class="form-group">
