@@ -10,7 +10,7 @@ async function loadBots(force) {
         const bots = await resp.json();
         // Skip re-render if data unchanged (prevents flicker on auto-refresh)
         if (!force) {
-            const bHash = JSON.stringify(bots.map(b => [b.bot_id, b.status, b.total_pnl, b.total_trades, b.win_rate, b.position, b.leverage]));
+            const bHash = JSON.stringify(bots.map(b => [b.bot_id, b.status, b.total_pnl, b.total_trades, b.win_rate, b.position, b.leverage, b.missed_signal]));
             if (bHash === _botsLastHash) return;
             _botsLastHash = bHash;
         }
@@ -29,6 +29,32 @@ async function loadBots(force) {
             const infoLine = isWebhook
                 ? 'Webhook | ' + bot.symbol + ' | $' + bot.capital.toLocaleString() + (bot.leverage > 1 ? ' | ' + bot.leverage + 'x' : '')
                 : bot.strategy + ' | ' + bot.symbol + ' | ' + bot.timeframe + ' | $' + bot.capital.toLocaleString() + (bot.leverage > 1 ? ' | ' + bot.leverage + 'x' : '');
+            // Missed signal info
+            const ms = bot.missed_signal;
+            let missedHtml = '';
+            if (ms && !_dismissedSignals.has(bot.bot_id)) {
+                const msLabel = ms.side === 'long' ? '做多 LONG' : '做空 SHORT';
+                const msColor = ms.side === 'long' ? '#00e676' : '#ff1744';
+                const msTime = new Date(ms.signal_time).toLocaleString('zh-TW');
+                const msPrice = parseFloat(ms.signal_price).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 6 });
+                const msCurPrice = parseFloat(ms.current_price).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 6 });
+                missedHtml = '<div style="margin-top:8px;padding:12px;background:linear-gradient(135deg,#1a1200,#1e1800);border:1px solid #f7931a44;border-radius:8px;">' +
+                    '<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">' +
+                    '<span style="color:#f7931a;font-weight:700;">&#9888; 未執行信號</span>' +
+                    '<span style="background:' + msColor + '22;color:' + msColor + ';padding:2px 8px;border-radius:4px;font-weight:700;font-size:0.8rem;">' + msLabel + '</span>' +
+                    '<span style="color:#6b7280;font-size:0.75rem;">' + ms.candles_ago + ' 根 K 線前</span>' +
+                    '</div>' +
+                    '<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:8px;">' +
+                    '<div><div style="color:#6b7280;font-size:0.7rem;">信號時間</div><div style="font-size:0.85rem;">' + msTime + '</div></div>' +
+                    '<div><div style="color:#6b7280;font-size:0.7rem;">信號價格</div><div style="font-size:0.85rem;">$' + msPrice + '</div></div>' +
+                    '<div><div style="color:#6b7280;font-size:0.7rem;">目前價格</div><div style="font-size:0.85rem;">$' + msCurPrice + '</div></div>' +
+                    '</div>' +
+                    '<div style="display:flex;gap:8px;">' +
+                    '<button class="btn btn-sm" style="background:#f7931a;color:#000;font-weight:700;" onclick="forceEntry(\'' + bot.bot_id + '\',\'' + ms.side + '\')">強制市價進場</button>' +
+                    '<button class="btn btn-sm btn-secondary" onclick="dismissMissedSignal(\'' + bot.bot_id + '\')">略過</button>' +
+                    '</div>' +
+                    '</div>';
+            }
             // Position info
             const pos = bot.position;
             let posHtml = '';
@@ -74,6 +100,7 @@ async function loadBots(force) {
                 '</div>' +
                 '</div>' +
                 posHtml +
+                missedHtml +
                 (isWebhook ? '<div class="webhook-info-box" id="webhook-info-' + bot.bot_id + '"><div class="loading" style="padding:8px;font-size:0.8rem;">載入 Webhook 資訊...</div></div>' : '') +
                 '<div style="display:flex;gap:8px;margin-top:12px;">' +
                 (bot.status !== 'running'
@@ -91,9 +118,6 @@ async function loadBots(force) {
         bots.filter(b => b.signal_source === 'webhook').forEach(b => loadWebhookInfo(b.bot_id));
         html += '</div>';
         container.innerHTML = html;
-        // Check for stored missed signals on running strategy bots (once per session)
-        bots.filter(b => b.status === 'running' && b.signal_source !== 'webhook')
-            .forEach(b => checkStoredMissedSignal(b.bot_id));
     } catch (err) {
         container.innerHTML = '<div class="loading" style="color:#ff1744;">載入失敗: ' + err.message + '</div>';
     }
@@ -262,8 +286,6 @@ async function startBot(botId) {
     try {
         await safeFetch('/api/bots/' + botId + '/start', { method: 'POST' });
         loadBots(true);
-        // Poll for missed signal after engine loads history
-        pollMissedSignal(botId, 0);
     } catch (err) { alert('啟動失敗: ' + err.message); }
 }
 
@@ -326,107 +348,30 @@ function copyToClipboard(inputId, btn) {
     }).catch(() => { el.select(); document.execCommand('copy'); });
 }
 
-/* ═══ Missed Signal Detection ═══ */
-const _missedSignalChecked = new Set();
+/* ═══ Missed Signal — Inline Actions ═══ */
+const _dismissedSignals = new Set();
 
-function pollMissedSignal(botId, attempt) {
-    var delays = [3000, 3000, 5000, 5000, 5000];
-    if (attempt >= delays.length) return;
-    setTimeout(async () => {
-        try {
-            var resp = await authFetch('/api/bots/' + botId + '/missed-signal');
-            if (!resp.ok) return;
-            var data = await resp.json();
-            if (data.side) {
-                showMissedSignalModal(data);
-                return;
-            }
-            // Engine may not be ready yet — keep polling
-            if (attempt < 3) pollMissedSignal(botId, attempt + 1);
-        } catch (err) { /* ignore */ }
-    }, delays[attempt]);
-}
-
-function showMissedSignalModal(sig) {
-    var sideLabel = sig.side === 'long' ? '做多 (LONG)' : '做空 (SHORT)';
-    var sideColor = sig.side === 'long' ? '#00e676' : '#ff1744';
-    var signalTime = new Date(sig.signal_time).toLocaleString('zh-TW');
-    var priceAtSignal = parseFloat(sig.signal_price).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 6 });
-    var currentPrice = parseFloat(sig.current_price).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 6 });
-    var modeLabel = sig.paper_mode ? '模擬' : '即時';
-
-    var modal = document.getElementById('missedSignalModal');
-    document.getElementById('missed-signal-content').innerHTML =
-        '<div style="text-align:center;margin-bottom:16px;">' +
-        '<div style="font-size:2rem;margin-bottom:8px;">&#9888;</div>' +
-        '<div style="font-size:1.1rem;font-weight:700;color:' + sideColor + ';">' +
-        '偵測到未執行的' + sideLabel + '信號</div></div>' +
-        '<div style="background:#0a0a0f;border-radius:8px;padding:16px;margin-bottom:16px;">' +
-        '<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">' +
-        '<div><div style="color:#6b7280;font-size:0.75rem;">機器人</div>' +
-        '<div style="font-weight:600;">' + sig.bot_name + ' (' + modeLabel + ')</div></div>' +
-        '<div><div style="color:#6b7280;font-size:0.75rem;">交易對</div>' +
-        '<div style="font-weight:600;">' + sig.symbol + ' / ' + sig.timeframe + '</div></div>' +
-        '<div><div style="color:#6b7280;font-size:0.75rem;">信號時間</div>' +
-        '<div style="font-weight:600;">' + signalTime + '</div></div>' +
-        '<div><div style="color:#6b7280;font-size:0.75rem;">距今</div>' +
-        '<div style="font-weight:600;">' + sig.candles_ago + ' 根 K 線前</div></div>' +
-        '<div><div style="color:#6b7280;font-size:0.75rem;">信號價格</div>' +
-        '<div style="font-weight:600;">$' + priceAtSignal + '</div></div>' +
-        '<div><div style="color:#6b7280;font-size:0.75rem;">目前價格</div>' +
-        '<div style="font-weight:600;">$' + currentPrice + '</div></div>' +
-        '</div></div>' +
-        '<p style="color:#f7931a;font-size:0.85rem;margin-bottom:0;">' +
-        '機器人重新啟動後偵測到此信號在離線期間產生但未被執行。' +
-        '您可以選擇按目前市價強制進場，或略過此信號。</p>';
-    modal.dataset.botId = sig.bot_id;
-    modal.dataset.side = sig.side;
-    modal.classList.add('active');
-}
-
-async function forceEntry() {
-    var modal = document.getElementById('missedSignalModal');
-    var botId = modal.dataset.botId;
-    var side = modal.dataset.side;
-    var btn = document.getElementById('force-entry-btn');
-    btn.disabled = true;
-    btn.textContent = '執行中...';
+async function forceEntry(botId, side) {
     try {
         await safeFetch('/api/bots/' + botId + '/force-entry', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ side: side }),
         });
-        closeMissedSignalModal();
         loadBots(true);
     } catch (err) {
         if (err.message.includes('Already has')) {
             alert('機器人已自動進場，無需手動操作');
-            closeMissedSignalModal();
             loadBots(true);
         } else {
             alert('強制進場失敗: ' + err.message);
         }
-    } finally {
-        btn.disabled = false;
-        btn.textContent = '強制市價進場';
     }
 }
 
-function closeMissedSignalModal() {
-    document.getElementById('missedSignalModal').classList.remove('active');
-}
-
-// Check for stored missed signals on auto-restarted bots (once per session)
-async function checkStoredMissedSignal(botId) {
-    if (_missedSignalChecked.has(botId)) return;
-    _missedSignalChecked.add(botId);
-    try {
-        var resp = await authFetch('/api/bots/' + botId + '/missed-signal');
-        if (!resp.ok) return;
-        var data = await resp.json();
-        if (data.side) showMissedSignalModal(data);
-    } catch (err) { /* ignore */ }
+function dismissMissedSignal(botId) {
+    _dismissedSignals.add(botId);
+    loadBots(true);
 }
 
 setInterval(() => {
