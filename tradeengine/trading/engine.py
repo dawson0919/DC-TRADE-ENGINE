@@ -240,10 +240,11 @@ class LiveTradingEngine:
                     logger.info(f"Take-profit triggered for {self.symbol}")
                     await self._close_position(current_price)
             else:
-                # Check entries
+                # Check entries (spot pairs can only go long)
+                is_spot = "_PERP" not in self.symbol
                 if latest_entry_long:
                     await self._open_position(Side.LONG, current_price)
-                elif latest_entry_short:
+                elif latest_entry_short and not is_spot:
                     await self._open_position(Side.SHORT, current_price)
         except Exception as e:
             logger.error(f"Trade execution error: {e}")
@@ -317,6 +318,7 @@ class LiveTradingEngine:
         df = df.set_index("datetime").sort_index()
         signals = self.strategy.generate_signals(df, self.params)
 
+        is_spot = "_PERP" not in self.symbol
         start = len(df) - 2  # skip latest candle
         end = max(0, start - lookback_candles)
         for i in range(start, end, -1):
@@ -331,7 +333,7 @@ class LiveTradingEngine:
                     "candles_ago": start - i + 1,
                     "current_price": float(df["close"].iloc[-1]),
                 }
-            if bool(signals.entries_short.iloc[i]):
+            if bool(signals.entries_short.iloc[i]) and not is_spot:
                 return {
                     "side": "short",
                     "signal_time": df.index[i].isoformat(),
@@ -349,6 +351,8 @@ class LiveTradingEngine:
         """
         if self.position_manager.has_position(self.symbol):
             raise RuntimeError("Already has an open position")
+        if side == Side.SHORT and "_PERP" not in self.symbol:
+            raise RuntimeError("現貨交易對不支援做空，僅合約 (PERP) 可做空")
         if price is None:
             if self._candle_buffer:
                 price = float(list(self._candle_buffer)[-1]["close"])
