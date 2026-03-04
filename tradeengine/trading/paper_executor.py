@@ -50,9 +50,11 @@ class PaperExecutor(OrderExecutor):
 
         if side == "BUY":
             if existing_pos and existing_pos["side"] == "short":
-                # Closing short: recover margin + PnL
+                # Closing short: return margin collateral + PnL
+                # Open deducted P1*s as margin; recovery = margin + (P1-P2)*s - fee
                 entry_cost = existing_pos["entry_price"] * size
-                self._balances[quote] = self._balances.get(quote, 0) + entry_cost - cost - fee
+                pnl = entry_cost - cost  # (entry - current) * size
+                self._balances[quote] = self._balances.get(quote, 0) + entry_cost + pnl - fee
             else:
                 # Opening long: spend quote
                 if self._balances.get(quote, 0) < cost + fee:

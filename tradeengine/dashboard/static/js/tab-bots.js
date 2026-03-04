@@ -376,14 +376,18 @@ async function forceEntry(botId, side) {
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ side: side }),
         });
+        _dismissedSignals.add(botId);
         loadBots(true);
     } catch (err) {
-        if (err.message.includes('Already has')) {
+        const msg = err.message;
+        if (msg.includes('已有持倉') || msg.includes('Already has')) {
             alert('機器人已自動進場，無需手動操作');
-            loadBots(true);
+        } else if (msg.includes('未運行')) {
+            alert('機器人已停止，請重新啟動後再試');
         } else {
-            alert('強制進場失敗: ' + err.message);
+            alert('強制進場失敗: ' + msg);
         }
+        loadBots(true);
     }
 }
 
