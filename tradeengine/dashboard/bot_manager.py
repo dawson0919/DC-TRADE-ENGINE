@@ -136,6 +136,7 @@ class BotManager:
         self._webhook_executors: dict[str, Any] = {}
         self._webhook_positions: dict[str, dict] = {}
         self._pending_restart: set[str] = set()
+        self._pending_missed_signals: dict[str, dict] = {}
         self._db_client: Any = None  # Supabase client
         self._shared_ws: Any = None  # Shared PionexWebSocket for all Pionex bots
         self._load_bots_json()  # Load from JSON first as fallback
@@ -798,6 +799,58 @@ class BotManager:
             "error_msg": bot.error_msg,
         }
 
+    # ─── Missed Signal Detection ─────────────────────────────────
+
+    def check_missed_signal(self, bot_id: str) -> dict | None:
+        """Check if a running bot has a missed entry signal.
+
+        Returns signal info dict or None.
+        """
+        # Check stored missed signals first (from auto-restart)
+        stored = self._pending_missed_signals.pop(bot_id, None)
+        if stored:
+            engine = self._running_engines.get(bot_id)
+            bot = self._bots.get(bot_id)
+            if engine and bot and not engine.position_manager.has_position(bot.symbol):
+                return stored
+
+        engine = self._running_engines.get(bot_id)
+        bot = self._bots.get(bot_id)
+        if not engine or not bot or bot.signal_source == "webhook":
+            return None
+        if not hasattr(engine, "detect_missed_signal"):
+            return None
+        try:
+            result = engine.detect_missed_signal()
+            if result:
+                result.update(
+                    bot_id=bot_id, bot_name=bot.name,
+                    symbol=bot.symbol, timeframe=bot.timeframe,
+                    paper_mode=bot.paper_mode,
+                )
+            return result
+        except Exception as e:
+            logger.warning(f"Missed signal check failed for {bot_id}: {e}")
+            return None
+
+    async def force_entry(self, bot_id: str, side: str) -> dict:
+        """Force a market entry for a missed signal."""
+        from tradeengine.data.models import Side as SideEnum
+
+        engine = self._running_engines.get(bot_id)
+        bot = self._bots.get(bot_id)
+        if not engine or not bot:
+            return {"error": "引擎未運行"}
+        if not hasattr(engine, "force_open_position"):
+            return {"error": "引擎不支援強制進場"}
+        side_enum = SideEnum.LONG if side == "long" else SideEnum.SHORT
+        try:
+            await engine.force_open_position(side_enum)
+            return {"status": "executed", "bot_id": bot_id, "side": side}
+        except Exception as e:
+            logger.error(f"Force entry failed for bot {bot_id}: {e}")
+            return {"error": str(e)}
+
     # ─── Auto-Restart ─────────────────────────────────────────────
 
     _PERMANENT_ERROR_KEYWORDS = [
@@ -926,4 +979,19 @@ class BotManager:
             f"Auto-restart complete: {len(restarted)} restarted, "
             f"{len(remaining)} failed"
         )
+
+        # Deferred missed signal check for auto-restarted bots
+        if restarted:
+            _restarted = list(restarted)
+
+            async def _check_missed_after_delay():
+                await asyncio.sleep(15)  # Wait for engines to load history
+                for bid in _restarted:
+                    sig = self.check_missed_signal(bid)
+                    if sig:
+                        self._pending_missed_signals[bid] = sig
+                        logger.info(f"Bot {bid} has missed signal: {sig['side']} from {sig['signal_time']}")
+
+            asyncio.create_task(_check_missed_after_delay())
+
         return restarted

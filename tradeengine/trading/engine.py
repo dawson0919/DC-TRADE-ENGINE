@@ -294,3 +294,66 @@ class LiveTradingEngine:
                 self._on_trade_callback("close", pos.side.value, price, pos.size, pnl)
             except Exception:
                 pass
+
+    # ─── Missed Signal Detection ──────────────────────────────────
+
+    def detect_missed_signal(self, lookback_candles: int = 20) -> dict | None:
+        """Detect if there's an unacted entry signal in recent history.
+
+        Walks backwards from the 2nd-most-recent candle (skip latest —
+        the engine's candle loop handles it) looking for entry signals
+        not followed by an exit signal.
+
+        Returns dict with side/signal_time/signal_price/candles_ago/current_price
+        or None if no missed signal.
+        """
+        if len(self._candle_buffer) < 50:
+            return None
+        if self.position_manager.has_position(self.symbol):
+            return None
+
+        df = pd.DataFrame(list(self._candle_buffer))
+        df["datetime"] = pd.to_datetime(df["timestamp"], unit="ms", utc=True)
+        df = df.set_index("datetime").sort_index()
+        signals = self.strategy.generate_signals(df, self.params)
+
+        start = len(df) - 2  # skip latest candle
+        end = max(0, start - lookback_candles)
+        for i in range(start, end, -1):
+            # Exit found first → position was closed, no missed entry
+            if bool(signals.exits_long.iloc[i]) or bool(signals.exits_short.iloc[i]):
+                return None
+            if bool(signals.entries_long.iloc[i]):
+                return {
+                    "side": "long",
+                    "signal_time": df.index[i].isoformat(),
+                    "signal_price": float(df["close"].iloc[i]),
+                    "candles_ago": start - i + 1,
+                    "current_price": float(df["close"].iloc[-1]),
+                }
+            if bool(signals.entries_short.iloc[i]):
+                return {
+                    "side": "short",
+                    "signal_time": df.index[i].isoformat(),
+                    "signal_price": float(df["close"].iloc[i]),
+                    "candles_ago": start - i + 1,
+                    "current_price": float(df["close"].iloc[-1]),
+                }
+        return None
+
+    async def force_open_position(self, side: Side, price: float | None = None):
+        """Force open a position at current market price.
+
+        Used for missed signal recovery. Reuses the same position sizing
+        and execution path as normal trading.
+        """
+        if self.position_manager.has_position(self.symbol):
+            raise RuntimeError("Already has an open position")
+        if price is None:
+            if self._candle_buffer:
+                price = float(list(self._candle_buffer)[-1]["close"])
+            else:
+                raise RuntimeError("No price data available")
+        if hasattr(self.executor, "set_price"):
+            self.executor.set_price(self.symbol, price)
+        await self._open_position(side, price)

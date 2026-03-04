@@ -988,6 +988,38 @@ def create_app() -> FastAPI:
             logger.exception("Failed to stop bot")
             return JSONResponse({"error": str(e)}, status_code=500)
 
+    @app.get("/api/bots/{bot_id}/missed-signal")
+    async def api_check_missed_signal(bot_id: str, request: Request):
+        """Check if a recently-started bot has a missed entry signal."""
+        user = await _optional_user(request)
+        user_id = user["user_id"] if user else None
+        bot = bot_manager.get_bot(bot_id, user_id=user_id)
+        if not bot:
+            return JSONResponse({"error": "Bot not found"}, status_code=404)
+        result = bot_manager.check_missed_signal(bot_id)
+        if result:
+            return result
+        return {"missed_signal": None}
+
+    @app.post("/api/bots/{bot_id}/force-entry")
+    async def api_force_entry(bot_id: str, request: Request):
+        """Force a market entry for a missed signal."""
+        user = await _optional_user(request)
+        user_id = user["user_id"] if user else None
+        bot = bot_manager.get_bot(bot_id, user_id=user_id)
+        if not bot:
+            return JSONResponse({"error": "Bot not found"}, status_code=404)
+        if bot.status != "running":
+            return JSONResponse({"error": "機器人未運行"}, status_code=400)
+        data = await request.json()
+        side = data.get("side", "").lower()
+        if side not in ("long", "short"):
+            return JSONResponse({"error": "Invalid side"}, status_code=400)
+        result = await bot_manager.force_entry(bot_id, side)
+        if "error" in result:
+            return JSONResponse(result, status_code=400)
+        return result
+
     @app.delete("/api/bots/{bot_id}")
     async def api_delete_bot(bot_id: str, request: Request):
         user = await _optional_user(request)
