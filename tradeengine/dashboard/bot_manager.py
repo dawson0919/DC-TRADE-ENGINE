@@ -24,6 +24,8 @@ _BOT_FIELDS = [
     "webhook_token", "total_pnl", "total_trades", "win_rate",
     "last_signal", "last_signal_time", "trade_history", "error_msg",
     "auto_start", "leverage", "margin_mode",
+    "open_position_side", "open_position_entry_price",
+    "open_position_size", "open_position_time",
 ]
 
 
@@ -65,6 +67,11 @@ class BotConfig:
     trade_history: list[dict] = field(default_factory=list)
     error_msg: str = ""
     auto_start: bool = False
+    # Persisted position (survives bot restart)
+    open_position_side: str = ""       # "long" or "short", "" = no position
+    open_position_entry_price: float = 0.0
+    open_position_size: float = 0.0
+    open_position_time: str = ""
 
 
 def _bot_to_row(bot: BotConfig) -> dict:
@@ -95,6 +102,10 @@ def _bot_to_row(bot: BotConfig) -> dict:
         "auto_start": bot.auto_start,
         "leverage": bot.leverage,
         "margin_mode": bot.margin_mode,
+        "open_position_side": bot.open_position_side,
+        "open_position_entry_price": bot.open_position_entry_price,
+        "open_position_size": bot.open_position_size,
+        "open_position_time": bot.open_position_time,
     }
 
 
@@ -116,6 +127,10 @@ def _row_to_bot(row: dict) -> BotConfig:
     row.setdefault("last_signal_time", "")
     row.setdefault("created_at", "")
     row.setdefault("auto_start", False)
+    row.setdefault("open_position_side", "")
+    row.setdefault("open_position_entry_price", 0.0)
+    row.setdefault("open_position_size", 0.0)
+    row.setdefault("open_position_time", "")
     # Filter only known fields
     known = {f.name for f in BotConfig.__dataclass_fields__.values()}
     filtered = {k: v for k, v in row.items() if k in known}
@@ -461,13 +476,24 @@ class BotManager:
             bot.auto_start = True
             self._running_engines[bot_id] = engine
 
-            # Register trade callback to update bot stats
+            # Register trade callback to update bot stats + persist position
             def _on_engine_trade(action, side, price, size, pnl, _bid=bot_id):
                 b = self._bots.get(_bid)
                 if not b:
                     return
                 now_str = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-                if action == "close":
+                if action == "open":
+                    # Persist open position
+                    b.open_position_side = side
+                    b.open_position_entry_price = price
+                    b.open_position_size = size
+                    b.open_position_time = now_str
+                elif action == "close":
+                    # Clear persisted position
+                    b.open_position_side = ""
+                    b.open_position_entry_price = 0.0
+                    b.open_position_size = 0.0
+                    b.open_position_time = ""
                     b.total_trades += 1
                     b.total_pnl += pnl
                     if pnl > 0:
@@ -490,6 +516,25 @@ class BotManager:
                 self._save_one_bot(b)
 
             engine.on_trade(_on_engine_trade)
+
+            # Restore persisted position (survives bot restart)
+            if bot.open_position_side and bot.open_position_entry_price > 0:
+                from tradeengine.data.models import Side as SideEnum
+                restored_side = SideEnum.LONG if bot.open_position_side == "long" else SideEnum.SHORT
+                engine.position_manager.open_position(
+                    bot.symbol, restored_side,
+                    bot.open_position_entry_price,
+                    bot.open_position_size,
+                )
+                # Also set the price in executor so unrealized PnL can be calculated
+                if hasattr(engine.executor, "set_price"):
+                    engine.executor.set_price(bot.symbol, bot.open_position_entry_price)
+                logger.info(
+                    f"Restored position for bot {bot_id}: "
+                    f"{bot.open_position_side} {bot.open_position_size:.8f} "
+                    f"@ {bot.open_position_entry_price:.2f}"
+                )
+
             self._save_one_bot(bot)
 
             task = asyncio.create_task(self._run_bot(bot_id, engine, client))
