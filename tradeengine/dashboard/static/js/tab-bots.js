@@ -88,18 +88,31 @@ async function loadBots(force) {
             // Recent signals section
             let signalsHtml = '';
             if (bot.recent_signals && bot.recent_signals.length > 0) {
-                const actionColors = { '做多': '#00e676', '做空': '#ff1744', '平多': '#29b6f6', '平空': '#29b6f6', '持倉中': '#6b7280', '無信號': '#6b7280' };
+                const actionIcons = { '做多': '▲', '做空': '▼', '平多': '✕', '平空': '✕', '持倉中': '●', '無信號': '—' };
+                const actionColors = { '做多': '#00e676', '做空': '#ff1744', '平多': '#29b6f6', '平空': '#29b6f6', '持倉中': '#ffa726', '無信號': '#6b7280' };
                 let rows = bot.recent_signals.map(s => {
                     const c = actionColors[s.action] || '#6b7280';
-                    return '<div style="display:flex;justify-content:space-between;align-items:center;padding:3px 0;">' +
+                    const icon = actionIcons[s.action] || '';
+                    return '<div style="display:flex;justify-content:space-between;align-items:center;padding:4px 0;">' +
                         '<span style="color:#6b7280;font-size:0.8rem;">' + s.time + '</span>' +
-                        '<span style="color:' + c + ';font-weight:600;font-size:0.85rem;">' + s.action + '</span>' +
+                        '<span style="color:' + c + ';font-weight:700;font-size:0.85rem;">' + icon + ' ' + s.action + '</span>' +
                         '<span style="font-size:0.85rem;">$' + s.price.toLocaleString() + '</span>' +
                         '</div>';
                 }).join('');
+                // Check if latest signal is an entry and bot has no position → offer force entry
+                const lastSig = bot.recent_signals[bot.recent_signals.length - 1];
+                let forceBtn = '';
+                if (!bot.position && bot.status === 'running' && (lastSig.action === '做多' || lastSig.action === '做空')) {
+                    const fSide = lastSig.action === '做多' ? 'long' : 'short';
+                    const fColor = lastSig.action === '做多' ? '#00e676' : '#ff1744';
+                    forceBtn = '<div style="margin-top:6px;display:flex;gap:8px;align-items:center;">' +
+                        '<button class="btn btn-sm" style="background:' + fColor + '22;color:' + fColor + ';border:1px solid ' + fColor + '44;font-weight:700;" ' +
+                        'onclick="forceEntry(\'' + bot.bot_id + '\',\'' + fSide + '\')">強制補倉 ' + lastSig.action + '</button>' +
+                        '<span style="color:#6b7280;font-size:0.7rem;">以目前市價進場</span></div>';
+                }
                 signalsHtml = '<div style="margin-top:8px;padding:10px 12px;background:#0a0a0f;border:1px solid #ffffff0a;border-radius:8px;">' +
                     '<div style="color:#6b7280;font-size:0.7rem;margin-bottom:4px;">最近信號</div>' +
-                    rows + '</div>';
+                    rows + forceBtn + '</div>';
             }
             html += '<div class="card" style="border-left:3px solid ' +
                 (bot.status === 'running' ? '#00e676' : bot.status === 'error' ? '#ff1744' : '#6b7280') + ';">' +
