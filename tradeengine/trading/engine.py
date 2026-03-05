@@ -217,14 +217,10 @@ class LiveTradingEngine:
         latest_entry_short = bool(signals.entries_short.iloc[-2])
         latest_exit_short = bool(signals.exits_short.iloc[-2])
 
-        # Prefer real-time WS price over stale candle close
-        candle_close = float(df["close"].iloc[-1])
-        if hasattr(self.executor, "_current_prices") and self.symbol in self.executor._current_prices:
-            current_price = self.executor._current_prices[self.symbol]
-        else:
-            current_price = candle_close
-            if hasattr(self.executor, "set_price"):
-                self.executor.set_price(self.symbol, current_price)
+        current_price = float(df["close"].iloc[-1])
+        # Ensure paper executor has current price before any order
+        if hasattr(self.executor, "set_price"):
+            self.executor.set_price(self.symbol, current_price)
         pos = self.position_manager.get_position(self.symbol)
 
         logger.info(
