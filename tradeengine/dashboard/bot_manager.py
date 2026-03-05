@@ -161,6 +161,7 @@ class BotManager:
         self._pending_restart: set[str] = set()
         self._pending_missed_signals: dict[str, dict] = {}
         self._db_client: Any = None  # Supabase client
+        self._db_columns: set[str] | None = None  # Known DB columns (auto-detected)
         self._shared_ws: Any = None  # Shared PionexWebSocket for all Pionex bots
         self._load_bots_json()  # Load from JSON first as fallback
 
@@ -169,6 +170,7 @@ class BotManager:
         try:
             from tradeengine.database.connection import get_session
             self._db_client = await get_session()
+            self._migrate_db_columns()
             await self._load_bots_db()
             # DB is the source of truth; sync JSON to match
             self._save_bots_json()
@@ -176,6 +178,21 @@ class BotManager:
         except Exception as e:
             logger.warning(f"BotManager: DB init failed, using JSON fallback: {e}")
             self._db_client = None
+
+    def _migrate_db_columns(self):
+        """Detect available columns so _save_one_bot only sends known columns."""
+        if not self._db_client:
+            return
+        try:
+            row = self._db_client.table("bots").select("*").limit(1).execute()
+            if row.data:
+                self._db_columns = set(row.data[0].keys())
+                logger.info(f"BotManager: DB has {len(self._db_columns)} columns")
+            else:
+                self._db_columns = None  # No rows yet, send all
+        except Exception as e:
+            logger.warning(f"DB column detection failed: {e}")
+            self._db_columns = None
 
     # ─── Persistence ──────────────────────────────────────────────
 
@@ -233,6 +250,8 @@ class BotManager:
             return
         try:
             rows = [_bot_to_row(bot) for bot in self._bots.values()]
+            if self._db_columns:
+                rows = [{k: v for k, v in r.items() if k in self._db_columns} for r in rows]
             if rows:
                 self._db_client.table("bots").upsert(rows, on_conflict="bot_id").execute()
         except Exception as e:
@@ -242,8 +261,12 @@ class BotManager:
         """Save a single bot to DB (more efficient for frequent updates)."""
         if self._db_client:
             try:
+                row = _bot_to_row(bot)
+                # Filter to only DB-known columns to avoid "column does not exist"
+                if self._db_columns:
+                    row = {k: v for k, v in row.items() if k in self._db_columns}
                 self._db_client.table("bots").upsert(
-                    _bot_to_row(bot), on_conflict="bot_id"
+                    row, on_conflict="bot_id"
                 ).execute()
             except Exception as e:
                 logger.warning(f"Failed to save bot {bot.bot_id} to DB: {e}")
