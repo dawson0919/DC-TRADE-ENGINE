@@ -19,7 +19,7 @@ async function loadBots(force) {
         });
         // Skip re-render if data unchanged (prevents flicker on auto-refresh)
         if (!force) {
-            const bHash = JSON.stringify(bots.map(b => [b.bot_id, b.status, b.total_pnl, b.total_trades, b.win_rate, b.position, b.leverage, b.missed_signal]));
+            const bHash = JSON.stringify(bots.map(b => [b.bot_id, b.status, b.total_pnl, b.total_trades, b.win_rate, b.position, b.leverage, b.missed_signal, b.recent_signals]));
             if (bHash === _botsLastHash) return;
             _botsLastHash = bHash;
         }
@@ -85,6 +85,22 @@ async function loadBots(force) {
                     '</div>' +
                     '</div>';
             }
+            // Recent signals section
+            let signalsHtml = '';
+            if (bot.recent_signals && bot.recent_signals.length > 0) {
+                const actionColors = { '做多': '#00e676', '做空': '#ff1744', '平多': '#29b6f6', '平空': '#29b6f6', '持倉中': '#6b7280', '無信號': '#6b7280' };
+                let rows = bot.recent_signals.map(s => {
+                    const c = actionColors[s.action] || '#6b7280';
+                    return '<div style="display:flex;justify-content:space-between;align-items:center;padding:3px 0;">' +
+                        '<span style="color:#6b7280;font-size:0.8rem;">' + s.time + '</span>' +
+                        '<span style="color:' + c + ';font-weight:600;font-size:0.85rem;">' + s.action + '</span>' +
+                        '<span style="font-size:0.85rem;">$' + s.price.toLocaleString() + '</span>' +
+                        '</div>';
+                }).join('');
+                signalsHtml = '<div style="margin-top:8px;padding:10px 12px;background:#0a0a0f;border:1px solid #ffffff0a;border-radius:8px;">' +
+                    '<div style="color:#6b7280;font-size:0.7rem;margin-bottom:4px;">最近信號</div>' +
+                    rows + '</div>';
+            }
             html += '<div class="card" style="border-left:3px solid ' +
                 (bot.status === 'running' ? '#00e676' : bot.status === 'error' ? '#ff1744' : '#6b7280') + ';">' +
                 '<div style="display:flex;justify-content:space-between;align-items:start;flex-wrap:wrap;gap:12px;">' +
@@ -110,6 +126,7 @@ async function loadBots(force) {
                 (bot.last_signal_time ? '<div style="font-size:0.65rem;color:#6b7280;">' + bot.last_signal_time + '</div>' : '') +
                 '</div>' +
                 '</div>' +
+                signalsHtml +
                 posHtml +
                 missedHtml +
                 (isWebhook ? '<div class="webhook-info-box" id="webhook-info-' + bot.bot_id + '"><div class="loading" style="padding:8px;font-size:0.8rem;">載入 Webhook 資訊...</div></div>' : '') +

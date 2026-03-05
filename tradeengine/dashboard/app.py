@@ -1387,6 +1387,7 @@ def _bot_to_dict(bot, mgr=None) -> dict:
         "error_msg": bot.error_msg,
         "position": None,
         "missed_signal": None,
+        "recent_signals": [],
     }
     if mgr:
         pos = mgr.get_position_info(bot.bot_id)
@@ -1395,4 +1396,5 @@ def _bot_to_dict(bot, mgr=None) -> dict:
         # Only check missed signal for running strategy bots without a position
         if bot.status == "running" and bot.signal_source != "webhook" and not pos:
             d["missed_signal"] = mgr.check_missed_signal(bot.bot_id)
+        d["recent_signals"] = mgr.get_recent_signals(bot.bot_id)
     return d

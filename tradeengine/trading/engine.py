@@ -71,6 +71,7 @@ class LiveTradingEngine:
         self._owns_ws = False
         self._stop_event: asyncio.Event | None = None
         self._last_signal_time: float = 0
+        self._signal_log: deque[dict] = deque(maxlen=10)
         self._on_trade_callback: Callable | None = None
 
     def on_trade(self, callback: Callable):
@@ -231,6 +232,27 @@ class LiveTradingEngine:
             f"entry_short={latest_entry_short} exit_short={latest_exit_short} "
             f"has_pos={has_position} price={current_price:.2f}"
         )
+
+        # Determine action for signal log
+        if has_position and pos:
+            if pos.side == Side.LONG and latest_exit_long:
+                sig_action = "平多"
+            elif pos.side == Side.SHORT and latest_exit_short:
+                sig_action = "平空"
+            else:
+                sig_action = "持倉中"
+        elif latest_entry_long:
+            sig_action = "做多"
+        elif latest_entry_short and self._can_short:
+            sig_action = "做空"
+        else:
+            sig_action = "無信號"
+
+        self._signal_log.append({
+            "time": datetime.now(timezone.utc).strftime("%m/%d %H:%M"),
+            "price": round(current_price, 2),
+            "action": sig_action,
+        })
 
         try:
             if has_position and pos:

@@ -870,6 +870,13 @@ class BotManager:
 
         return None
 
+    def get_recent_signals(self, bot_id: str, count: int = 2) -> list[dict]:
+        """Get recent signal evaluations from running engine."""
+        engine = self._running_engines.get(bot_id)
+        if engine and hasattr(engine, "_signal_log"):
+            return list(engine._signal_log)[-count:]
+        return []
+
     def get_bot_stats(self, bot_id: str) -> dict:
         """Get runtime stats for a bot."""
         bot = self._bots.get(bot_id)
