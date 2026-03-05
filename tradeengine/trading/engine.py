@@ -222,9 +222,10 @@ class LiveTradingEngine:
         latest_exit_short = bool(signals.exits_short.iloc[-2])
 
         current_price = float(df["close"].iloc[-1])
-        # Ensure paper executor has current price before any order
+        # Sync price to executor and position manager
         if hasattr(self.executor, "set_price"):
             self.executor.set_price(self.symbol, current_price)
+        self.position_manager.update_unrealized_pnl(self.symbol, current_price)
         pos = self.position_manager.get_position(self.symbol)
 
         logger.info(
