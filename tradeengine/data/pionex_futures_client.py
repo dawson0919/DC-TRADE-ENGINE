@@ -137,6 +137,11 @@ class PionexFuturesClient:
             
         return await self._request("POST", "/api/v1/futures/trade/order", json_body=body)
 
+    async def get_order(self, symbol: str, order_id: str) -> dict:
+        """GET /api/v1/futures/trade/order — query order details for fill price."""
+        params = {"symbol": symbol, "orderId": order_id}
+        return await self._request("GET", "/api/v1/futures/trade/order", params=params)
+
     async def get_positions(self, symbol: str | None = None) -> list[dict]:
         """GET /api/v1/futures/trade/position"""
         params = {}

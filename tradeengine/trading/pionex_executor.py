@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import asyncio
 import logging
 from typing import Any
 
@@ -24,20 +25,20 @@ class PionexExecutor(OrderExecutor):
         self, symbol: str, side: str, size: float, leverage: float = 1.0
     ) -> dict:
         logger.info(f"LIVE ORDER: {side} {size} {symbol} @ MARKET (Leverage: {leverage}x)")
-        
-        if leverage > 1.0 or "_PERP" in symbol:
+
+        is_futures = leverage > 1.0 or "_PERP" in symbol
+
+        if is_futures:
             if not self.futures_client:
                 raise RuntimeError("PionexFuturesClient required for leveraged orders")
-            
-            # For futures, we might need to set leverage first
+
             await self.futures_client.set_leverage(symbol, leverage)
-            
+
             result = await self.futures_client.place_order(
                 symbol=symbol, side=side, type="MARKET", size=str(size), leverage=leverage
             )
         else:
             if side == "BUY":
-                # Market buy on Pionex uses 'amount' (quote currency)
                 result = await self.client.new_order(
                     symbol=symbol, side="BUY", order_type="MARKET", size=str(size)
                 )
@@ -46,7 +47,46 @@ class PionexExecutor(OrderExecutor):
                     symbol=symbol, side="SELL", order_type="MARKET", size=str(size)
                 )
         logger.info(f"Order placed: {result}")
+
+        # Query actual fill price after market order
+        fill_price = await self._query_fill_price(result, symbol, is_futures)
+        if fill_price:
+            result["price"] = fill_price
+            logger.info(f"Actual fill price: {fill_price:.2f}")
+
         return result
+
+    async def _query_fill_price(
+        self, order_result: dict, symbol: str, is_futures: bool
+    ) -> float | None:
+        """Query order details to get actual fill price after market order."""
+        order_id = order_result.get("orderId")
+        if not order_id:
+            return None
+
+        await asyncio.sleep(0.5)  # Brief wait for order to fill
+
+        try:
+            if is_futures and self.futures_client:
+                order_info = await self.futures_client.get_order(symbol, str(order_id))
+            else:
+                order_info = await self.client.get_order(int(order_id))
+
+            # Try different field names Pionex might use
+            filled_size = float(order_info.get("filledSize", 0) or order_info.get("dealSize", 0) or 0)
+            filled_amount = float(order_info.get("filledAmount", 0) or order_info.get("dealFunds", 0) or 0)
+
+            if filled_size > 0 and filled_amount > 0:
+                return filled_amount / filled_size
+
+            # Direct price field
+            if order_info.get("price") and float(order_info["price"]) > 0:
+                return float(order_info["price"])
+
+        except Exception as e:
+            logger.warning(f"Failed to query fill price for order {order_id}: {e}")
+
+        return None
 
     async def place_limit_order(
         self, symbol: str, side: str, size: float, price: float, leverage: float = 1.0

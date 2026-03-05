@@ -216,10 +216,14 @@ class LiveTradingEngine:
         latest_entry_short = bool(signals.entries_short.iloc[-2])
         latest_exit_short = bool(signals.exits_short.iloc[-2])
 
-        current_price = float(df["close"].iloc[-1])
-        # Ensure paper executor has current price before any order
-        if hasattr(self.executor, "set_price"):
-            self.executor.set_price(self.symbol, current_price)
+        # Prefer real-time WS price over stale candle close
+        candle_close = float(df["close"].iloc[-1])
+        if hasattr(self.executor, "_current_prices") and self.symbol in self.executor._current_prices:
+            current_price = self.executor._current_prices[self.symbol]
+        else:
+            current_price = candle_close
+            if hasattr(self.executor, "set_price"):
+                self.executor.set_price(self.symbol, current_price)
         pos = self.position_manager.get_position(self.symbol)
 
         logger.info(
@@ -284,17 +288,21 @@ class LiveTradingEngine:
         if not pos:
             return
 
-        pnl = (price - pos.entry_price) * pos.size if pos.side == Side.LONG else (pos.entry_price - price) * pos.size
         order_side = "SELL" if pos.side == Side.LONG else "BUY"
-        logger.info(f"Closing {pos.side.value} position: {order_side} {pos.size:.8f} {self.symbol} @ {price:.2f} PnL={pnl:+.2f}")
-        await self.executor.place_market_order(
+        logger.info(f"Closing {pos.side.value} position: {order_side} {pos.size:.8f} {self.symbol} @ {price:.2f}")
+        order = await self.executor.place_market_order(
             self.symbol, order_side, pos.size, leverage=self.leverage
         )
-        self.position_manager.close_position(self.symbol, price)
+
+        # Use actual fill price if available
+        fill_price = float(order.get("price", price))
+        pnl = (fill_price - pos.entry_price) * pos.size if pos.side == Side.LONG else (pos.entry_price - fill_price) * pos.size
+        logger.info(f"Closed at fill_price={fill_price:.2f} PnL={pnl:+.2f}")
+        self.position_manager.close_position(self.symbol, fill_price)
 
         if self._on_trade_callback:
             try:
-                self._on_trade_callback("close", pos.side.value, price, pos.size, pnl)
+                self._on_trade_callback("close", pos.side.value, fill_price, pos.size, pnl)
             except Exception:
                 pass
 
