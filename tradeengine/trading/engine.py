@@ -190,13 +190,17 @@ class LiveTradingEngine:
             logger.debug("Not enough candles for signal generation")
             return
 
-        # Refresh latest candles from API
+        # Refresh latest candles from API (update existing + append new)
         try:
             latest = await self.client.get_klines(self.symbol, self.timeframe, limit=5)
             for k in latest:
-                # Update or append
-                existing_ts = {c["timestamp"] for c in self._candle_buffer}
-                if k["timestamp"] not in existing_ts:
+                found = False
+                for i, c in enumerate(self._candle_buffer):
+                    if c["timestamp"] == k["timestamp"]:
+                        self._candle_buffer[i] = k  # Update in-progress candle
+                        found = True
+                        break
+                if not found:
                     self._candle_buffer.append(k)
         except Exception as e:
             logger.error(f"Failed to refresh candles: {e}")
