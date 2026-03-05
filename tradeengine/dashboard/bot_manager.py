@@ -26,6 +26,7 @@ _BOT_FIELDS = [
     "auto_start", "leverage", "margin_mode",
     "open_position_side", "open_position_entry_price",
     "open_position_size", "open_position_time",
+    "signal_type_id", "signal_position_size",
 ]
 
 
@@ -72,6 +73,9 @@ class BotConfig:
     open_position_entry_price: float = 0.0
     open_position_size: float = 0.0
     open_position_time: str = ""
+    # Signal Bot mode (Pionex Signal API for copy trading)
+    signal_type_id: str = ""           # UUID for Pionex signalType
+    signal_position_size: float = 0.0  # persisted cumulative position_size in signal units
 
 
 def _bot_to_row(bot: BotConfig) -> dict:
@@ -106,6 +110,8 @@ def _bot_to_row(bot: BotConfig) -> dict:
         "open_position_entry_price": bot.open_position_entry_price,
         "open_position_size": bot.open_position_size,
         "open_position_time": bot.open_position_time,
+        "signal_type_id": bot.signal_type_id,
+        "signal_position_size": bot.signal_position_size,
     }
 
 
@@ -131,6 +137,8 @@ def _row_to_bot(row: dict) -> BotConfig:
     row.setdefault("open_position_entry_price", 0.0)
     row.setdefault("open_position_size", 0.0)
     row.setdefault("open_position_time", "")
+    row.setdefault("signal_type_id", "")
+    row.setdefault("signal_position_size", 0.0)
     # Filter only known fields
     known = {f.name for f in BotConfig.__dataclass_fields__.values()}
     filtered = {k: v for k, v in row.items() if k in known}
@@ -265,6 +273,7 @@ class BotManager:
         user_id: str = "",
         signal_source: str = "strategy",
         leverage: float = 1.0,
+        signal_type_id: str = "",
     ) -> BotConfig:
         """Create a new trading bot."""
         # Auto-switch spot to PERP when leverage > 1
@@ -288,6 +297,7 @@ class BotManager:
             signal_source=signal_source,
             webhook_token=webhook_token,
             leverage=leverage,
+            signal_type_id=signal_type_id,
             created_at=datetime.now(timezone.utc).isoformat(),
         )
         self._bots[bot_id] = bot
@@ -319,7 +329,7 @@ class BotManager:
         if bot.status == "running":
             return None
         allowed = {"name", "strategy", "symbol", "timeframe", "capital", "params",
-                   "paper_mode", "sl_pct", "tp_pct", "leverage"}
+                   "paper_mode", "sl_pct", "tp_pct", "leverage", "signal_type_id"}
         for key, val in updates.items():
             if key in allowed:
                 setattr(bot, key, val)
@@ -446,7 +456,22 @@ class BotManager:
                 if bot.leverage > 1.0 or "_PERP" in bot.symbol:
                     futures_client = PionexFuturesClient(key, secret)
 
-                if bot.paper_mode:
+                if bot.signal_source == "signal":
+                    # Signal Bot mode: send signals to Pionex Signal API
+                    from tradeengine.trading.signal_executor import SignalExecutor
+
+                    if not bot.signal_type_id:
+                        bot.status = "error"
+                        bot.error_msg = "未設定 Signal Type ID"
+                        self._save_one_bot(bot)
+                        return False
+                    if not key or key == "your_api_key_here":
+                        bot.status = "error"
+                        bot.error_msg = "Pionex API Key not configured"
+                        self._save_one_bot(bot)
+                        return False
+                    executor = SignalExecutor(client, bot.signal_type_id, bot.capital)
+                elif bot.paper_mode:
                     executor = PaperExecutor(bot.capital)
                 else:
                     if not key or key == "your_api_key_here":
@@ -511,6 +536,10 @@ class BotManager:
                     })
                     if len(b.trade_history) > 50:
                         b.trade_history = b.trade_history[-50:]
+                # Persist signal position_size for signal bots
+                eng = self._running_engines.get(_bid)
+                if eng and hasattr(getattr(eng, "executor", None), "_position_size"):
+                    b.signal_position_size = eng.executor._position_size
                 b.last_signal = f"{action} {side}"
                 b.last_signal_time = now_str
                 self._save_one_bot(b)
@@ -534,6 +563,10 @@ class BotManager:
                     f"{bot.open_position_side} {bot.open_position_size:.8f} "
                     f"@ {bot.open_position_entry_price:.2f}"
                 )
+
+            # Restore signal position_size for signal executor
+            if hasattr(engine.executor, "restore_position_size") and bot.signal_position_size != 0.0:
+                engine.executor.restore_position_size(bot.signal_position_size)
 
             self._save_one_bot(bot)
 

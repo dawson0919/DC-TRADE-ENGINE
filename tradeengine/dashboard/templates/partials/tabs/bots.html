@@ -26,11 +26,23 @@
                 <select id="bot-signal-source" onchange="onSignalSourceChange()">
                     <option value="strategy">內建策略</option>
                     <option value="webhook">TradingView Webhook</option>
+                    <option value="signal">信號跟單 (Signal Bot)</option>
                 </select>
             </div>
             <div id="bot-webhook-hint"
                 style="display:none;padding:12px;background:#f7931a15;border:1px solid #f7931a40;border-radius:8px;margin-bottom:12px;font-size:0.85rem;color:#f7931a;">
                 Webhook 模式：建立後可取得 Webhook URL，貼到 TradingView Alert 即可接收外部信號。不需要選擇策略或時間框架。
+            </div>
+            <div id="bot-signal-hint"
+                style="display:none;padding:12px;background:#29b6f615;border:1px solid #29b6f640;border-radius:8px;margin-bottom:12px;font-size:0.85rem;color:#29b6f6;">
+                信號跟單模式：策略產生的買賣信號將透過 Pionex Signal API 發送，讓跟單者自動複製交易。需要 API Key 和 Signal Type ID。
+            </div>
+            <div id="bot-signal-fields" style="display:none;">
+                <div class="form-group">
+                    <label>Signal Type ID</label>
+                    <input type="text" id="bot-signal-type-id" placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx">
+                    <small style="color:#6b7280;margin-top:4px;">從 Pionex Signal Bot 設定頁面複製 Signal Type UUID</small>
+                </div>
             </div>
             <div class="form-group">
                 <label>名稱</label>

@@ -44,6 +44,48 @@
                 </div>
 
                 <div class="guide-step">
+                    <span class="step-num">5</span>
+                    <h3>信號跟單 (Pionex Signal Bot)</h3>
+                    <p>讓你的策略信號自動發送到 Pionex，跟單者可以複製你的合約交易。</p>
+
+                    <p style="margin:12px 0 6px;font-weight:600;color:#29b6f6;">Step A：在 Pionex 建立 Signal Bot</p>
+                    <ul>
+                        <li>登入 <a href="https://www.pionex.com/en/trade/bot" target="_blank" style="color:#29b6f6;">Pionex 交易機器人頁面</a></li>
+                        <li>點擊「建立機器人」→ 選擇「Signal Bot」（信號機器人）</li>
+                        <li>選擇合約交易對（例如 BTC/USDT 永續合約）</li>
+                        <li>設定槓桿倍率、投入金額等參數</li>
+                        <li>建立完成後，進入 Signal Bot 設定頁面</li>
+                    </ul>
+
+                    <p style="margin:12px 0 6px;font-weight:600;color:#29b6f6;">Step B：取得 Signal Type ID</p>
+                    <ul>
+                        <li>在 Signal Bot 設定頁面找到「Signal Type」或「API 信號設定」區塊</li>
+                        <li>複製 <strong>Signal Type ID</strong>（UUID 格式，例如：<code>7cd6d968-15f2-4557-a499-30e30603e180</code>）</li>
+                        <li>這個 ID 是你的專屬信號通道，用來接收外部策略信號</li>
+                    </ul>
+
+                    <p style="margin:12px 0 6px;font-weight:600;color:#29b6f6;">Step C：在 TradeEngine 建立信號跟單機器人</p>
+                    <ul>
+                        <li>前往「<a href="#" onclick="switchTab('bots');return false;" style="color:#29b6f6;">實盤機器人</a>」分頁，點擊「+ 新增機器人」</li>
+                        <li>信號來源選擇「<strong>信號跟單 (Signal Bot)</strong>」</li>
+                        <li>貼入你的 Signal Type ID</li>
+                        <li>選擇策略、交易對、時間框架等參數</li>
+                        <li>啟動機器人 — 策略產生買賣信號時會自動發送到 Pionex</li>
+                    </ul>
+
+                    <p style="margin:12px 0 6px;font-weight:600;color:#f7931a;">信號邏輯說明</p>
+                    <ul>
+                        <li><strong>開多</strong>：action=buy，position_size 為正值</li>
+                        <li><strong>平多</strong>：action=sell，position_size=0</li>
+                        <li><strong>開空</strong>：action=sell，position_size 為負值</li>
+                        <li><strong>平空</strong>：action=buy，position_size=0</li>
+                        <li>每次信號以 100 USDT 為基準，Pionex 會按比例分配跟單者的資金</li>
+                    </ul>
+
+                    <div class="warn">Signal Bot 為即時交易模式，信號會直接影響跟單者的真實資金。請務必先用模擬交易驗證策略穩定性。</div>
+                </div>
+
+                <div class="guide-step">
                     <span class="step-num">?</span>
                     <h3>策略簡介</h3>
                     <p style="margin-bottom:8px;">共 15 種內建策略，分為四大類：</p>

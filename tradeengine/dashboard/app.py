@@ -860,6 +860,10 @@ def create_app() -> FastAPI:
                         )
             elif not data.get("symbol"):
                 return JSONResponse({"error": "缺少必要欄位: symbol"}, status_code=400)
+            # Signal mode validation
+            if signal_source == "signal" and not data.get("signal_type_id"):
+                return JSONResponse({"error": "Signal 模式需要 Signal Type ID"}, status_code=400)
+
             bot = bot_manager.create_bot(
                 name=data.get("name", "New Bot"),
                 strategy=data.get("strategy", "webhook") if signal_source == "webhook" else data["strategy"],
@@ -867,12 +871,13 @@ def create_app() -> FastAPI:
                 timeframe=data.get("timeframe", "") if signal_source == "webhook" else data["timeframe"],
                 capital=float(data.get("capital", 10000)),
                 params=data.get("params", {}),
-                paper_mode=data.get("paper_mode", True),
+                paper_mode=data.get("paper_mode", True) if signal_source != "signal" else False,
                 sl_pct=float(data["sl_pct"]) if data.get("sl_pct") else None,
                 tp_pct=float(data["tp_pct"]) if data.get("tp_pct") else None,
                 user_id=user_id,
                 signal_source=signal_source,
                 leverage=max(1.0, min(float(data.get("leverage", 1.0)), 5.0)),
+                signal_type_id=data.get("signal_type_id", ""),
             )
             return _bot_to_dict(bot, bot_manager)
         except Exception as e:
@@ -905,6 +910,8 @@ def create_app() -> FastAPI:
             updates["tp_pct"] = float(data["tp_pct"]) if data["tp_pct"] else None
         if "leverage" in data:
             updates["leverage"] = max(1.0, min(float(data["leverage"]), 5.0))
+        if "signal_type_id" in data:
+            updates["signal_type_id"] = data["signal_type_id"]
         try:
             bot = bot_manager.update_bot(bot_id, user_id=user_id or "", **updates)
             if not bot:
@@ -1370,6 +1377,7 @@ def _bot_to_dict(bot, mgr=None) -> dict:
         "status": bot.status,
         "leverage": bot.leverage,
         "signal_source": bot.signal_source,
+        "signal_type_id": bot.signal_type_id,
         "webhook_token": bot.webhook_token,
         "total_pnl": bot.total_pnl,
         "total_trades": bot.total_trades,

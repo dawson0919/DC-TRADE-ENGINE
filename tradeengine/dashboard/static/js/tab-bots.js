@@ -33,11 +33,12 @@ async function loadBots(force) {
             const statusClass = bot.status === 'running' ? 'badge-running' : bot.status === 'error' ? 'badge-error' : 'badge-stopped';
             const modeClass = bot.paper_mode ? 'badge-paper' : 'badge-live';
             const isWebhook = bot.signal_source === 'webhook';
+            const isSignal = bot.signal_source === 'signal';
             const pnlColor = bot.total_pnl > 0 ? '#00e676' : bot.total_pnl < 0 ? '#ff1744' : '#e7e9ea';
             const pnlSign = bot.total_pnl > 0 ? '+' : '';
             const infoLine = isWebhook
                 ? 'Webhook | ' + bot.symbol + ' | $' + bot.capital.toLocaleString() + (bot.leverage > 1 ? ' | ' + bot.leverage + 'x' : '')
-                : bot.strategy + ' | ' + bot.symbol + ' | ' + bot.timeframe + ' | $' + bot.capital.toLocaleString() + (bot.leverage > 1 ? ' | ' + bot.leverage + 'x' : '');
+                : (isSignal ? '信號跟單 | ' : '') + bot.strategy + ' | ' + bot.symbol + ' | ' + bot.timeframe + ' | $' + bot.capital.toLocaleString() + (bot.leverage > 1 ? ' | ' + bot.leverage + 'x' : '');
             // Missed signal info
             const ms = bot.missed_signal;
             let missedHtml = '';
@@ -92,6 +93,7 @@ async function loadBots(force) {
                 '<span class="badge ' + statusClass + '">' + statusLabel + '</span> ' +
                 '<span class="badge ' + modeClass + '">' + (bot.paper_mode ? '模擬' : '即時') + '</span>' +
                 (isWebhook ? '<span class="badge badge-webhook">Webhook</span>' : '') +
+                (isSignal ? '<span class="badge" style="background:#29b6f622;color:#29b6f6;">Signal</span>' : '') +
                 '<p style="color:#6b7280;font-size:0.85rem;margin-top:4px;">' + infoLine + '</p>' +
                 (bot.error_msg ? '<p style="color:#ff1744;font-size:0.8rem;margin-top:2px;">' + bot.error_msg + '</p>' : '') +
                 '</div>' +
@@ -172,6 +174,8 @@ function editBot(botJson) {
     document.getElementById('bot-mode').value = bot.paper_mode ? 'true' : 'false';
     document.getElementById('bot-sl').value = bot.sl_pct || '';
     document.getElementById('bot-tp').value = bot.tp_pct || '';
+    const sigTypeInput = document.getElementById('bot-signal-type-id');
+    if (sigTypeInput) sigTypeInput.value = bot.signal_type_id || '';
     loadStrategyParams('bot').then(() => {
         if (bot.params) {
             Object.entries(bot.params).forEach(([k, v]) => {
@@ -201,6 +205,7 @@ async function updateBot() {
         sl_pct: slVal ? parseFloat(slVal) : null,
         tp_pct: tpVal ? parseFloat(tpVal) : null,
         params: params,
+        signal_type_id: document.getElementById('bot-signal-type-id') ? document.getElementById('bot-signal-type-id').value.trim() : '',
     };
     try {
         const data = await safeFetch('/api/bots/' + _editingBotId, {
@@ -263,6 +268,13 @@ async function createBot() {
     btn.textContent = '建立中...';
     const signalSource = document.getElementById('bot-signal-source').value;
     const isWebhook = signalSource === 'webhook';
+    const isSignal = signalSource === 'signal';
+    if (isSignal && !document.getElementById('bot-signal-type-id').value.trim()) {
+        alert('請輸入 Signal Type ID');
+        btn.disabled = false;
+        btn.textContent = _editingBotId ? '儲存' : '建立';
+        return;
+    }
     const params = isWebhook ? {} : collectParams('bot');
     const slVal = document.getElementById('bot-sl').value;
     const tpVal = document.getElementById('bot-tp').value;
@@ -278,6 +290,7 @@ async function createBot() {
         tp_pct: isWebhook ? null : (tpVal ? parseFloat(tpVal) : null),
         params: params,
         signal_source: signalSource,
+        signal_type_id: isSignal ? document.getElementById('bot-signal-type-id').value.trim() : '',
     };
     try {
         const resp = await authFetch('/api/bots', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
@@ -326,11 +339,22 @@ async function deleteBot(botId, name) {
 function onSignalSourceChange() {
     const source = document.getElementById('bot-signal-source').value;
     const isWebhook = source === 'webhook';
+    const isSignal = source === 'signal';
     document.getElementById('bot-strategy-fields').style.display = isWebhook ? 'none' : '';
     document.getElementById('bot-timeframe-field').style.display = isWebhook ? 'none' : '';
     document.getElementById('bot-sl-tp-fields').style.display = isWebhook ? 'none' : '';
     document.getElementById('bot-params').style.display = isWebhook ? 'none' : '';
     document.getElementById('bot-webhook-hint').style.display = isWebhook ? '' : 'none';
+    document.getElementById('bot-signal-hint').style.display = isSignal ? '' : 'none';
+    document.getElementById('bot-signal-fields').style.display = isSignal ? '' : 'none';
+    // Signal mode forces live trading
+    const modeSelect = document.getElementById('bot-mode');
+    if (isSignal) {
+        modeSelect.value = 'false';
+        modeSelect.disabled = true;
+    } else if (!isWebhook) {
+        modeSelect.disabled = false;
+    }
 }
 
 async function loadWebhookInfo(botId) {

@@ -56,7 +56,7 @@ class LiveTradingEngine:
         self.leverage = min(leverage, 5.0)  # Constraint
         self.lookback = lookback
         # Spot SHORT restriction only applies to live mode
-        self._can_short = "_PERP" in symbol or "Paper" in type(executor).__name__
+        self._can_short = "_PERP" in symbol or "Paper" in type(executor).__name__ or "Signal" in type(executor).__name__
 
         self.position_manager = PositionManager()
         self.risk_manager = RiskManager(

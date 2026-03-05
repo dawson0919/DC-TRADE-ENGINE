@@ -307,6 +307,34 @@ class PionexClient:
         return data["data"].get("orders", [])
 
 
+    # ── Signal Bot API ──────────────────────────────────────────────
+
+    async def send_signal(self, payload: dict) -> dict:
+        """POST /api/v1/bot/signal/listener — send a trading signal for copy trading."""
+        import json
+
+        path = "/api/v1/bot/signal/listener"
+        body_str = json.dumps(payload, separators=(",", ":"))
+        headers, params = self._auth_headers("POST", path, {}, body_str)
+        resp = await self._client.post(
+            path, params=params, headers=headers, content=body_str
+        )
+        data = resp.json()
+        if not data.get("result"):
+            raise PionexAPIError(data.get("code", "UNKNOWN"), data.get("message", ""))
+        return data.get("data", {})
+
+    async def get_signal_order(self, bu_order_id: str) -> dict:
+        """GET /api/v1/bot/orders/smartCopy/order — query signal copy-trade order."""
+        path = "/api/v1/bot/orders/smartCopy/order"
+        headers, params = self._auth_headers("GET", path, {"buOrderId": bu_order_id})
+        resp = await self._client.get(path, params=params, headers=headers)
+        data = resp.json()
+        if not data.get("result"):
+            raise PionexAPIError(data.get("code", "UNKNOWN"), data.get("message", ""))
+        return data.get("data", {})
+
+
 class PionexAPIError(Exception):
     def __init__(self, code: str, message: str):
         self.code = code
