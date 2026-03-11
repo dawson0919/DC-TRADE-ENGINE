@@ -81,7 +81,7 @@ class SignalExecutor(OrderExecutor):
             "price": f"{price}",
             "data": {
                 "action": action,
-                "contracts": f"{abs(contracts)}",
+                "amount": f"{abs(contracts)}",
                 "position_size": f"{self._position_size}",
             },
         }
